@@ -1,0 +1,20 @@
+id: demo-fx5u
+purpose: Offline local test profile for a simple cylinder sequence
+ide:
+  product: GX Works3
+  version: "verify-installed-version"
+controller:
+  family: MELSEC iQ-F
+  cpu: FX5U
+programming_language: Structured Text
+network: none
+test_io:
+  start_pushbutton: X0
+  stop_pushbutton: X1
+  cylinder_extended_sensor: X2
+  cylinder_retracted_sensor: X3
+  extend_valve: Y0
+  retract_valve: Y1
+constraints:
+  offline_project_only: true
+  sequence_timeout_ms: 3000

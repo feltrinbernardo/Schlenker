@@ -1,0 +1,10 @@
+# Generated runs and proprietary GX Works project artefacts
+runs/*
+!runs/.gitkeep
+fixtures/projects/*
+!fixtures/projects/.gitkeep
+*.gx3
+*.gxw
+*.bak
+*.log
+.DS_Store

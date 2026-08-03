@@ -1,0 +1,19 @@
+id: demo-iq-r
+purpose: Offline local test profile for state-machine and alarm logic
+ide:
+  product: GX Works3
+  version: "verify-installed-version"
+controller:
+  family: MELSEC iQ-R
+  cpu: R04CPU
+programming_language: Structured Text
+network: none
+test_io:
+  start_command: StartCmd
+  stop_command: StopCmd
+  ready_feedback: ReadyFb
+  fault_feedback: FaultFb
+  run_command: RunCmd
+constraints:
+  offline_project_only: true
+  sequence_timeout_ms: 5000
