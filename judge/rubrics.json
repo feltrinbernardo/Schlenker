@@ -1,0 +1,220 @@
+{
+  "_meta": {
+    "version": "1.0.0",
+    "project": "Schlenker LLM-as-a-Judge",
+    "references": [
+      "Siemens TIA Portal Programming Guideline (81318674_v14_en)",
+      "IEC 61131-3 Ed.3 Structured Control Language",
+      "Siemens SIMATIC S7 SCL V5.3 Reference Manual",
+      "PLCopen Motion Control Function Blocks",
+      "OMAC PackML / ISA-88 State Machine standard",
+      "Schlenker AGENTS.md policy",
+      "Schlenker REV12 Manifest and Merge Register"
+    ],
+    "last_updated": "2026-08-05"
+  },
+
+  "dimensions": {
+
+    "clarity": {
+      "weight": 0.20,
+      "description": "How clear, specific, and unambiguous the user prompt is. A vague prompt produces unreliable agent output.",
+      "criteria": [
+        "States the target file, block, or function by name (e.g., FB_MainState, 10A_FB_DoorAccess.scl)",
+        "Specifies the desired outcome explicitly (add, remove, modify, review, explain)",
+        "Provides necessary context (revision, REV11/REV12, GX Works2 vs TIA Portal)",
+        "Avoids pronouns like 'it', 'that', 'this' without clear referents",
+        "Includes acceptance criteria or a definition of done when requesting changes",
+        "Single, coherent intent — not two separate tasks merged in one sentence"
+      ],
+      "score_anchors": {
+        "1": "Completely vague — no file, no target, no desired outcome. e.g. 'fix the problem'",
+        "2": "Identifies a general area but missing target and outcome. e.g. 'do something with the door logic'",
+        "3": "Has a target OR an outcome but not both. e.g. 'review FB_DoorAccess' (no criteria) or 'add safety check' (no file)",
+        "4": "Has target and outcome; minor ambiguity in scope or acceptance criteria",
+        "5": "Fully specified: named target, explicit outcome, clear acceptance criteria, single intent"
+      }
+    },
+
+    "safety_compliance": {
+      "weight": 0.30,
+      "description": "Whether the prompt respects Schlenker AGENTS.md safety policy for GX Works2, PLC writes, and source protection.",
+      "policy_source": "Schlenker/AGENTS.md",
+      "hard_violations": [
+        "Requests writing to, downloading to, or programming a real PLC without explicit authorization naming the target and operation",
+        "Requests opening or editing D:\\GX Works\\schlenker.gxw (the protected original) directly",
+        "Requests any Online, Monitor, Read from PLC, Write to PLC, Transfer, or Remote Operation without a current-run operator confirmation",
+        "Requests a PLC run/stop/reset, connection change, or device-memory write without explicit authorization",
+        "Requests saving production credentials, PLC IPs, or connection details to the repository",
+        "Requests bypassing the SHA-256 integrity check on the original source file",
+        "Requests adding input, activation, click, type, or clipboard behavior to the capture helper script"
+      ],
+      "soft_violations": [
+        "Reuses a previous disconnection confirmation without requesting a fresh one",
+        "Refers to an ambiguous PLC target that could be production",
+        "Omits the mandatory change-log entry mention for file-modifying tasks",
+        "Asks to skip or abbreviate the baseline compile step before making changes"
+      ],
+      "compliant_patterns": [
+        "Requests offline-only operations on fixtures/projects/schlenker-working/schlenker.gxw",
+        "Explicitly references a fresh operator disconnection confirmation",
+        "Records original SHA-256 hash before and after changes",
+        "Targets REV12 SCL files under REV12/PLC_Sources/ for TIA Portal development",
+        "Requests write-change-log.ps1 to be called for file-modifying tasks",
+        "Asks for compile verification before and after changes"
+      ],
+      "score_anchors": {
+        "1": "Hard violation present — prompt would directly trigger a forbidden action",
+        "2": "Multiple soft violations or one soft violation that implies a likely hard violation",
+        "3": "One soft violation; no hard violations",
+        "4": "Fully compliant with AGENTS.md; minor policy detail omitted (e.g., didn't mention change log)",
+        "5": "Fully compliant and explicitly references the relevant safety gate, integrity check, or policy clause"
+      }
+    },
+
+    "scl_plc_specificity": {
+      "weight": 0.25,
+      "description": "Whether the prompt uses correct IEC 61131-3 / Siemens SCL / Mitsubishi GX Works2 terminology and references real project artefacts.",
+      "iec_61131_3_constructs": [
+        "FUNCTION_BLOCK, FUNCTION, PROGRAM, CONFIGURATION",
+        "VAR, VAR_INPUT, VAR_OUTPUT, VAR_IN_OUT, VAR_TEMP, VAR_STAT",
+        "IF/THEN/ELSE/ELSIF/END_IF",
+        "CASE/OF/ELSE/END_CASE",
+        "FOR/TO/BY/DO/END_FOR",
+        "WHILE/DO/END_WHILE",
+        "REPEAT/UNTIL/END_REPEAT",
+        "TON, TOF, TP (IEC timer function blocks)",
+        "CTU, CTD, CTUD (IEC counter function blocks)",
+        "R_TRIG, F_TRIG (edge detection)",
+        "DATA_BLOCK (Siemens extension)",
+        "ORGANIZATION_BLOCK OB1, OB100, OB121, OB122"
+      ],
+      "siemens_tia_specifics": [
+        "Multi-instance: declaring FB instances inside another FB VAR section",
+        "DB_Global, DB_Application (project-specific global data blocks)",
+        "UDT_Machine, UDT_DoorAccess, UDT_Command (project UDTs)",
+        "SafetyOK, PilzDeviceOK, AnybusGatewayOK (named signals in DB_Global)",
+        "PROFINET, IO-Link, EtherCAT (network references)",
+        "SINAMICS G120C, PNOZmulti 2, IFM AL1403, SMC EX260 (hardware references)",
+        "TIA Portal V19, S7-1512C-1 PN, MTP1500 (platform references)",
+        "REV11 / REV12 revision naming convention"
+      ],
+      "gxworks2_specifics": [
+        "Ladder Diagram, GX Works2 1.560J, MELSEC-F, FX3G",
+        "X, Y, M, T, C, D device types",
+        "MAIN program, 614 steps",
+        "Device comments, statement, note (GX Works2 comment levels)",
+        "Structured Project, Simple Project types",
+        "OB1_CallStructure, OB100_Startup"
+      ],
+      "red_flags": [
+        "Mixes Siemens and Mitsubishi addressing without distinguishing them",
+        "Uses generic 'variable' instead of specific SCL type",
+        "Refers to 'the PLC code' without naming the FB, DB, or OB",
+        "Uses wrong revision (confuses REV10/REV11/REV12)",
+        "References Schenker (wrong spelling) instead of Schlenker"
+      ],
+      "score_anchors": {
+        "1": "No domain terminology — reads like a generic software request with no PLC/SCL context",
+        "2": "Generic PLC references but no project-specific artefacts or IEC 61131-3 constructs",
+        "3": "Uses correct PLC/SCL terms but doesn't reference specific project files, FBs, or signals",
+        "4": "References specific project artefacts (e.g., FB_DoorAccess, DB_Global.SafetyOK) with correct terminology",
+        "5": "Precisely references the correct artefact, revision, SCL construct, and any relevant signal path"
+      }
+    },
+
+    "agents_md_adherence": {
+      "weight": 0.25,
+      "description": "Whether the prompt aligns with the workflow rules defined in Schlenker AGENTS.md: Computer Use contract, evidence requirements, change-log policy, and test evidence rules.",
+      "mandatory_workflow_rules": [
+        "Use computer-use skill through its official wrapper for GX Works2 GUI actions",
+        "Require exactly one GX Works2 target window before acting",
+        "Observe state before each action and refresh immediately after",
+        "For Windows 10: use capture-gxworks2-window.ps1 as read-only visual channel only",
+        "Save screenshots, action summaries, compiler output, and report under runs/<run-id>/",
+        "Record original SHA-256 hash before and after every run",
+        "Append a change-log entry via write-change-log.ps1 for every file-modifying task",
+        "Baseline compile must pass before making changes",
+        "TIA Portal source import order: UDT types first, then FBs, then DBs, then OBs"
+      ],
+      "change_log_fields": [
+        "ISO-8601 local timestamp with timezone",
+        "UTC timestamp",
+        "Request summary (paraphrased, no credentials)",
+        "Result",
+        "Status (complete / partial / blocked)",
+        "Branch",
+        "Base commit",
+        "Actor",
+        "Affected files"
+      ],
+      "evidence_requirements": [
+        "Compiler evidence (pass/fail + error count) saved to runs/<run-id>/",
+        "Before/after screenshots at material UI transitions",
+        "Hash comparison proving original unchanged",
+        "run-report-template.md completed"
+      ],
+      "score_anchors": {
+        "1": "Prompt would produce an output that directly violates AGENTS.md workflow rules",
+        "2": "Prompt ignores mandatory evidence or change-log requirements",
+        "3": "Prompt is generally aligned but omits one mandatory workflow step",
+        "4": "Prompt follows AGENTS.md workflow; minor omission in evidence or log specification",
+        "5": "Prompt explicitly references and follows all relevant AGENTS.md workflow steps"
+      }
+    }
+  },
+
+  "overall_score": {
+    "formula": "weighted_average of all four dimension scores",
+    "thresholds": {
+      "1.0_to_1.9": {
+        "label": "REJECT",
+        "color": "red",
+        "action": "Block or strongly warn — prompt will likely produce a harmful or useless result"
+      },
+      "2.0_to_2.9": {
+        "label": "POOR",
+        "color": "orange",
+        "action": "Significant clarification required before the agent can safely proceed"
+      },
+      "3.0_to_3.9": {
+        "label": "FAIR",
+        "color": "yellow",
+        "action": "Proceed with caution — agent should ask one clarifying question before acting"
+      },
+      "4.0_to_4.4": {
+        "label": "GOOD",
+        "color": "green",
+        "action": "Proceed — prompt is clear and compliant; minor suggestions only"
+      },
+      "4.5_to_5.0": {
+        "label": "EXCELLENT",
+        "color": "brightgreen",
+        "action": "Proceed confidently — prompt is a model example for this domain"
+      }
+    }
+  },
+
+  "bonus_signals": {
+    "description": "Presence of these patterns in the prompt adds +0.1 to the overall score (max +0.3)",
+    "patterns": [
+      "Explicitly references a currently open AGENTS.md policy clause by name",
+      "Provides a TIA Portal import order or GX Works2 procedure sequence",
+      "Includes a safety-gate confirmation statement inline",
+      "References the REV11-to-REV12 merge register for open items",
+      "Mentions specific fault mask, alarm ID, or bilingual HMI text key"
+    ]
+  },
+
+  "penalty_signals": {
+    "description": "Presence of these patterns in the prompt subtracts from the relevant dimension score",
+    "patterns": [
+      {"pattern": "Schenker (misspelling)", "penalty": -0.3, "dimension": "scl_plc_specificity"},
+      {"pattern": "write to PLC without authorization", "penalty": -2.0, "dimension": "safety_compliance"},
+      {"pattern": "open D:\\\\GX Works\\\\schlenker.gxw", "penalty": -2.0, "dimension": "safety_compliance"},
+      {"pattern": "skip baseline compile", "penalty": -0.5, "dimension": "agents_md_adherence"},
+      {"pattern": "reuse old confirmation", "penalty": -0.5, "dimension": "safety_compliance"},
+      {"pattern": "add click/input to capture helper", "penalty": -2.0, "dimension": "safety_compliance"}
+    ]
+  }
+}
