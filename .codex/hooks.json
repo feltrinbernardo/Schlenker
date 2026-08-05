@@ -1,0 +1,18 @@
+{
+  "description": "Schlenker LLM-as-a-Judge lifecycle hooks. Fires on every user prompt to score clarity, safety compliance, SCL/PLC specificity, and AGENTS.md adherence.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/user_prompt_submit.py\"",
+            "statusMessage": "⚖️  Schlenker Judge scoring prompt…",
+            "additionalContextLimit": 4000,
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
