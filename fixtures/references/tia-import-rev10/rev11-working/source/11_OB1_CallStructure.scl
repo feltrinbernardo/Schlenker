@@ -1,0 +1,36 @@
+ORGANIZATION_BLOCK "Main"
+VAR_TEMP
+    // Add temporary variables as required.
+END_VAR
+BEGIN
+    // REV11 working call order with guarded-door access coordination:
+    //  1) Read / normalize inputs
+    //     Physical controls below HMI: AUX. VOLTAGE, keyed MAN/AUT selector,
+    //     OPEN/CLOSE DOORS, RESET, START, STOP and the E-stop chain.
+    //     Normalize Panel_ModeSelectorAuto only after its contact arrangement
+    //     and authority relative to the HMI Auto/Manual commands are confirmed.
+    //  2) "FB_NetworkDiagnostics"   - PROFINET/EtherCAT device diagnostics
+    //  3) Pilz / safety status      -> feeds M.SafetyOK
+    //  4) "FB_DoorAccess"           - request/stop/power-off/unlock/reset coordination
+    //     UnlockAllDoorsRequest is a request to the validated safety system only.
+    //  5) "FB_MainState"            - machine state management, including GuardedAccess
+    //     StopRequest includes FB_DoorAccess.ControlledStopRequest.
+    //     Physical Stop Machine also feeds StopRequest; physical Start Machine
+    //     remains a separate deliberate restart command.
+    //  6) "FB_Auxiliaries"          - HMI lights and air-filter ON/OFF/proof
+    //  7) Homing & encoder (TM Count)
+    //  8) Bottle tracking
+    //  9) "FB_AccumulationGate"     - bottle shortage & outfeed accumulation
+    // 10) Gate control (auto path) / "FB_ManualValveOverride" (test path)
+    // 11) Filler sequence
+    // 12) "FB_ProductPump"          - product pump regulation
+    // 13) Capper & cap handling sequence
+    // 14) EV230 command (TM Count fast output)
+    // 15) "FB_VacuumCIP"            - vacuum / CIP
+    // 16) "FB_HeightMode"           - filler/capper height mode
+    // 17) "FB_JogPendant"           - forward-only JOG pendant
+    // 18) Drive (SINAMICS G120C) telegram outputs
+    // 19) "FB_SMC_ValveManager"     - final valve bit mapping to Anybus/EtherCAT
+    // 20) Alarms & diagnostics (uses FaultyDeviceMask from step 2)
+    // 21) HMI update (door access, auxiliaries, screens, menu and override state)
+END_ORGANIZATION_BLOCK

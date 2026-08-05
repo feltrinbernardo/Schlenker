@@ -1,0 +1,33 @@
+FUNCTION_BLOCK "FB_JogPendant"
+VAR_INPUT
+    ManualMode          : Bool;
+    SafetyOK            : Bool;
+    PendantConnected    : Bool;
+    JogPB               : Bool;
+    HeightModeActive    : Bool;
+    MainDriveReady      : Bool;
+    JogSpeedPct         : Real;
+END_VAR
+VAR_OUTPUT
+    JogForwardCmd       : Bool;
+    SpeedRefPct         : Real;
+    TrackingInvalidate  : Bool;
+END_VAR
+
+BEGIN
+    // Forward only. Reverse is not permitted by machine design.
+    JogForwardCmd := ManualMode
+                     AND SafetyOK
+                     AND PendantConnected
+                     AND JogPB
+                     AND NOT HeightModeActive
+                     AND MainDriveReady;
+
+    IF JogForwardCmd THEN
+        SpeedRefPct := JogSpeedPct;
+        TrackingInvalidate := TRUE;
+    ELSE
+        SpeedRefPct := 0.0;
+        TrackingInvalidate := FALSE;
+    END_IF;
+END_FUNCTION_BLOCK

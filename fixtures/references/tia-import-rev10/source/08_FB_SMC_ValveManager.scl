@@ -1,0 +1,32 @@
+FUNCTION_BLOCK "FB_SMC_ValveManager"
+VAR_INPUT
+    GateOpenCmd          : Bool;
+    GateCloseCmd         : Bool;
+    ProductInletCmd      : Bool;
+    ProductCloseCmd      : Bool;
+    EV210Cmd             : Bool;
+    EV211Cmd             : Bool;
+    EV212Cmd             : Bool;
+    CapDistributorAirCmd : Bool;
+    CapChannelAirCmd     : Bool;
+    SpareCmd             : Bool;
+END_VAR
+VAR_OUTPUT
+    ValveBits            : DWORD;
+END_VAR
+
+BEGIN
+    ValveBits := DWORD#0;
+
+    // NOTE: Map below is provisional and must match the final gateway/manifold I/O map.
+    ValveBits.%X0  := GateOpenCmd;
+    ValveBits.%X1  := GateCloseCmd;
+    ValveBits.%X2  := ProductInletCmd;
+    ValveBits.%X3  := ProductCloseCmd;
+    ValveBits.%X4  := EV210Cmd;
+    ValveBits.%X5  := EV211Cmd;
+    ValveBits.%X6  := EV212Cmd;
+    ValveBits.%X7  := CapDistributorAirCmd;
+    ValveBits.%X8  := CapChannelAirCmd;
+    ValveBits.%X9  := SpareCmd;
+END_FUNCTION_BLOCK

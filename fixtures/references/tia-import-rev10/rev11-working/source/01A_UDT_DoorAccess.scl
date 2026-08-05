@@ -1,0 +1,17 @@
+TYPE "UDT_DoorAccess" :
+STRUCT
+    State                 : USInt; // 0=Idle,20=Stop,30=PowerOff,40=Unlock,50/60=Access,70=AuxReset,80=AlarmReset,90=SafetyClose,100=RestartPermitted,200=Fault
+    RequestCombined       : Bool;
+    SequenceActive        : Bool;
+    ControlledStopRequest : Bool;
+    UnlockAllDoorsRequest : Bool;  // Request to validated safety system; never a direct lock output
+    AuxResetRequired      : Bool;
+    AlarmResetRequired    : Bool;
+    RestartPermitted      : Bool;
+    RequestBlueLampSteady : Bool;
+    RequestBlueLampFlash  : Bool;
+    RequestBlueLampCmd    : Bool;  // Common non-safety indication command for panel/front/rear lamps
+    Fault                 : Bool;
+    FaultCode             : UInt;  // 1=Stop timeout,2=Power-off timeout,3=Unlock timeout,4=Power feedback lost during access,5=Safety-system fault,6=E-stop chain open
+END_STRUCT;
+END_TYPE

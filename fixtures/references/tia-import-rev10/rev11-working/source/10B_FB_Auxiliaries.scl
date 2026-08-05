@@ -1,0 +1,58 @@
+FUNCTION_BLOCK "FB_Auxiliaries"
+// Standard auxiliary controls shown on the HMI Main page.
+// Physical output addresses and any separate lamp/filter feedbacks must be
+// confirmed from the electrical design before commissioning.
+
+VAR_INPUT
+    ControlPowerOK        : Bool;
+    LightsOnPB            : Bool; // Momentary HMI button
+    LightsOffPB           : Bool; // Momentary HMI button; OFF has priority
+    AirFilterOnPB         : Bool; // Momentary HMI button
+    AirFilterOffPB        : Bool; // Momentary HMI button; OFF has priority
+    AirFilterPressureOK   : Bool; // Existing 24 VDC hood/filter pressure input
+    AirFilterChangeRequired24V : Bool; // Dedicated 24 VDC filter-change input
+    ResetAlarmPB          : Bool; // Physical Alarm Reset pushbutton below HMI
+    AirFilterProofDelay   : Time := T#10s;
+END_VAR
+VAR_IN_OUT
+    A : "UDT_Auxiliaries";
+END_VAR
+VAR
+    T_AirFilterProof : TON;
+END_VAR
+
+BEGIN
+    // Each command drives an independent 24 VDC relay coil through its final
+    // PLC digital-output mapping. The relay contacts power the respective load
+    // circuits. Commands reset when control power is unavailable. Simultaneous
+    // ON/OFF requests resolve to OFF.
+    IF NOT ControlPowerOK OR LightsOffPB THEN
+        A.MachineLightsRelayCmd := FALSE;
+    ELSIF LightsOnPB THEN
+        A.MachineLightsRelayCmd := TRUE;
+    END_IF;
+
+    IF NOT ControlPowerOK OR AirFilterOffPB THEN
+        A.AirFilterRelayCmd := FALSE;
+    ELSIF AirFilterOnPB THEN
+        A.AirFilterRelayCmd := TRUE;
+    END_IF;
+
+    A.AirFilterPressureOK := AirFilterPressureOK;
+    // Maintenance warning only. It does not stop or inhibit the filter command.
+    A.AirFilterChangeWarning := AirFilterChangeRequired24V;
+
+    // The filter command remains active if proof is lost; the failure is
+    // alarmed so the operator can stop it deliberately or maintenance can
+    // inspect the filter/fan. This is not a safety function.
+    T_AirFilterProof(
+        IN := A.AirFilterRelayCmd AND NOT AirFilterPressureOK,
+        PT := AirFilterProofDelay
+    );
+
+    IF T_AirFilterProof.Q THEN
+        A.AirFilterFault := TRUE;
+    ELSIF ResetAlarmPB THEN
+        A.AirFilterFault := FALSE;
+    END_IF;
+END_FUNCTION_BLOCK

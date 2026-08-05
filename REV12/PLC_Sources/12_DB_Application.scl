@@ -1,0 +1,4 @@
+DATA_BLOCK "DB_Application" "FB_Application"
+{ S7_Optimized_Access := 'TRUE' }
+BEGIN
+END_DATA_BLOCK

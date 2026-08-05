@@ -1,0 +1,26 @@
+ORGANIZATION_BLOCK "Main"
+VAR_TEMP
+    // Add temporary variables as required.
+END_VAR
+BEGIN
+    // Confirmed call order (REV10):
+    //  1) Read / normalize inputs
+    //  2) "FB_NetworkDiagnostics"   - PROFINET/EtherCAT device diagnostics
+    //  3) Pilz / safety status      -> feeds M.SafetyOK
+    //  4) "FB_MainState"            - machine state management
+    //  5) Homing & encoder (TM Count)
+    //  6) Bottle tracking
+    //  7) "FB_AccumulationGate"     - bottle shortage & outfeed accumulation
+    //  8) Gate control (auto path) / "FB_ManualValveOverride" (test path)
+    //  9) Filler sequence
+    // 10) "FB_ProductPump"          - product pump regulation
+    // 11) Capper & cap handling sequence
+    // 12) EV230 command (TM Count fast output)
+    // 13) "FB_VacuumCIP"            - vacuum / CIP
+    // 14) "FB_HeightMode"           - filler/capper height mode
+    // 15) "FB_JogPendant"           - forward-only JOG pendant
+    // 16) Drive (SINAMICS G120C) telegram outputs
+    // 17) "FB_SMC_ValveManager"     - final valve bit mapping to Anybus/EtherCAT
+    // 18) Alarms & diagnostics (uses FaultyDeviceMask from step 2)
+    // 19) HMI update (screens + menu comment/override state)
+END_ORGANIZATION_BLOCK

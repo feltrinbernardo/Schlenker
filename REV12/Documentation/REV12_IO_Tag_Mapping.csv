@@ -1,0 +1,25 @@
+Tag,Type,Address_or_Bus,Description,Status
+b_InfeedGateOpen,Bool,%I0.5,Bottle gate open feedback,Confirmed in REV11
+b_InfeedGateClosed,Bool,%I0.6,Bottle gate closed feedback,Confirmed in REV11
+b_BottlePresent_Infeed,Bool,%I0.7,Infeed bottle tracking sensor,Confirmed in REV11
+b_TankFull,Bool,%I1.0,Tank full 100 percent,Confirmed in REV11
+b_FillerLift_LowLimit,Bool,%I1.2,Filler lift low limit,Confirmed in REV11
+b_FillerLift_UpLimit,Bool,%I1.3,Filler lift upper limit,Confirmed in REV11
+b_CapperOutfeedCrash,Bool,%I1.4,Capper discharge crash sensor,Confirmed in REV11
+b_CapperLift_LowLimit,Bool,%I1.5,Capper lift low limit,Confirmed in REV11
+b_CapperLift_UpLimit,Bool,%I1.6,Capper lift upper limit,Confirmed in REV11
+b_HoodPressureOK,Bool,%I1.7,Hood pressure or filter signal 24 VDC,Confirmed in REV11
+r_TankLevel,Real,%IW64 example,Tank level 0 to 100 percent,Address to assign
+i_EncoderCount,DInt,TM Count,Machine encoder count,Confirmed function; configure
+b_MachineZero,Bool,TM Count SYNC,Machine zero valve 1,Confirmed function; configure
+Y_CapRelease,Bool,TM Count DQ,Fast cap release EV230,Confirmed function; configure
+b_Anybus_PN_StationOK,Bool,PROFINET diagnostic,HMS ABC3113-A PROFINET-side station OK,Confirmed in REV11
+b_Anybus_ECAT_LinkOK,Bool,PROFINET diagnostic,HMS ABC3113-A EtherCAT-side link to SMC EX260-SEC1,Confirmed in REV11
+b_IOLinkMaster1_OK,Bool,PROFINET diagnostic,IFM AL1403 number 1 station OK,Confirmed in REV11
+b_IOLinkMaster2_OK,Bool,PROFINET diagnostic,IFM AL1403 number 2 station OK,Confirmed in REV11
+b_IOLinkMaster3_OK,Bool,PROFINET diagnostic,IFM AL1403 number 3 station OK,Confirmed in REV11
+b_IOLinkMaster4_OK,Bool,PROFINET diagnostic,IFM AL1403 number 4 station OK,Confirmed in REV11
+b_Pilz_DeviceOK,Bool,PROFINET diagnostic,PNOZmulti 2 station diagnostic,Confirmed in REV11
+b_Drive_G120C_OK,Bool,PROFINET diagnostic,SINAMICS G120C station diagnostic,Confirmed in REV11
+b_HMI_LinkOK,Bool,PROFINET diagnostic,HMI communication status,Confirmed in REV11
+d_FaultyDeviceMask,DWord,Internal,Bit-per-device map from FB_NetworkDiagnostics,Retained in REV12

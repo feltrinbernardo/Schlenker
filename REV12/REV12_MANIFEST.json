@@ -1,0 +1,38 @@
+{
+  "revision": "REV12",
+  "cumulative_parent": "REV11-working",
+  "merge_policy": "Retain every REV11 decision; apply REV12 corrections and keep unfinished REV11 requirements as explicit open points",
+  "status": "Corrected offline development source release - compile pending",
+  "target": {
+    "ide": "TIA Portal V19",
+    "plc": "S7-1512C-1 PN",
+    "hmi": "MTP1500 Unified Comfort",
+    "hmi_order_number": "6AV2128-3QB06-0AXX"
+  },
+  "retained_confirmed_hardware": [
+    "Four SINAMICS G120C drives",
+    "Pilz PNOZmulti 2 with PROFINET module 772138",
+    "Four IFM AL1403 IO-Link masters",
+    "IFM RO3101 HTL A/B/Z 2048 PPR encoder through TM Count",
+    "HMS Anybus ABC3113-A PROFINET-to-EtherCAT gateway",
+    "SMC EX260-SEC1 with 8x VQC1100N-51 and 2x VQC1200N-51",
+    "EV230 deterministic fast output outside the valve island"
+  ],
+  "native_tia_project": false,
+  "compile_validated": false,
+  "requires": [
+    "Final I/O mapping",
+    "Hardware configuration",
+    "TM Count technology object",
+    "G120C telegram configuration",
+    "Pilz project",
+    "SMC gateway map",
+    "All incomplete functions retained in Documentation/REV11_to_REV12_Merge_Register.md",
+    "Eleven-door Pilz interface and guard-lock validation",
+    "Four-E-stop aggregate input validation",
+    "Lights and air-filter I/O and relay assignments",
+    "MAN/AUT selector contact polarity and authority relative to HMI mode commands",
+    "TIA compile",
+    "PLCSIM/FAT"
+  ]
+}

@@ -1,0 +1,30 @@
+Tag,Type,Direction,Description
+DoorAccess_RequestPanelPB,Bool,Field_to_PLC,Physical illuminated OPEN / CLOSE DOORS pushbutton at panel station; starts controlled request-to-open sequence only
+DoorAccess_RequestFrontPB,Bool,Field_to_PLC,Physical momentary Request Open Door pushbutton at front station
+DoorAccess_RequestRearPB,Bool,Field_to_PLC,Physical momentary Request Open Door pushbutton at rear station
+DoorAccess_RequestCombined,Bool,PLC_internal,Combined request from panel front or rear pushbutton
+DoorAccess_RequestBlueLampCmd,Bool,PLC_to_Field,Common non-safety command for panel front and rear blue lamps
+DoorAccess_RequestPanelBlueLamp,Bool,PLC_to_Field,Panel-station blue lamp mapped from common request-lamp command
+DoorAccess_RequestFrontBlueLamp,Bool,PLC_to_Field,Front-station blue lamp mapped from common request-lamp command
+DoorAccess_RequestRearBlueLamp,Bool,PLC_to_Field,Rear-station blue lamp mapped from common request-lamp command
+Panel_StartMachinePB,Bool,Field_to_PLC,Physical Start Machine pushbutton below HMI; separate deliberate restart command
+Panel_StopMachinePB,Bool,Field_to_PLC,Physical Stop Machine pushbutton below HMI
+Panel_AuxiliaryResetPB,Bool,Field_to_PLC,Physical AUX. VOLTAGE illuminated pushbutton below HMI; working use is auxiliary reset/enable pending electrical confirmation
+Panel_ModeSelectorAuto,Bool,Field_to_PLC,Physical keyed MAN / AUT selector below HMI; final contact arrangement polarity and command authority require confirmation
+Panel_AlarmResetPB,Bool,Field_to_PLC,Physical blue RESET pushbutton below HMI
+DoorAccess_State,USInt,PLC_to_HMI,Guarded-door access sequence state
+DoorAccess_SequenceActive,Bool,PLC_to_HMI,Controlled guarded-access sequence active
+DoorAccess_ControlledStopRequest,Bool,PLC_to_HMI,Machine controlled stop requested by access sequence
+DoorAccess_UnlockAllDoorsRequest,Bool,PLC_to_Safety,Request to validated safety system; not a direct lock output
+DoorAccess_AuxResetRequired,Bool,PLC_to_HMI,Operator auxiliary/safety reset required
+DoorAccess_AlarmResetRequired,Bool,PLC_to_HMI,Operator alarm reset required after auxiliary reset
+DoorAccess_RestartPermitted,Bool,PLC_to_HMI,All sequence conditions complete; separate Start command still required
+DoorAccess_Fault,Bool,PLC_to_HMI,Door-access coordination fault active
+DoorAccess_FaultCode,UInt,PLC_to_HMI,1 stop timeout; 2 power-off timeout; 3 unlock timeout; 4 power feedback lost during access
+DoorAccess_AllDoorsClosed,Bool,Safety_to_PLC,Validated aggregate guarded-door closed status
+DoorAccess_AllDoorsUnlocked,Bool,Safety_to_PLC,Validated aggregate guard unlocked feedback
+DoorAccess_ZeroSpeedConfirmed,Bool,Safety_to_PLC,Validated standstill feedback appropriate to risk assessment
+DoorAccess_ThreePhaseOffConfirmed,Bool,Safety_to_PLC,Required power-removal feedback from validated electrical design
+DoorAccess_SafetyCircuitClosed,Bool,Safety_to_PLC,Validated closed safety-circuit status
+DoorAccess_SafetySystemFault,Bool,Safety_to_PLC,Unexpected Pilz or safety-system fault; must not be masked by planned access
+Safety_EStopChain24VHealthy,Bool,Safety_to_PLC,Aggregate 24 VDC return from four series E-stops; FALSE displays Emergency stop pressed

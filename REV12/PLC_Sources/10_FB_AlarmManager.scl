@@ -1,0 +1,63 @@
+FUNCTION_BLOCK "FB_AlarmManager"
+VAR_INPUT
+    SafetyOK            : Bool;
+    AirPressureOK       : Bool;
+    EncoderHealthy      : Bool;
+    GateFault           : Bool;
+    PumpLevelFault      : Bool;
+    SMCCommOK           : Bool;
+    SMCConflict         : Bool;
+    FillerMoveTimeout   : Bool;
+    CapperMoveTimeout   : Bool;
+    MainDriveFault      : Bool;
+    ConveyorFault       : Bool;
+    ProductPumpFault    : Bool;
+    CapDriveFault       : Bool;
+    HoodFilterAlarm     : Bool;
+    EStopChain24VHealthy: Bool;
+    DoorAccessFault     : Bool;
+    AirFilterFault      : Bool;
+    AirFilterChangeWarning : Bool;
+    SpeedParameterFault : Bool;
+    PumpLowWarning      : Bool;
+    CapperOutfeedCrash  : Bool;
+END_VAR
+VAR_OUTPUT
+    CriticalAlarm       : Bool;
+    WarningAlarm        : Bool;
+    AlarmWord1          : DWORD;
+END_VAR
+
+BEGIN
+    AlarmWord1 := DWORD#0;
+    AlarmWord1.%X0 := NOT EStopChain24VHealthy; // 1001 aggregate Emergency stop pressed
+    AlarmWord1.%X1 := NOT AirPressureOK;     // 1002
+    AlarmWord1.%X2 := NOT EncoderHealthy;    // 1101
+    AlarmWord1.%X3 := GateFault;             // 1201
+    AlarmWord1.%X4 := PumpLevelFault;        // 1301
+    AlarmWord1.%X5 := NOT SMCCommOK;         // 1401
+    AlarmWord1.%X6 := SMCConflict;           // 1402
+    AlarmWord1.%X7 := FillerMoveTimeout;     // 1501
+    AlarmWord1.%X8 := CapperMoveTimeout;     // 1502
+    AlarmWord1.%X9 := MainDriveFault;        // 1601
+    AlarmWord1.%X10 := ConveyorFault;        // 1602
+    AlarmWord1.%X11 := ProductPumpFault;     // 1603
+    AlarmWord1.%X12 := CapDriveFault;         // 1604
+    AlarmWord1.%X13 := HoodFilterAlarm;       // 1701 warning
+    AlarmWord1.%X14 := (NOT SafetyOK) AND EStopChain24VHealthy; // 1003 safety circuit not ready
+    AlarmWord1.%X15 := DoorAccessFault;        // 1801
+    AlarmWord1.%X16 := AirFilterFault;         // 1702 warning
+    AlarmWord1.%X17 := AirFilterChangeWarning; // 1703 warning
+    AlarmWord1.%X18 := SpeedParameterFault;    // 1901
+    AlarmWord1.%X19 := PumpLowWarning;          // 1302 warning
+    AlarmWord1.%X20 := CapperOutfeedCrash;      // 2001
+
+    CriticalAlarm :=
+        NOT SafetyOK OR NOT EStopChain24VHealthy OR NOT AirPressureOK OR NOT EncoderHealthy OR
+        GateFault OR PumpLevelFault OR NOT SMCCommOK OR SMCConflict OR
+        FillerMoveTimeout OR CapperMoveTimeout OR
+        MainDriveFault OR ConveyorFault OR ProductPumpFault OR CapDriveFault OR
+        DoorAccessFault OR SpeedParameterFault OR CapperOutfeedCrash;
+
+    WarningAlarm := HoodFilterAlarm OR AirFilterFault OR AirFilterChangeWarning OR PumpLowWarning;
+END_FUNCTION_BLOCK

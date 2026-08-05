@@ -1,0 +1,32 @@
+Tag,Type,Address/Bus,Description,Status
+b_InfeedGateOpen,Bool,%I0.5,Bottle gate open feedback,Confirmed
+b_InfeedGateClosed,Bool,%I0.6,Bottle gate closed feedback,Confirmed
+b_BottlePresent_Infeed,Bool,%I0.7,Infeed bottle tracking sensor,Confirmed
+b_TankFull,Bool,%I1.0,Tank full 100%,Confirmed
+b_FillerLift_LowLimit,Bool,%I1.2,Filler lift low limit,Confirmed
+b_FillerLift_UpLimit,Bool,%I1.3,Filler lift upper limit,Confirmed
+b_CapperOutfeedCrash,Bool,%I1.4,Capper discharge crash sensor,Confirmed
+b_CapperLift_LowLimit,Bool,%I1.5,Capper lift low limit,Confirmed
+b_CapperLift_UpLimit,Bool,%I1.6,Capper lift upper limit,Confirmed
+b_HoodPressureOK,Bool,%I1.7,Hood pressure/filter signal 24VDC,Confirmed
+r_TankLevel,Real,%IW64 example,Tank level 0..100%,Address to assign
+i_EncoderCount,DInt,TM Count,Machine encoder count,Confirmed
+b_MachineZero,Bool,TM Count SYNC,Machine zero valve 1,Confirmed
+Y_CapRelease,Bool,TM Count DQ,Fast cap release EV230,Confirmed
+b_Anybus_PN_StationOK,Bool,PROFINET diag,HMS ABC3113-A PROFINET-side station OK,Confirmed
+b_Anybus_ECAT_LinkOK,Bool,PROFINET diag,HMS ABC3113-A EtherCAT-side link to SMC EX260-SEC1,Confirmed
+b_IOLinkMaster1_OK,Bool,PROFINET diag,IFM AL1403 #1 station OK,Confirmed
+b_IOLinkMaster2_OK,Bool,PROFINET diag,IFM AL1403 #2 station OK,Confirmed
+b_IOLinkMaster3_OK,Bool,PROFINET diag,IFM AL1403 #3 station OK,Confirmed
+b_IOLinkMaster4_OK,Bool,PROFINET diag,IFM AL1403 #4 station OK,Confirmed
+b_Pilz_DeviceOK,Bool,PROFINET diag,PNOZmulti 2 PROFINET station diagnostic,Confirmed
+b_Drive_G120C_OK,Bool,PROFINET diag,SINAMICS G120C station diagnostic,Confirmed
+b_HMI_LinkOK,Bool,PROFINET diag,HMI PROFINET link status,Confirmed
+b_Menu_Filler_Active,Bool,HMI internal,TRUE while operator is on Filler subsystem menu,Confirmed
+b_Menu_Capper_Active,Bool,HMI internal,TRUE while operator is on Capper subsystem menu,Confirmed
+b_ManualTestEnable,Bool,HMI internal,Engineer-level permission tag for valve test controls,Confirmed
+b_Filler_Gate_OpenPB,Bool,HMI internal,Momentary Open Gate test button (Filler menu),Confirmed
+b_Filler_Gate_ClosePB,Bool,HMI internal,Momentary Close Gate test button (Filler menu),Confirmed
+b_Capper_CapRelease_OpenPB,Bool,HMI internal,Momentary cap release test button (Capper menu),Confirmed
+b_Capper_CapRelease_ClosePB,Bool,HMI internal,Momentary cap release close test button (Capper menu),Confirmed
+d_FaultyDeviceMask,DWORD,internal,Bit-per-device fault map from FB_NetworkDiagnostics for HMI diagnostics screen,Confirmed

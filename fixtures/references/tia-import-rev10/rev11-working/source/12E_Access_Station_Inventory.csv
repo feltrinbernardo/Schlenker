@@ -1,0 +1,14 @@
+Type,Location,InputTag,OutputTag,HmiDisplay,EquipmentIdentifier,Status
+EmergencyStop,Front / below HMI panel,Series chain only,,Front panel emergency stop,To be assigned,Treated as previously counted front E-stop; individual HMI identification not required
+EmergencyStop,Rear,Series chain only,,Rear emergency stop,To be assigned,Location confirmed; individual HMI identification not required
+EmergencyStop,Infeed door,Series chain only,,Infeed-door emergency stop,To be assigned,Location confirmed; individual HMI identification not required
+EmergencyStop,Jog pendant,Series chain only,,Jog-pendant emergency stop,To be assigned,Location confirmed; individual HMI identification not required
+EmergencyStopChain,All four devices,Safety_EStopChain24VHealthy,,Emergency stop pressed,To be assigned,Aggregate 24 VDC return to Pilz confirmed; channel mapping required
+DoorRequest,Below HMI panel,DoorAccess_RequestPanelPB,DoorAccess_RequestPanelBlueLamp,Open / Close Doors,To be assigned,Photo-confirmed illuminated pushbutton; initiates controlled request-to-open sequence and does not power-close a guard; I/O mapping required
+DoorRequest,Front,DoorAccess_RequestFrontPB,DoorAccess_RequestFrontBlueLamp,Front Request Open Door,To be assigned,Count and location confirmed; I/O mapping required
+DoorRequest,Rear,DoorAccess_RequestRearPB,DoorAccess_RequestRearBlueLamp,Rear Request Open Door,To be assigned,Count and location confirmed; I/O mapping required
+PanelControl,Below HMI panel,Panel_AuxiliaryResetPB,,Aux. Voltage,To be assigned,Photo-confirmed illuminated pushbutton; working use is auxiliary reset/enable after guards close; electrical function and lamp circuit require confirmation
+ModeSelector,Below HMI panel,Panel_ModeSelectorAuto,,MAN / AUT,To be assigned,Photo-confirmed keyed two-position selector; contact arrangement polarity and authority relative to HMI mode commands require confirmation
+PanelControl,Below HMI panel,Panel_AlarmResetPB,,Reset,To be assigned,Photo-confirmed blue pushbutton; alarm-reset I/O mapping required
+PanelControl,Below HMI panel,Panel_StartMachinePB,,Start,To be assigned,Photo-confirmed green pushbutton; separate deliberate restart command; I/O mapping required
+PanelControl,Below HMI panel,Panel_StopMachinePB,,Stop,To be assigned,Photo-confirmed red illuminated pushbutton; input and lamp-circuit mapping required

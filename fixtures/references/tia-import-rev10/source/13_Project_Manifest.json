@@ -1,0 +1,22 @@
+{
+  "project": "Refurbished Monoblocco Schenker",
+  "revision": "REV10",
+  "target_cpu": "S7-1512C-1 PN",
+  "language": "SCL",
+  "status": "Import package - not compiled",
+  "resolved_since_rev09": [
+    "PROFINET-to-EtherCAT gateway confirmed: HMS Anybus ABC3113-A, feeding SMC EX260-SEC1 (8x VQC1100N-51, 2x VQC1200N-51)"
+  ],
+  "critical_open_points": [
+    "Final HMI model and TIA/WinCC version",
+    "Final hardware addresses and telegrams",
+    "Final safety validation and Pilz project",
+    "Final encoder mechanical ratio and mounting",
+    "Final valve-to-bit mapping confirmation after FAT"
+  ],
+  "new_blocks": [
+    "FB_NetworkDiagnostics",
+    "FB_ManualValveOverride"
+  ],
+  "note": "FBS fruit juice monoblock rebuild is a separate machine/project and is not part of this package."
+}

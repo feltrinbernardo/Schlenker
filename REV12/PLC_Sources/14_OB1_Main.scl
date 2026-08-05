@@ -1,0 +1,5 @@
+ORGANIZATION_BLOCK "Main"
+BEGIN
+    // The complete REV12 application is executed once per PLC cycle.
+    "DB_Application"();
+END_ORGANIZATION_BLOCK

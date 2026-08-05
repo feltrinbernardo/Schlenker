@@ -1,0 +1,47 @@
+id: schlenker-gxworks2
+purpose: Safe offline baseline profile for the existing Schlenker GX Works2 project
+ide:
+  product: GX Works2
+  installed_display_version: 1.560J
+  executable_version: 1.560.0.1
+  executable: 'C:\Program Files (x86)\MELSOFT\GPPW2\GD2.exe'
+project:
+  source_path: 'D:\GX Works\schlenker.gxw'
+  source_policy: never-edit-directly
+  source_baseline:
+    recorded_at: '2026-08-03T13:19:55.9760187+10:00'
+    length_bytes: 1323520
+    last_write_utc: '2026-08-03T03:19:21.3460000Z'
+    sha256: B16C05F4A555E9E9628BE35AAAA889A21D047AC239DA1D5D9390FC8704A29BD1
+  working_copy:
+    path: 'fixtures/projects/schlenker-working/schlenker.gxw'
+    prepared: true
+    git_ignored: true
+    sha256: B16C05F4A555E9E9628BE35AAAA889A21D047AC239DA1D5D9390FC8704A29BD1
+  type: Structured Project
+  type_evidence: Internal Program File, Task, and POU records
+  observed_program: MAIN
+  observed_editor: Ladder
+  observed_size_steps: 614
+controller:
+  family: MELSEC-F
+  cpu: FX3G
+  evidence: Internal working-copy project data identifies FX3G and FXCPU
+programming_language: Ladder
+connection:
+  required_mode: offline
+  confirm_disconnected_before_each_run: true
+  saved_connection_configuration_present: true
+  saved_connection_configuration_use_forbidden: true
+  last_operator_confirmation:
+    date: 2026-08-03
+    plc_disconnected: true
+    production_equipment_connected: false
+    scope: development-tests-only
+constraints:
+  physical_plc_operations_forbidden: true
+  source_project_read_only: true
+  disposable_working_copy_required: true
+  baseline_compile_before_changes: true
+open_items:
+  - Open the disposable copy offline and record its baseline compile result.

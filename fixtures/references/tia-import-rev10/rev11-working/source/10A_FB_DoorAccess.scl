@@ -1,0 +1,174 @@
+FUNCTION_BLOCK "FB_DoorAccess"
+// Standard-PLC coordination for a guarded-door access request.
+// This block is not safety logic. Guard locking, hazardous-energy removal,
+// safety reset and restart permission remain subject to the validated Pilz
+// project, electrical design and machine risk assessment.
+
+VAR_INPUT
+    RequestOpenDoorPanelPB : Bool; // Physical illuminated OPEN / CLOSE DOORS pushbutton; requests opening only
+    RequestOpenDoorFrontPB : Bool; // Physical momentary pushbutton at front station
+    RequestOpenDoorRearPB  : Bool; // Physical momentary pushbutton at rear station
+    Blink1Hz               : Bool; // Standard-PLC clock bit for blue-lamp flashing
+    MachineRunning         : Bool;
+    ControlledStopComplete : Bool;
+    ZeroSpeedConfirmed     : Bool;
+    ThreePhaseOffConfirmed : Bool;
+    AllDoorsClosed         : Bool;
+    AllDoorsUnlocked       : Bool;
+    SafetyCircuitClosed    : Bool;
+    SafetySystemFault      : Bool; // Unexpected Pilz/system fault, distinct from an expected open guard
+    EStopChain24VHealthy   : Bool; // Pilz-derived status of four series E-stop contacts
+    AuxiliaryPanelPB       : Bool; // Physical AUX. VOLTAGE pushbutton; auxiliary reset/enable pending electrical confirmation
+    ResetAlarmPanelPB      : Bool; // Physical blue RESET pushbutton below HMI
+    ResetFault             : Bool;
+    StopTimeout            : Time := T#30s;
+    PowerOffTimeout        : Time := T#30s;
+    UnlockTimeout          : Time := T#30s;
+END_VAR
+VAR_IN_OUT
+    D : "UDT_DoorAccess";
+END_VAR
+VAR
+    CombinedRequest : Bool;
+    RequestEdge    : R_TRIG;
+    AuxResetEdge   : R_TRIG;
+    AlarmResetEdge : R_TRIG;
+    T_Stop         : TON;
+    T_PowerOff     : TON;
+    T_Unlock       : TON;
+END_VAR
+
+BEGIN
+    CombinedRequest := RequestOpenDoorPanelPB
+                       OR RequestOpenDoorFrontPB
+                       OR RequestOpenDoorRearPB;
+    D.RequestCombined := CombinedRequest;
+    RequestEdge(CLK := CombinedRequest);
+    AuxResetEdge(CLK := AuxiliaryPanelPB);
+    AlarmResetEdge(CLK := ResetAlarmPanelPB);
+
+    // Timers are called every scan so aborted steps cannot retain elapsed time.
+    T_Stop(IN := (D.State = 20), PT := StopTimeout);
+    T_PowerOff(IN := (D.State = 30), PT := PowerOffTimeout);
+    T_Unlock(IN := (D.State = 40), PT := UnlockTimeout);
+
+    // An open E-stop series circuit or unexpected safety-system fault is never
+    // masked by planned access.
+    IF (NOT EStopChain24VHealthy) AND (D.State <> 0) AND (D.State <> 200) THEN
+        D.FaultCode := UINT#6;
+        D.State := 200;
+    ELSIF SafetySystemFault AND (D.State <> 0) AND (D.State <> 200) THEN
+        D.FaultCode := UINT#5;
+        D.State := 200;
+    ELSE
+    CASE D.State OF
+        0: // Idle
+            D.FaultCode := UINT#0;
+            IF RequestEdge.Q THEN
+                D.State := 20;
+            END_IF;
+
+        20: // Controlled stop and standstill confirmation
+            IF ControlledStopComplete AND ZeroSpeedConfirmed AND NOT MachineRunning THEN
+                D.State := 30;
+            ELSIF T_Stop.Q THEN
+                D.FaultCode := UINT#1;
+                D.State := 200;
+            END_IF;
+
+        30: // Required three-phase power removal confirmation
+            IF ThreePhaseOffConfirmed THEN
+                D.State := 40;
+            ELSIF T_PowerOff.Q THEN
+                D.FaultCode := UINT#2;
+                D.State := 200;
+            END_IF;
+
+        40: // Request unlock from the validated safety system
+            IF NOT ThreePhaseOffConfirmed THEN
+                D.State := 30;
+            ELSIF AllDoorsUnlocked THEN
+                D.State := 50;
+            ELSIF T_Unlock.Q THEN
+                D.FaultCode := UINT#3;
+                D.State := 200;
+            END_IF;
+
+        50: // Doors unlocked; wait until access begins
+            IF NOT ThreePhaseOffConfirmed THEN
+                D.FaultCode := UINT#4;
+                D.State := 200;
+            ELSIF NOT AllDoorsClosed THEN
+                D.State := 60;
+            END_IF;
+
+        60: // Access active; wait until every guarded door is reclosed
+            IF NOT ThreePhaseOffConfirmed THEN
+                D.FaultCode := UINT#4;
+                D.State := 200;
+            ELSIF AllDoorsClosed THEN
+                D.State := 70;
+            END_IF;
+
+        70: // Deliberate auxiliary/safety reset required
+            IF NOT AllDoorsClosed THEN
+                D.State := 60;
+            ELSIF AuxResetEdge.Q THEN
+                D.State := 80;
+            END_IF;
+
+        80: // Alarm reset is separate from the safety reset
+            IF NOT AllDoorsClosed THEN
+                D.State := 60;
+            ELSIF AlarmResetEdge.Q THEN
+                D.State := 90;
+            END_IF;
+
+        90: // Wait for confirmed closed safety circuit
+            IF NOT AllDoorsClosed THEN
+                D.State := 60;
+            ELSIF SafetyCircuitClosed THEN
+                D.State := 100;
+            END_IF;
+
+        100: // Ready for a separate operator Start command; never auto-start
+            IF NOT AllDoorsClosed THEN
+                D.State := 60;
+            ELSIF NOT SafetyCircuitClosed THEN
+                D.State := 90;
+            ELSIF MachineRunning THEN
+                D.State := 0;
+            END_IF;
+
+        200: // Coordination fault; controlled stop remains requested
+            IF ResetFault
+               AND AllDoorsClosed
+               AND EStopChain24VHealthy
+               AND NOT SafetySystemFault THEN
+                D.State := 0;
+            END_IF;
+
+        ELSE
+            D.FaultCode := UINT#65535;
+            D.State := 200;
+    END_CASE;
+    END_IF;
+
+    D.SequenceActive := ((D.State >= 20) AND (D.State <= 90)) OR (D.State = 200);
+    D.ControlledStopRequest := D.SequenceActive;
+    D.Fault := (D.State = 200);
+    D.UnlockAllDoorsRequest := ((D.State = 40) OR (D.State = 50) OR (D.State = 60))
+                               AND ThreePhaseOffConfirmed
+                               AND NOT D.Fault;
+    D.AuxResetRequired := (D.State = 70);
+    D.AlarmResetRequired := (D.State = 80);
+    D.RestartPermitted := (D.State = 100)
+                          AND AllDoorsClosed
+                          AND SafetyCircuitClosed;
+    // Non-safety indication shared by the three blue request-button lamps.
+    D.RequestBlueLampFlash := ((D.State >= 20) AND (D.State <= 40))
+                              OR (D.State = 200);
+    D.RequestBlueLampSteady := (D.State >= 50) AND (D.State <= 100);
+    D.RequestBlueLampCmd := D.RequestBlueLampSteady
+                            OR (D.RequestBlueLampFlash AND Blink1Hz);
+END_FUNCTION_BLOCK

@@ -1,0 +1,46 @@
+id: schlenker-gxworks2-development
+purpose: Controlled development-environment work for the Schlenker GX Works2 project
+ide:
+  product: GX Works2
+  installed_display_version: 1.560J
+  executable_version: 1.560.0.1
+  executable: 'C:\Program Files (x86)\MELSOFT\GPPW2\GD2.exe'
+project:
+  source_path: 'D:\GX Works\schlenker.gxw'
+  source_policy: never-edit-directly
+  source_baseline:
+    recorded_at: '2026-08-03T13:19:55.9760187+10:00'
+    length_bytes: 1323520
+    last_write_utc: '2026-08-03T03:19:21.3460000Z'
+    sha256: B16C05F4A555E9E9628BE35AAAA889A21D047AC239DA1D5D9390FC8704A29BD1
+  working_copy:
+    path: 'fixtures/projects/schlenker-working/schlenker.gxw'
+    prepared: true
+    git_ignored: true
+    sha256: B16C05F4A555E9E9628BE35AAAA889A21D047AC239DA1D5D9390FC8704A29BD1
+  type: Structured Project
+  observed_program: MAIN
+  observed_editor: Ladder
+  observed_size_steps: 614
+controller:
+  family: MELSEC-F
+  cpu: FX3G
+programming_language: Ladder
+environment:
+  classification: development-test-only
+  production_routes_forbidden: true
+  current_operator_confirmation:
+    date: 2026-08-03
+    all_reachable_plcs_are_development: true
+    production_equipment_accessible: false
+connection:
+  online_observation_allowed_when_task_requires: true
+  monitor_allowed_when_task_requires: true
+  read_from_development_plc_allowed_when_task_requires: true
+  write_transfer_remote_and_run_state_changes_require_exact_authorization: true
+  saved_target_identity_must_be_verified_before_use: true
+constraints:
+  protected_source_read_only: true
+  disposable_working_copy_required: true
+  baseline_compile_before_comment_changes: true
+

@@ -1,0 +1,43 @@
+FUNCTION_BLOCK "FB_NetworkDiagnostics"
+// Aggregates PROFINET device diagnostic status for step 2 of the OB1 call
+// order (Network & device diagnostics), executed before the Pilz/safety
+// check. All bits are device-level "station OK" diagnostic bits provided
+// by the PROFINET device driver / GSD diagnostics, not safety signals.
+
+VAR_INPUT
+    Pilz_DeviceOK        : Bool; // PNOZmulti 2 PROFINET station diagnostic
+    IOLinkMaster1_OK     : Bool; // IFM AL1403 #1
+    IOLinkMaster2_OK     : Bool; // IFM AL1403 #2
+    IOLinkMaster3_OK     : Bool; // IFM AL1403 #3
+    IOLinkMaster4_OK     : Bool; // IFM AL1403 #4
+    Drive_G120C_OK       : Bool; // SINAMICS G120C station diagnostic
+    HMI_LinkOK           : Bool;
+    AnybusGateway_OK     : Bool; // HMS ABC3113-A PROFINET-side station OK
+    AnybusGateway_ECAT_OK: Bool; // HMS ABC3113-A EtherCAT-side (SMC EX260) link OK
+END_VAR
+VAR_OUTPUT
+    NetworkOK            : Bool;
+    FaultyDeviceMask      : DWORD; // bit-per-device fault map for HMI diagnostics screen
+END_VAR
+
+BEGIN
+    FaultyDeviceMask := DWORD#0;
+
+    IF NOT Pilz_DeviceOK         THEN FaultyDeviceMask.%X0 := TRUE; END_IF;
+    IF NOT IOLinkMaster1_OK      THEN FaultyDeviceMask.%X1 := TRUE; END_IF;
+    IF NOT IOLinkMaster2_OK      THEN FaultyDeviceMask.%X2 := TRUE; END_IF;
+    IF NOT IOLinkMaster3_OK      THEN FaultyDeviceMask.%X3 := TRUE; END_IF;
+    IF NOT IOLinkMaster4_OK      THEN FaultyDeviceMask.%X4 := TRUE; END_IF;
+    IF NOT Drive_G120C_OK        THEN FaultyDeviceMask.%X5 := TRUE; END_IF;
+    IF NOT HMI_LinkOK            THEN FaultyDeviceMask.%X6 := TRUE; END_IF;
+    IF NOT AnybusGateway_OK      THEN FaultyDeviceMask.%X7 := TRUE; END_IF;
+    IF NOT AnybusGateway_ECAT_OK THEN FaultyDeviceMask.%X8 := TRUE; END_IF;
+
+    NetworkOK := Pilz_DeviceOK
+                 AND IOLinkMaster1_OK AND IOLinkMaster2_OK
+                 AND IOLinkMaster3_OK AND IOLinkMaster4_OK
+                 AND Drive_G120C_OK
+                 AND HMI_LinkOK
+                 AND AnybusGateway_OK
+                 AND AnybusGateway_ECAT_OK;
+END_FUNCTION_BLOCK

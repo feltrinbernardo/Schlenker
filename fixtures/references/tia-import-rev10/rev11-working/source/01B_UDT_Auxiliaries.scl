@@ -1,0 +1,9 @@
+TYPE "UDT_Auxiliaries" :
+STRUCT
+    MachineLightsRelayCmd : Bool; // 24 VDC PLC output to dedicated light-relay coil
+    AirFilterRelayCmd     : Bool; // 24 VDC PLC output to dedicated filter-relay coil
+    AirFilterPressureOK: Bool;
+    AirFilterFault     : Bool;
+    AirFilterChangeWarning : Bool; // Direct maintenance warning from dedicated 24 VDC input
+END_STRUCT;
+END_TYPE

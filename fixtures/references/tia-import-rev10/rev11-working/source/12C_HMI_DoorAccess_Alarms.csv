@@ -1,0 +1,8 @@
+FaultCode,English,Italian,OperatorAction
+1,Controlled stop did not complete in time,Arresto controllato non completato entro il tempo previsto,Check stop and standstill feedback
+2,Three-phase power-off was not confirmed,Disinserzione alimentazione trifase non confermata,Check contactor and power-off feedback
+3,All door locks did not report unlocked,Non tutte le serrature porte risultano sbloccate,Check Pilz status and guard-lock feedback
+4,Power-off feedback was lost during access,Conferma disinserzione persa durante l'accesso,Keep machine stopped and inspect the isolation circuit
+5,Safety-system fault during door access,Guasto sistema di sicurezza durante l'accesso porte,Keep the machine stopped and inspect the Pilz diagnostics
+6,Emergency stop pressed,Arresto di emergenza premuto,Release all emergency stops and reset the safety circuit
+65535,Invalid door-access sequence state,Stato sequenza accesso porte non valido,Escalate to maintenance and keep the machine stopped

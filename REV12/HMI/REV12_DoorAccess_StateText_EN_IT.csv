@@ -1,0 +1,12 @@
+State,English,Italian
+0,Idle,Inattivo
+20,Controlled stop in progress,Arresto controllato in corso
+30,Waiting for three-phase power-off confirmation,Attesa conferma disinserzione alimentazione trifase
+40,Door unlock requested to safety system,Richiesto sblocco porte al sistema di sicurezza
+50,Doors unlocked - open the required door,Porte sbloccate - aprire la porta richiesta
+60,Access active - close all doors when finished,Accesso attivo - chiudere tutte le porte al termine
+70,Auxiliary safety reset required,Reset ausiliario di sicurezza richiesto
+80,Alarm reset required,Reset allarmi richiesto
+90,Waiting for closed safety circuit,Attesa chiusura circuito di sicurezza
+100,Restart permitted - press Start,Avvio consentito - premere Start
+200,Door-access sequence fault,Guasto sequenza accesso porte

@@ -1,0 +1,20 @@
+TYPE "UDT_MachineState" :
+STRUCT
+    State            : USInt;   // 0=PowerUp,10=Homing,20=Ready,30=Auto,40=Standby,50=Manual,60=CIP,70=Emptying,80=GuardedAccess,90=Alarm
+    SafetyOK         : Bool;
+    SafetySystemFault : Bool;  // Unexpected Pilz/system fault; excludes the expected open-guard status during authorized access
+    EStopChain24VHealthy : Bool; // TRUE only while the four series E-stop contacts return 24 VDC to Pilz
+    HomeValid        : Bool;
+    AutoRequest      : Bool;
+    ManualRequest    : Bool;
+    CIPRequest       : Bool;
+    EmptyingRequest  : Bool;
+    StopRequest      : Bool;
+    AlarmActive      : Bool;
+    RotationEnable   : Bool;
+    HeightModeActive : Bool;
+    DoorAccessActive : Bool;
+    DoorRestartPermitted : Bool;
+    DoorAccessFault  : Bool;
+END_STRUCT;
+END_TYPE

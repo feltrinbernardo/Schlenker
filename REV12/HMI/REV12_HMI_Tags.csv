@@ -1,0 +1,75 @@
+﻿Name,PLC_Tag,DataType,Access,Page,Comment
+Machine_State,DB_Global.Machine.State,USInt,Read,Home,Machine state code
+Machine_SafetyOK,DB_Global.Machine.SafetyOK,Bool,Read,Home,Safety permissive
+Cmd_AutoStart,DB_Global.Cmd.AutoStart,Bool,ReadWrite,Home,Start automatic mode
+Cmd_Stop,DB_Global.Cmd.Stop,Bool,ReadWrite,Home,Controlled stop
+Cmd_Reset,DB_Global.Cmd.Reset,Bool,ReadWrite,Alarms,Reset alarms
+Speed_Setpoint_BPH,DB_Global.Par.ProductionSpeedBPH,Real,ReadWrite,Production,HMI-only speed setpoint
+Speed_Actual_Pct,DB_Global.Out.MainSpeedPct,Real,Read,Production,Main drive speed reference
+Tank_Level_Pct,DB_Global.Inp.TankLevelPct,Real,Read,Product Pump,Continuous tank level
+Tank_Setpoint_Pct,DB_Global.Par.TankSetpointPct,Real,ReadWrite,Product Pump,Range 10-100%
+Pump_Speed_Pct,DB_Global.Out.ProductPumpSpeedPct,Real,Read,Product Pump,Pump speed reference
+Filler_Height_Enable,DB_Global.Cmd.FillerHeightEnable,Bool,ReadWrite,Filler Height,Blocks rotation
+Capper_Height_Enable,DB_Global.Cmd.CapperHeightEnable,Bool,ReadWrite,Capper Height,Blocks rotation
+Pendant_Up,DB_Global.Cmd.PendantUp,Bool,Read,Height,Portable selector UP
+Pendant_Down,DB_Global.Cmd.PendantDown,Bool,Read,Height,Portable selector DOWN
+Jog_PB,DB_Global.Cmd.JogPB,Bool,Read,JOG,Forward-only hold-to-run
+SMC_ValveBits,DB_Global.Out.ValveBits,DWord,Read,Diagnostics,Gateway output image
+Alarm_Critical,DB_Global.AlarmCritical,Bool,Read,Alarms,Critical alarm summary
+Alarm_Warning,DB_Global.AlarmWarning,Bool,Read,Alarms,Warning summary
+Alarm_Word1,DB_Global.AlarmWord1,DWord,Read,Alarms,Discrete alarm trigger word for codes 1001-1901
+Cmd_ManualSelect,DB_Global.Cmd.ManualSelect,Bool,ReadWrite,Home,Manual mode request subject to physical MAN/AUT selector confirmation
+Gate_Manual_PageActive,DB_Global.Cmd.GateManualPageActive,Bool,ReadWrite,Manual Gate,TRUE only while the manual gate page is visible
+Gate_Manual_TestEnable,DB_Global.Cmd.ManualTestEnable,Bool,ReadWrite,Manual Gate,Engineer-level manual test permission
+Gate_Open_125Y1,DB_Global.Cmd.GateManualOpen,Bool,ReadWrite,Manual Gate,Momentary Gate Open command (-125Y1)
+Gate_Close,DB_Global.Cmd.GateManualClose,Bool,ReadWrite,Manual Gate,Momentary gate close command
+Door_Request_Panel,DB_Global.Inp.RequestOpenDoorPanelPB,Bool,Read,Door Access,Physical panel request pushbutton
+Door_Request_Front,DB_Global.Inp.RequestOpenDoorFrontPB,Bool,Read,Door Access,Physical front request pushbutton
+Door_Request_Rear,DB_Global.Inp.RequestOpenDoorRearPB,Bool,Read,Door Access,Physical rear request pushbutton
+Door_Access_State,DB_Global.DoorAccess.State,USInt,Read,Door Access,Door-access coordination state
+Door_AllClosed,DB_Global.Inp.AllDoorsClosed,Bool,Read,Door Access,Aggregate status for 11 guarded doors
+Door_AllUnlocked,DB_Global.Inp.AllDoorsUnlocked,Bool,Read,Door Access,Validated aggregate unlocked feedback
+Door_Unlock_Request,DB_Global.Out.UnlockAllDoorsRequest,Bool,Read,Door Access,Request to validated Pilz safety system only
+Door_Restart_Permitted,DB_Global.DoorAccess.RestartPermitted,Bool,Read,Door Access,Separate operator Start is still required
+Door_Fault,DB_Global.DoorAccess.Fault,Bool,Read,Door Access,Door-access coordination fault
+Door_FaultCode,DB_Global.DoorAccess.FaultCode,UInt,Read,Door Access,Door-access fault code
+EStop_Chain_Healthy,DB_Global.Inp.EStopChain24VHealthy,Bool,Read,Alarms,Aggregate four-E-stop 24 VDC return
+Panel_Start_PB,DB_Global.Inp.StartPanelPB,Bool,Read,Diagnostics,Physical green Start pushbutton
+Panel_Stop_PB,DB_Global.Inp.StopPanelPB,Bool,Read,Diagnostics,Physical illuminated red Stop pushbutton
+Panel_Mode_Auto,DB_Global.Inp.PanelModeAuto,Bool,Read,Diagnostics,Physical MAN/AUT selector raw status pending polarity confirmation
+Request_Blue_Lamp,DB_Global.Out.RequestBlueLampCmd,Bool,Read,Door Access,Common indication command for three request lamps
+Request_Panel_Blue_Lamp,DB_Global.Out.RequestPanelBlueLampCmd,Bool,Read,Door Access,Panel request-station blue lamp output command
+Request_Front_Blue_Lamp,DB_Global.Out.RequestFrontBlueLampCmd,Bool,Read,Door Access,Front request-station blue lamp output command
+Request_Rear_Blue_Lamp,DB_Global.Out.RequestRearBlueLampCmd,Bool,Read,Door Access,Rear request-station blue lamp output command
+Lights_On,DB_Global.Cmd.LightsOn,Bool,ReadWrite,Home,Momentary machine-lights ON command
+Lights_Off,DB_Global.Cmd.LightsOff,Bool,ReadWrite,Home,Momentary machine-lights OFF command
+Lights_Relay,DB_Global.Out.MachineLightsRelayCmd,Bool,Read,Home,24 VDC PLC command to dedicated light relay
+AirFilter_On,DB_Global.Cmd.AirFilterOn,Bool,ReadWrite,Home,Momentary air-filter ON command
+AirFilter_Off,DB_Global.Cmd.AirFilterOff,Bool,ReadWrite,Home,Momentary air-filter OFF command
+AirFilter_Relay,DB_Global.Out.AirFilterRelayCmd,Bool,Read,Home,24 VDC PLC command to dedicated filter relay
+AirFilter_PressureOK,DB_Global.Inp.AirFilterPressureOK,Bool,Read,Maintenance,24 VDC pressure proof input
+AirFilter_ChangeRequired,DB_Global.Inp.AirFilterChangeRequired24V,Bool,Read,Maintenance,Dedicated filter-change input
+AirFilter_Fault,DB_Global.Auxiliaries.AirFilterFault,Bool,Read,Alarms,Delayed air-filter proof failure
+Door_Request_Combined,DB_Global.DoorAccess.RequestCombined,Bool,Read,Door Access,Combined request from the three physical stations
+Door_Sequence_Active,DB_Global.DoorAccess.SequenceActive,Bool,Read,Door Access,Controlled door-access sequence active
+Door_Stop_Request,DB_Global.DoorAccess.ControlledStopRequest,Bool,Read,Door Access,Controlled-stop request generated by door sequence
+Door_Aux_Reset_Required,DB_Global.DoorAccess.AuxResetRequired,Bool,Read,Door Access,Auxiliary reset is required
+Door_Alarm_Reset_Required,DB_Global.DoorAccess.AlarmResetRequired,Bool,Read,Door Access,Alarm reset is required
+Door_ZeroSpeed,DB_Global.Inp.ZeroSpeedConfirmed,Bool,Read,Door Access,Validated standstill feedback
+Door_ThreePhase_Off,DB_Global.Inp.ThreePhaseOffConfirmed,Bool,Read,Door Access,Validated three-phase power-off confirmation
+Door_Safety_Circuit_Closed,DB_Global.Inp.SafetyCircuitClosed,Bool,Read,Door Access,Validated closed safety-circuit status
+Door_Safety_System_Fault,DB_Global.Inp.SafetySystemFault,Bool,Read,Door Access,Pilz or safety-system fault indication
+Network_OK,DB_Global.NetworkOK,Bool,Read,Diagnostics,Aggregate device-level network status retained from REV11
+Network_Faulty_Device_Mask,DB_Global.FaultyDeviceMask,DWord,Read,Diagnostics,REV11 bit-per-device communication fault map
+Network_Pilz_OK,DB_Global.Inp.PilzDeviceOK,Bool,Read,Diagnostics,Pilz PROFINET station diagnostic only
+Network_IOLink1_OK,DB_Global.Inp.IOLinkMaster1OK,Bool,Read,Diagnostics,IFM AL1403 number 1 station status
+Network_IOLink2_OK,DB_Global.Inp.IOLinkMaster2OK,Bool,Read,Diagnostics,IFM AL1403 number 2 station status
+Network_IOLink3_OK,DB_Global.Inp.IOLinkMaster3OK,Bool,Read,Diagnostics,IFM AL1403 number 3 station status
+Network_IOLink4_OK,DB_Global.Inp.IOLinkMaster4OK,Bool,Read,Diagnostics,IFM AL1403 number 4 station status
+Network_G120C_OK,DB_Global.Inp.DriveG120CNetworkOK,Bool,Read,Diagnostics,SINAMICS G120C network status
+Network_HMI_OK,DB_Global.Inp.HMILinkOK,Bool,Read,Diagnostics,HMI communication status
+Network_Anybus_PN_OK,DB_Global.Inp.AnybusGatewayOK,Bool,Read,Diagnostics,HMS ABC3113-A PROFINET-side status
+Network_Anybus_ECAT_OK,DB_Global.Inp.AnybusGatewayECATOK,Bool,Read,Diagnostics,HMS ABC3113-A EtherCAT-side link to SMC
+Encoder_Count,DB_Global.Inp.EncoderCount,DInt,Read,Diagnostics,TM Count machine encoder count retained from REV11
+Tank_Full_100,DB_Global.Inp.TankFull100,Bool,Read,Product Pump,Confirmed tank-full discrete input retained from REV11
+Capper_Outfeed_Crash,DB_Global.Inp.CapperOutfeedCrash,Bool,Read,Capper,Confirmed capper-discharge crash sensor retained from REV11

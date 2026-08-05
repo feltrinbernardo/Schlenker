@@ -1,0 +1,70 @@
+FUNCTION_BLOCK "FB_VacuumCIP"
+VAR_INPUT
+    ProductionMode      : Bool;
+    CIPMode             : Bool;
+    TankFull100         : Bool;
+    Reset               : Bool;
+END_VAR
+VAR_OUTPUT
+    VacuumPumpCmd       : Bool;
+    EV210               : Bool;
+    EV211               : Bool;
+    EV212               : Bool;
+    CIPVacuumDone       : Bool;
+END_VAR
+VAR
+    Step                : USInt;
+    T_CIP               : TON;
+END_VAR
+
+BEGIN
+    IF Reset THEN
+        Step := 0;
+        CIPVacuumDone := FALSE;
+    END_IF;
+
+    IF ProductionMode THEN
+        VacuumPumpCmd := TRUE;
+        EV210 := FALSE;
+        EV211 := TRUE;
+        EV212 := FALSE;
+        Step := 0;
+        CIPVacuumDone := FALSE;
+
+    ELSIF CIPMode THEN
+        CASE Step OF
+            0:
+                VacuumPumpCmd := FALSE;
+                EV210 := TRUE;
+                EV211 := FALSE;
+                EV212 := TRUE;
+                IF TankFull100 THEN
+                    Step := 10;
+                END_IF;
+
+            10:
+                EV210 := TRUE;
+                EV211 := TRUE;
+                EV212 := TRUE;
+                VacuumPumpCmd := TRUE;
+                T_CIP(IN := TRUE, PT := T#30s);
+                IF T_CIP.Q THEN
+                    T_CIP(IN := FALSE, PT := T#30s);
+                    Step := 20;
+                END_IF;
+
+            20:
+                VacuumPumpCmd := FALSE;
+                EV211 := FALSE;
+                EV210 := TRUE;
+                EV212 := TRUE;
+                CIPVacuumDone := TRUE;
+        END_CASE;
+    ELSE
+        VacuumPumpCmd := FALSE;
+        EV210 := FALSE;
+        EV211 := FALSE;
+        EV212 := FALSE;
+        Step := 0;
+    END_IF;
+END_FUNCTION_BLOCK

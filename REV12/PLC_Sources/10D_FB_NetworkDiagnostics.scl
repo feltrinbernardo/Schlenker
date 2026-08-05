@@ -1,0 +1,41 @@
+FUNCTION_BLOCK "FB_NetworkDiagnostics"
+// Retained from REV11. Aggregates device-level communication diagnostics.
+// These inputs are standard diagnostics only and are not safety signals.
+VAR_INPUT
+    Pilz_DeviceOK         : Bool;
+    IOLinkMaster1_OK      : Bool;
+    IOLinkMaster2_OK      : Bool;
+    IOLinkMaster3_OK      : Bool;
+    IOLinkMaster4_OK      : Bool;
+    Drive_G120C_OK        : Bool;
+    HMI_LinkOK            : Bool;
+    AnybusGateway_OK      : Bool;
+    AnybusGateway_ECAT_OK : Bool;
+END_VAR
+VAR_OUTPUT
+    NetworkOK             : Bool;
+    FaultyDeviceMask      : DWORD;
+END_VAR
+BEGIN
+    FaultyDeviceMask := DWORD#0;
+
+    IF NOT Pilz_DeviceOK         THEN FaultyDeviceMask.%X0 := TRUE; END_IF;
+    IF NOT IOLinkMaster1_OK      THEN FaultyDeviceMask.%X1 := TRUE; END_IF;
+    IF NOT IOLinkMaster2_OK      THEN FaultyDeviceMask.%X2 := TRUE; END_IF;
+    IF NOT IOLinkMaster3_OK      THEN FaultyDeviceMask.%X3 := TRUE; END_IF;
+    IF NOT IOLinkMaster4_OK      THEN FaultyDeviceMask.%X4 := TRUE; END_IF;
+    IF NOT Drive_G120C_OK        THEN FaultyDeviceMask.%X5 := TRUE; END_IF;
+    IF NOT HMI_LinkOK            THEN FaultyDeviceMask.%X6 := TRUE; END_IF;
+    IF NOT AnybusGateway_OK      THEN FaultyDeviceMask.%X7 := TRUE; END_IF;
+    IF NOT AnybusGateway_ECAT_OK THEN FaultyDeviceMask.%X8 := TRUE; END_IF;
+
+    NetworkOK := Pilz_DeviceOK
+                 AND IOLinkMaster1_OK
+                 AND IOLinkMaster2_OK
+                 AND IOLinkMaster3_OK
+                 AND IOLinkMaster4_OK
+                 AND Drive_G120C_OK
+                 AND HMI_LinkOK
+                 AND AnybusGateway_OK
+                 AND AnybusGateway_ECAT_OK;
+END_FUNCTION_BLOCK

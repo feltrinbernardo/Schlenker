@@ -8,3 +8,6 @@ fixtures/projects/*
 *.bak
 *.log
 .DS_Store
+
+# A fixture may be copied beside this repository for local testing, but never
+# commit GX Works project files or generated evidence.

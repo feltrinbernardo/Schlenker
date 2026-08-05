@@ -1,0 +1,208 @@
+TYPE "UDT_Machine" :
+STRUCT
+    State               : USInt;
+    SafetyOK            : Bool;
+    HomeValid           : Bool;
+    TrackingValid       : Bool;
+    RotationPermitted   : Bool;
+    AutomaticActive     : Bool;
+    ManualActive        : Bool;
+    StandbyActive       : Bool;
+    FillerHeightActive  : Bool;
+    CapperHeightActive  : Bool;
+    CIPActive           : Bool;
+    EmptyingActive      : Bool;
+    AlarmStopActive     : Bool;
+    DoorAccessActive    : Bool;
+    DoorRestartPermitted: Bool;
+    DoorAccessFault     : Bool;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_Command" :
+STRUCT
+    AutoStart           : Bool;
+    ManualSelect        : Bool;
+    Stop                : Bool;
+    Reset               : Bool;
+    HomeStart           : Bool;
+    CIPStart            : Bool;
+    EmptyingStart       : Bool;
+    FillerHeightEnable  : Bool;
+    CapperHeightEnable  : Bool;
+    JogPB               : Bool;
+    PendantUp           : Bool;
+    PendantDown         : Bool;
+    GateManualOpen      : Bool;
+    GateManualClose     : Bool;
+    GateManualPageActive: Bool;
+    ManualTestEnable    : Bool;
+    LightsOn            : Bool;
+    LightsOff           : Bool;
+    AirFilterOn         : Bool;
+    AirFilterOff        : Bool;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_Input" :
+STRUCT
+    SafetyOK            : Bool;
+    AirPressureOK       : Bool;
+    MainDriveReady      : Bool;
+    MainDriveFault      : Bool;
+    ConveyorReady       : Bool;
+    ConveyorFault       : Bool;
+    ProductPumpReady    : Bool;
+    ProductPumpFault    : Bool;
+    CapDriveReady       : Bool;
+    CapDriveFault       : Bool;
+    CapperOutfeedCrash  : Bool;
+    EncoderHealthy      : Bool;
+    MachineZero         : Bool;
+    EncoderCount        : DInt;
+    BottleInfeed        : Bool;
+    TankFull100         : Bool;
+    BottleShortage1     : Bool;
+    BottleShortage2     : Bool;
+    Accumulation1       : Bool;
+    Accumulation2       : Bool;
+    GateOpenFB          : Bool;
+    GateClosedFB        : Bool;
+    FillerLowLimit      : Bool;
+    FillerHighLimit     : Bool;
+    CapperLowLimit      : Bool;
+    CapperHighLimit     : Bool;
+    CapPresent          : Bool;
+    CapHopperLow        : Bool;
+    CapChannelDemand    : Bool;
+    CapsMissing         : Bool;
+    HoodFilterAlarm     : Bool;
+    SMCCommOK           : Bool;
+    PilzDeviceOK        : Bool;
+    IOLinkMaster1OK     : Bool;
+    IOLinkMaster2OK     : Bool;
+    IOLinkMaster3OK     : Bool;
+    IOLinkMaster4OK     : Bool;
+    DriveG120CNetworkOK : Bool;
+    HMILinkOK           : Bool;
+    AnybusGatewayOK     : Bool;
+    AnybusGatewayECATOK : Bool;
+    TankLevelPct        : Real;
+    RequestOpenDoorPanelPB : Bool;
+    RequestOpenDoorFrontPB : Bool;
+    RequestOpenDoorRearPB  : Bool;
+    ControlledStopComplete : Bool;
+    ZeroSpeedConfirmed     : Bool;
+    ThreePhaseOffConfirmed : Bool;
+    AllDoorsClosed         : Bool;
+    AllDoorsUnlocked       : Bool;
+    SafetyCircuitClosed    : Bool;
+    SafetySystemFault      : Bool;
+    EStopChain24VHealthy   : Bool;
+    AuxiliaryPanelPB       : Bool;
+    ResetAlarmPanelPB      : Bool;
+    Blink1Hz               : Bool;
+    PendantConnected       : Bool;
+    StartPanelPB            : Bool;
+    StopPanelPB             : Bool;
+    PanelModeAuto           : Bool;
+    ControlPowerOK         : Bool;
+    AirFilterPressureOK    : Bool;
+    AirFilterChangeRequired24V : Bool;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_Output" :
+STRUCT
+    MainRun             : Bool;
+    MainSpeedPct        : Real;
+    ConveyorRun         : Bool;
+    ConveyorSpeedPct    : Real;
+    ProductPumpRun      : Bool;
+    ProductPumpSpeedPct : Real;
+    CapDriveRun         : Bool;
+    CapDriveSpeedPct    : Real;
+    GateOpen            : Bool;
+    GateClose           : Bool;
+    FillerUp            : Bool;
+    FillerDown          : Bool;
+    CapperUp            : Bool;
+    CapperDown          : Bool;
+    VacuumPump          : Bool;
+    EV210               : Bool;
+    EV211               : Bool;
+    EV212               : Bool;
+    EV230FastRelease    : Bool;
+    ValveBits           : DWORD;
+    UnlockAllDoorsRequest : Bool;
+    RequestBlueLampCmd    : Bool;
+    RequestPanelBlueLampCmd : Bool;
+    RequestFrontBlueLampCmd : Bool;
+    RequestRearBlueLampCmd  : Bool;
+    MachineLightsRelayCmd : Bool;
+    AirFilterRelayCmd     : Bool;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_Parameters" :
+STRUCT
+    ProductionSpeedBPH      : Real;
+    MaxSpeedBPH             : Real;
+    JogSpeedPct             : Real;
+    ShortageSlowPct         : Real;
+    AccumulationSlowPct     : Real;
+    TankSetpointPct         : Real;
+    TankDeadbandPct         : Real;
+    PumpMinSpeedPct         : Real;
+    PumpMaxSpeedPct         : Real;
+    PumpRampPctPerCycle     : Real;
+    ShortageDelay1          : Time;
+    ShortageDelay2          : Time;
+    AccumulationDelay1      : Time;
+    AccumulationDelay2      : Time;
+    GateTimeout             : Time;
+    LiftTimeout             : Time;
+    CIPVacuumTime           : Time;
+    DoorStopTimeout         : Time;
+    DoorPowerOffTimeout     : Time;
+    DoorUnlockTimeout       : Time;
+    AirFilterProofDelay     : Time;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_Alarm" :
+STRUCT
+    Active              : Bool;
+    Latched             : Bool;
+    AckRequired         : Bool;
+    Code                : DInt;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_DoorAccess" :
+STRUCT
+    State                 : USInt;
+    RequestCombined       : Bool;
+    SequenceActive        : Bool;
+    ControlledStopRequest : Bool;
+    UnlockAllDoorsRequest : Bool;
+    AuxResetRequired      : Bool;
+    AlarmResetRequired    : Bool;
+    RestartPermitted      : Bool;
+    RequestBlueLampSteady : Bool;
+    RequestBlueLampFlash  : Bool;
+    RequestBlueLampCmd    : Bool;
+    Fault                 : Bool;
+    FaultCode             : UInt;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_Auxiliaries" :
+STRUCT
+    MachineLightsRelayCmd   : Bool;
+    AirFilterRelayCmd       : Bool;
+    AirFilterPressureOK     : Bool;
+    AirFilterFault          : Bool;
+    AirFilterChangeWarning  : Bool;
+END_STRUCT;
+END_TYPE

@@ -1,0 +1,56 @@
+{
+  "project": "Refurbished Monoblocco Schenker",
+  "revision": "REV11-working",
+  "target_cpu": "S7-1512C-1 PN",
+  "target_hmi": {
+    "model": "MTP1500 Unified Comfort",
+    "order_number": "6AV2128-3QB06-0AXX",
+    "engineering": "WinCC Unified in TIA Portal V19"
+  },
+  "language": "SCL",
+  "status": "Offline working import package - not compiled or safety validated",
+  "resolved_since_rev09": [
+    "PROFINET-to-EtherCAT gateway confirmed: HMS Anybus ABC3113-A, feeding SMC EX260-SEC1 (8x VQC1100N-51, 2x VQC1200N-51)",
+    "HMI confirmed as MTP1500 Unified Comfort, order number 6AV2128-3QB06-0AXX"
+  ],
+  "critical_open_points": [
+    "Complete the native TIA Portal V19 project using the confirmed MTP1500 Unified Comfort HMI",
+    "Enable the local Siemens TIA Openness prerequisite for the engineering account or use the TIA V19 user interface",
+    "Final hardware addresses and telegrams",
+    "Final safety validation and Pilz project",
+    "Final encoder mechanical ratio and mounting",
+    "Final valve-to-bit mapping confirmation after FAT",
+    "Electrical identifiers, Pilz channels and lock feedback mapping for the confirmed 11 guarded doors",
+    "Electrical identifiers and Pilz channels for the confirmed four series-wired emergency stops and three request stations",
+    "Electrical identifiers and I/O mapping for the seven photo-confirmed physical controls below the HMI",
+    "Confirm the MAN/AUT selector contact arrangement polarity and authority relative to HMI Auto/Manual commands",
+    "Confirm that the E-stop below the HMI is the previously counted front E-stop rather than an additional fifth device",
+    "Confirm the proposed blue request-lamp indication behavior and physical outputs",
+    "Assign two independent 24 VDC PLC outputs and dedicated relay coils for machine lights and air filter; confirm relay contact ratings protection and any separate feedbacks",
+    "Confirm the required operating permissives for the air filter and commission its pressure-proof delay",
+    "Assign the dedicated 24 VDC air-filter change input channel terminal and wire number",
+    "Obtain the controlled layout CAD/PDF and approve the mapping between its panel callouts and the 11 guarded-door identities",
+    "Compile FB_DoorAccess and validate its interface against the Pilz and electrical designs"
+  ],
+  "new_blocks": [
+    "FB_NetworkDiagnostics",
+    "FB_ManualValveOverride",
+    "UDT_DoorAccess",
+    "FB_DoorAccess",
+    "UDT_Auxiliaries",
+    "FB_Auxiliaries"
+  ],
+  "layout_reference": {
+    "document": "../MECHANICAL_LAYOUT_REFERENCE.md",
+    "source": "Operator-supplied raster image of FBS- Frame Tot Assy sheet 1 / 2",
+    "use": "HMI machine-overview and diagnostics layout reference only",
+    "guard_mapping_status": "Not assigned; requires controlled drawing and physical cross-check"
+  },
+  "hmi_style_reference": {
+    "document": "../HMI_LAYOUT_STYLE_REFERENCE.md",
+    "source": "Eleven operator-supplied HMI photographs from a different machine",
+    "use": "Visual hierarchy navigation and reusable page-pattern reference only",
+    "excluded": "Example-machine tags equipment parameters page numbers permissives and operating logic"
+  },
+  "note": "REV11 working incorporates standard-PLC door-access coordination and manual-output reversion. It is not compiled, commissioned or safety validated. The supplied FBS assembly image is accepted only as a visual layout reference; it does not merge another machine's control configuration into this package."
+}

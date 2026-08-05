@@ -1,0 +1,11 @@
+PhysicalOrder,EquipmentLabel,TiaAlias,Manifold,ValveModelEvidence,CyclicOutputBit,MachineFunction,HmiManualLabel,Status
+1,-125Y1,SMC_125Y1,P1,VQC1100N-51 consistent with photo and supplied inventory,Unassigned,Gate Open,Gate Open (-125Y1),Equipment identifier and function confirmed by operator; cyclic mapping review required
+2,-125Y2,SMC_125Y2,P1,VQC1100N-51 consistent with photo and supplied inventory,Unassigned,Unassigned,To be confirmed (-125Y2),Equipment identifier confirmed; mapping review required
+3,-125Y3,SMC_125Y3,P1,VQC1100N-51 consistent with photo and supplied inventory,Unassigned,Unassigned,To be confirmed (-125Y3),Equipment identifier confirmed; mapping review required
+4,-125Y4,SMC_125Y4,P1,VQC1100N-51 consistent with photo and supplied inventory,Unassigned,Unassigned,To be confirmed (-125Y4),Equipment identifier confirmed; mapping review required
+5,-125Y5,SMC_125Y5,P1,VQC1100N-51 consistent with photo and supplied inventory,Unassigned,Unassigned,To be confirmed (-125Y5),Equipment identifier confirmed; mapping review required
+6,-125Y6,SMC_125Y6,P1,VQC1100N-51 consistent with photo and supplied inventory,Unassigned,Unassigned,To be confirmed (-125Y6),Equipment identifier confirmed; mapping review required
+7,-125Y7,SMC_125Y7,P1,VQC1100N-51 consistent with photo and supplied inventory,Unassigned,Unassigned,To be confirmed (-125Y7),Equipment identifier confirmed; mapping review required
+8,-125Y8,SMC_125Y8,P1,VQC1100N-51 consistent with photo and supplied inventory,Unassigned,Unassigned,To be confirmed (-125Y8),Equipment identifier confirmed; mapping review required
+9,-125Y9,SMC_125Y9,P1,VQC1200N-51 consistent with photo and supplied inventory,Unassigned,Unassigned,To be confirmed (-125Y9),Equipment identifier confirmed; mapping review required
+10,-125Y10,SMC_125Y10,P1,VQC1200N-51 consistent with photo and supplied inventory,Unassigned,Unassigned,To be confirmed (-125Y10),Equipment identifier confirmed; mapping review required

@@ -1,0 +1,45 @@
+FUNCTION_BLOCK "FB_ManualValveOverride"
+// Generic manual test override for a single pneumatic point (gate, cap release, etc.)
+// used from an HMI subsystem menu (Filler / Capper / etc.).
+//
+// Behavior required by engineering spec:
+// - While MenuActive = TRUE and SafetyOK = TRUE and ManualTestEnable = TRUE,
+//   the operator/technician can directly command Open/Close from the HMI
+//   to test the cylinder and valve response.
+// - The instant MenuActive goes FALSE (technician navigates away from the
+//   subsystem page, returns Home, or switches machine), control is handed
+//   back to the automatic sequence output (AutoOpenCmd/AutoCloseCmd) with
+//   NO latching of the manual command. A component left open during a test
+//   is forced back to normal automatic control immediately on exit.
+
+VAR_INPUT
+    MenuActive       : Bool; // TRUE only while this subsystem's HMI menu/page is open
+    SafetyOK         : Bool;
+    ManualTestEnable : Bool; // engineer-level permission to use test controls
+    OpenPB           : Bool; // momentary HMI button
+    ClosePB          : Bool; // momentary HMI button
+    AutoOpenCmd      : Bool; // command from normal automatic logic (e.g. FB_AccumulationGate)
+    AutoCloseCmd     : Bool;
+END_VAR
+VAR_OUTPUT
+    OpenCmd          : Bool; // final command sent to FB_SMC_ValveManager
+    CloseCmd         : Bool;
+    TestModeActive   : Bool; // TRUE while manual override is actually in effect
+END_VAR
+
+BEGIN
+    TestModeActive := MenuActive AND SafetyOK AND ManualTestEnable;
+
+    IF TestModeActive THEN
+        // Manual test control - momentary, no latch.
+        OpenCmd  := OpenPB AND NOT ClosePB;
+        CloseCmd := ClosePB AND NOT OpenPB;
+    ELSE
+        // Menu not active (or safety/permission dropped): always return
+        // control to the automatic sequence. This guarantees that a valve
+        // left open during a test is not left in a manual state once the
+        // engineer exits the page.
+        OpenCmd  := AutoOpenCmd;
+        CloseCmd := AutoCloseCmd;
+    END_IF;
+END_FUNCTION_BLOCK

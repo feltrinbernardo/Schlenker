@@ -1,0 +1,310 @@
+FUNCTION_BLOCK "FB_Application"
+VAR
+    StateManager        : "FB_MainState";
+    ProductPump         : "FB_ProductPump";
+    AccumGate           : "FB_AccumulationGate";
+    FillerHeight        : "FB_HeightMode";
+    CapperHeight        : "FB_HeightMode";
+    JogPendant          : "FB_JogPendant";
+    VacuumCIP           : "FB_VacuumCIP";
+    SMC                 : "FB_SMC_ValveManager";
+    Alarms              : "FB_AlarmManager";
+    DoorAccess          : "FB_DoorAccess";
+    ManualGate          : "FB_ManualValveOverride";
+    Auxiliaries         : "FB_Auxiliaries";
+    NetworkDiagnostics  : "FB_NetworkDiagnostics";
+
+    FillerActive        : Bool;
+    CapperActive        : Bool;
+    GateOpenCmd         : Bool;
+    GateCloseCmd        : Bool;
+    StandbyRequest      : Bool;
+    SpeedLimitPct       : Real;
+    GateFault           : Bool;
+    PumpLevelFault      : Bool;
+    PumpLowWarning      : Bool;
+    SMCConflict         : Bool;
+    DrivesReady         : Bool;
+    MachineStopped      : Bool;
+    JogSpeedPct         : Real;
+    GateFinalOpenCmd    : Bool;
+    GateFinalCloseCmd   : Bool;
+    ManualGateActive    : Bool;
+    SpeedParameterFault : Bool;
+    EffectiveCmd        : "UDT_Command";
+END_VAR
+
+BEGIN
+    // REV11 network diagnostics are retained and executed before state control.
+    NetworkDiagnostics(
+        Pilz_DeviceOK := "DB_Global".Inp.PilzDeviceOK,
+        IOLinkMaster1_OK := "DB_Global".Inp.IOLinkMaster1OK,
+        IOLinkMaster2_OK := "DB_Global".Inp.IOLinkMaster2OK,
+        IOLinkMaster3_OK := "DB_Global".Inp.IOLinkMaster3OK,
+        IOLinkMaster4_OK := "DB_Global".Inp.IOLinkMaster4OK,
+        Drive_G120C_OK := "DB_Global".Inp.DriveG120CNetworkOK,
+        HMI_LinkOK := "DB_Global".Inp.HMILinkOK,
+        AnybusGateway_OK := "DB_Global".Inp.AnybusGatewayOK,
+        AnybusGateway_ECAT_OK := "DB_Global".Inp.AnybusGatewayECATOK,
+        NetworkOK => "DB_Global".NetworkOK,
+        FaultyDeviceMask => "DB_Global".FaultyDeviceMask
+    );
+
+    // Device readiness summary.
+    DrivesReady :=
+        "DB_Global".Inp.MainDriveReady AND
+        "DB_Global".Inp.ConveyorReady AND
+        "DB_Global".Inp.ProductPumpReady AND
+        "DB_Global".Inp.CapDriveReady;
+
+    MachineStopped := NOT "DB_Global".Out.MainRun;
+    SpeedParameterFault := ("DB_Global".Par.MaxSpeedBPH <= 0.0)
+                           OR ("DB_Global".Par.ProductionSpeedBPH < 0.0);
+
+    DoorAccess(
+        RequestOpenDoorPanelPB := "DB_Global".Inp.RequestOpenDoorPanelPB,
+        RequestOpenDoorFrontPB := "DB_Global".Inp.RequestOpenDoorFrontPB,
+        RequestOpenDoorRearPB := "DB_Global".Inp.RequestOpenDoorRearPB,
+        Blink1Hz := "DB_Global".Inp.Blink1Hz,
+        MachineRunning := "DB_Global".Out.MainRun,
+        ControlledStopComplete := "DB_Global".Inp.ControlledStopComplete,
+        ZeroSpeedConfirmed := "DB_Global".Inp.ZeroSpeedConfirmed,
+        ThreePhaseOffConfirmed := "DB_Global".Inp.ThreePhaseOffConfirmed,
+        AllDoorsClosed := "DB_Global".Inp.AllDoorsClosed,
+        AllDoorsUnlocked := "DB_Global".Inp.AllDoorsUnlocked,
+        SafetyCircuitClosed := "DB_Global".Inp.SafetyCircuitClosed,
+        SafetySystemFault := "DB_Global".Inp.SafetySystemFault,
+        EStopChain24VHealthy := "DB_Global".Inp.EStopChain24VHealthy,
+        AuxiliaryPanelPB := "DB_Global".Inp.AuxiliaryPanelPB,
+        ResetAlarmPanelPB := "DB_Global".Inp.ResetAlarmPanelPB,
+        ResetFault := "DB_Global".Cmd.Reset OR "DB_Global".Inp.ResetAlarmPanelPB,
+        StopTimeout := "DB_Global".Par.DoorStopTimeout,
+        PowerOffTimeout := "DB_Global".Par.DoorPowerOffTimeout,
+        UnlockTimeout := "DB_Global".Par.DoorUnlockTimeout,
+        D := "DB_Global".DoorAccess
+    );
+
+    EffectiveCmd := "DB_Global".Cmd;
+    EffectiveCmd.AutoStart := "DB_Global".Cmd.AutoStart OR "DB_Global".Inp.StartPanelPB;
+    EffectiveCmd.Reset := "DB_Global".Cmd.Reset OR "DB_Global".Inp.ResetAlarmPanelPB;
+    EffectiveCmd.Stop := "DB_Global".Cmd.Stop
+                         OR "DB_Global".Inp.StopPanelPB
+                         OR "DB_Global".DoorAccess.ControlledStopRequest;
+
+    // Alarm evaluation is performed before state control.
+    Alarms(
+        SafetyOK := "DB_Global".Inp.SafetyOK,
+        AirPressureOK := "DB_Global".Inp.AirPressureOK,
+        EncoderHealthy := "DB_Global".Inp.EncoderHealthy,
+        GateFault := GateFault,
+        PumpLevelFault := PumpLevelFault,
+        SMCCommOK := "DB_Global".Inp.SMCCommOK,
+        SMCConflict := SMCConflict,
+        FillerMoveTimeout := FillerHeight.MovementTimeout,
+        CapperMoveTimeout := CapperHeight.MovementTimeout,
+        MainDriveFault := "DB_Global".Inp.MainDriveFault,
+        ConveyorFault := "DB_Global".Inp.ConveyorFault,
+        ProductPumpFault := "DB_Global".Inp.ProductPumpFault,
+        CapDriveFault := "DB_Global".Inp.CapDriveFault,
+        HoodFilterAlarm := "DB_Global".Inp.HoodFilterAlarm,
+        EStopChain24VHealthy := "DB_Global".Inp.EStopChain24VHealthy,
+        DoorAccessFault := "DB_Global".DoorAccess.Fault,
+        AirFilterFault := "DB_Global".Auxiliaries.AirFilterFault,
+        AirFilterChangeWarning := "DB_Global".Auxiliaries.AirFilterChangeWarning,
+        SpeedParameterFault := SpeedParameterFault,
+        PumpLowWarning := PumpLowWarning,
+        CapperOutfeedCrash := "DB_Global".Inp.CapperOutfeedCrash,
+        CriticalAlarm => "DB_Global".AlarmCritical,
+        WarningAlarm => "DB_Global".AlarmWarning,
+        AlarmWord1 => "DB_Global".AlarmWord1
+    );
+
+    StateManager(
+        Cmd := EffectiveCmd,
+        SafetyOK := "DB_Global".Inp.SafetyOK,
+        AirPressureOK := "DB_Global".Inp.AirPressureOK,
+        DrivesReady := DrivesReady,
+        EncoderHealthy := "DB_Global".Inp.EncoderHealthy,
+        CriticalAlarm := "DB_Global".AlarmCritical,
+        StandbyRequest := StandbyRequest,
+        DoorAccessActive := "DB_Global".DoorAccess.SequenceActive,
+        DoorRestartPermitted := "DB_Global".DoorAccess.RestartPermitted,
+        DoorAccessFault := "DB_Global".DoorAccess.Fault,
+        FillerHeightActive := FillerActive,
+        CapperHeightActive := CapperActive,
+        M := "DB_Global".Machine
+    );
+
+    Auxiliaries(
+        ControlPowerOK := "DB_Global".Inp.ControlPowerOK,
+        LightsOnPB := "DB_Global".Cmd.LightsOn,
+        LightsOffPB := "DB_Global".Cmd.LightsOff,
+        AirFilterOnPB := "DB_Global".Cmd.AirFilterOn,
+        AirFilterOffPB := "DB_Global".Cmd.AirFilterOff,
+        AirFilterPressureOK := "DB_Global".Inp.AirFilterPressureOK,
+        AirFilterChangeRequired24V := "DB_Global".Inp.AirFilterChangeRequired24V,
+        ResetAlarmPB := "DB_Global".Inp.ResetAlarmPanelPB OR "DB_Global".Cmd.Reset,
+        AirFilterProofDelay := "DB_Global".Par.AirFilterProofDelay,
+        A := "DB_Global".Auxiliaries
+    );
+
+    "DB_Global".Out.UnlockAllDoorsRequest := "DB_Global".DoorAccess.UnlockAllDoorsRequest;
+    "DB_Global".Out.RequestBlueLampCmd := "DB_Global".DoorAccess.RequestBlueLampCmd;
+    "DB_Global".Out.RequestPanelBlueLampCmd := "DB_Global".DoorAccess.RequestBlueLampCmd;
+    "DB_Global".Out.RequestFrontBlueLampCmd := "DB_Global".DoorAccess.RequestBlueLampCmd;
+    "DB_Global".Out.RequestRearBlueLampCmd := "DB_Global".DoorAccess.RequestBlueLampCmd;
+    "DB_Global".Out.MachineLightsRelayCmd := "DB_Global".Auxiliaries.MachineLightsRelayCmd;
+    "DB_Global".Out.AirFilterRelayCmd := "DB_Global".Auxiliaries.AirFilterRelayCmd;
+
+    FillerHeight(
+        Enable := "DB_Global".Machine.FillerHeightActive,
+        OtherHeightActive := CapperActive,
+        SafetyOK := "DB_Global".Inp.SafetyOK,
+        MachineStopped := MachineStopped,
+        UpSelector := "DB_Global".Cmd.PendantUp,
+        DownSelector := "DB_Global".Cmd.PendantDown,
+        LowLimit := "DB_Global".Inp.FillerLowLimit,
+        HighLimit := "DB_Global".Inp.FillerHighLimit,
+        MoveTimeout := "DB_Global".Par.LiftTimeout,
+        Active => FillerActive,
+        UpCmd => "DB_Global".Out.FillerUp,
+        DownCmd => "DB_Global".Out.FillerDown
+    );
+
+    CapperHeight(
+        Enable := "DB_Global".Machine.CapperHeightActive,
+        OtherHeightActive := FillerActive,
+        SafetyOK := "DB_Global".Inp.SafetyOK,
+        MachineStopped := MachineStopped,
+        UpSelector := "DB_Global".Cmd.PendantUp,
+        DownSelector := "DB_Global".Cmd.PendantDown,
+        LowLimit := "DB_Global".Inp.CapperLowLimit,
+        HighLimit := "DB_Global".Inp.CapperHighLimit,
+        MoveTimeout := "DB_Global".Par.LiftTimeout,
+        Active => CapperActive,
+        UpCmd => "DB_Global".Out.CapperUp,
+        DownCmd => "DB_Global".Out.CapperDown
+    );
+
+    JogPendant(
+        ManualMode := "DB_Global".Machine.ManualActive,
+        SafetyOK := "DB_Global".Inp.SafetyOK,
+        PendantConnected := "DB_Global".Inp.PendantConnected,
+        JogPB := "DB_Global".Cmd.JogPB,
+        HeightModeActive := FillerActive OR CapperActive,
+        MainDriveReady := "DB_Global".Inp.MainDriveReady,
+        JogSpeedPct := "DB_Global".Par.JogSpeedPct,
+        RecoveryComplete := "DB_Global".RecoveryDone,
+        TrackingValid := "DB_Global".Machine.TrackingValid,
+        JogForwardCmd => "DB_Global".Out.MainRun,
+        SpeedRefPct => JogSpeedPct
+    );
+
+    AccumGate(
+        EnableAuto := "DB_Global".Machine.AutomaticActive,
+        SafetyOK := "DB_Global".Inp.SafetyOK,
+        Shortage1 := "DB_Global".Inp.BottleShortage1,
+        Shortage2 := "DB_Global".Inp.BottleShortage2,
+        Accumulation1 := "DB_Global".Inp.Accumulation1,
+        Accumulation2 := "DB_Global".Inp.Accumulation2,
+        GateOpenFB := "DB_Global".Inp.GateOpenFB,
+        GateClosedFB := "DB_Global".Inp.GateClosedFB,
+        ShortageDelay1 := "DB_Global".Par.ShortageDelay1,
+        ShortageDelay2 := "DB_Global".Par.ShortageDelay2,
+        AccumulationDelay1 := "DB_Global".Par.AccumulationDelay1,
+        AccumulationDelay2 := "DB_Global".Par.AccumulationDelay2,
+        GateTimeout := "DB_Global".Par.GateTimeout,
+        ShortageSlowPct := "DB_Global".Par.ShortageSlowPct,
+        AccumulationSlowPct := "DB_Global".Par.AccumulationSlowPct,
+        GateOpenCmd => GateOpenCmd,
+        GateCloseCmd => GateCloseCmd,
+        SpeedLimitPct => SpeedLimitPct,
+        StandbyRequest => StandbyRequest,
+        GateFault => GateFault
+    );
+
+    ManualGate(
+        ManualMode := "DB_Global".Machine.ManualActive,
+        MenuActive := "DB_Global".Cmd.GateManualPageActive,
+        SafetyOK := "DB_Global".Inp.SafetyOK,
+        ManualTestEnable := "DB_Global".Cmd.ManualTestEnable,
+        OpenPB := "DB_Global".Cmd.GateManualOpen,
+        ClosePB := "DB_Global".Cmd.GateManualClose,
+        AutoOpenCmd := GateOpenCmd,
+        AutoCloseCmd := GateCloseCmd,
+        OpenCmd => GateFinalOpenCmd,
+        CloseCmd => GateFinalCloseCmd,
+        TestModeActive => ManualGateActive
+    );
+
+    ProductPump(
+        Enable := "DB_Global".Machine.AutomaticActive OR "DB_Global".Machine.EmptyingActive,
+        EmptyingMode := "DB_Global".Machine.EmptyingActive,
+        DriveReady := "DB_Global".Inp.ProductPumpReady,
+        DriveFault := "DB_Global".Inp.ProductPumpFault,
+        LevelPct := "DB_Global".Inp.TankLevelPct,
+        SetpointPct := "DB_Global".Par.TankSetpointPct,
+        DeadbandPct := "DB_Global".Par.TankDeadbandPct,
+        MinSpeedPct := "DB_Global".Par.PumpMinSpeedPct,
+        MaxSpeedPct := "DB_Global".Par.PumpMaxSpeedPct,
+        RampPctPerCycle := "DB_Global".Par.PumpRampPctPerCycle,
+        RunCmd => "DB_Global".Out.ProductPumpRun,
+        SpeedRefPct => "DB_Global".Out.ProductPumpSpeedPct,
+        LevelSignalFault => PumpLevelFault,
+        LowLevelWarning => PumpLowWarning
+    );
+
+    VacuumCIP(
+        ProductionMode := "DB_Global".Machine.AutomaticActive,
+        CIPMode := "DB_Global".Machine.CIPActive,
+        TankFull100 := "DB_Global".Inp.TankFull100
+                       OR ("DB_Global".Inp.TankLevelPct >= 99.5),
+        ResetSequence := "DB_Global".Cmd.Reset,
+        CIPVacuumTime := "DB_Global".Par.CIPVacuumTime,
+        VacuumPumpCmd => "DB_Global".Out.VacuumPump,
+        EV210 => "DB_Global".Out.EV210,
+        EV211 => "DB_Global".Out.EV211,
+        EV212 => "DB_Global".Out.EV212
+    );
+
+    // Automatic main-drive command. JOG has priority only in Manual.
+    IF "DB_Global".Machine.AutomaticActive THEN
+        IF NOT SpeedParameterFault THEN
+            "DB_Global".Out.MainRun := TRUE;
+            "DB_Global".Out.MainSpeedPct :=
+                LIMIT(MN := 0.0,
+                      IN := ("DB_Global".Par.ProductionSpeedBPH / "DB_Global".Par.MaxSpeedBPH) * 100.0,
+                      MX := SpeedLimitPct);
+        ELSE
+            "DB_Global".Out.MainRun := FALSE;
+            "DB_Global".Out.MainSpeedPct := 0.0;
+        END_IF;
+    ELSIF "DB_Global".Machine.ManualActive AND "DB_Global".Out.MainRun THEN
+        "DB_Global".Out.MainSpeedPct := JogSpeedPct;
+    ELSE
+        "DB_Global".Out.MainRun := FALSE;
+        "DB_Global".Out.MainSpeedPct := 0.0;
+    END_IF;
+
+    "DB_Global".Out.GateOpen := GateFinalOpenCmd;
+    "DB_Global".Out.GateClose := GateFinalCloseCmd;
+
+    SMC(
+        SafetyOK := "DB_Global".Inp.SafetyOK,
+        CommOK := "DB_Global".Inp.SMCCommOK,
+        OutputsPermitted := NOT "DB_Global".Machine.AlarmStopActive
+                            AND NOT "DB_Global".Machine.DoorAccessActive,
+        GateOpenCmd := GateFinalOpenCmd,
+        GateCloseCmd := GateFinalCloseCmd,
+        ProductInletCmd := "DB_Global".Out.ProductPumpRun,
+        ProductCloseCmd := NOT "DB_Global".Out.ProductPumpRun,
+        EV210Cmd := "DB_Global".Out.EV210,
+        EV211Cmd := "DB_Global".Out.EV211,
+        EV212Cmd := "DB_Global".Out.EV212,
+        CapDistributorAir := "DB_Global".Inp.CapChannelDemand,
+        CapChannelAir := "DB_Global".Inp.CapChannelDemand,
+        SpareCmd := FALSE,
+        ValveBits => "DB_Global".Out.ValveBits,
+        ConflictAlarm => SMCConflict
+    );
+END_FUNCTION_BLOCK

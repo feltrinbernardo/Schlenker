@@ -1,0 +1,35 @@
+FUNCTION_BLOCK "FB_HeightMode"
+VAR_INPUT
+    Enable              : Bool;
+    OtherHeightActive   : Bool;
+    SafetyOK            : Bool;
+    MachineStopped      : Bool;
+    UpSelector          : Bool;
+    DownSelector        : Bool;
+    LowLimit            : Bool;
+    HighLimit           : Bool;
+    MoveTimeout         : Time;
+END_VAR
+VAR_OUTPUT
+    Active              : Bool;
+    UpCmd               : Bool;
+    DownCmd             : Bool;
+    RotationBlock       : Bool;
+    DirectionConflict   : Bool;
+    MovementTimeout     : Bool;
+END_VAR
+VAR
+    tMove               : TON;
+END_VAR
+
+BEGIN
+    Active := Enable AND NOT OtherHeightActive AND SafetyOK AND MachineStopped;
+    RotationBlock := Active;
+    DirectionConflict := UpSelector AND DownSelector;
+
+    UpCmd := Active AND UpSelector AND NOT DownSelector AND NOT HighLimit;
+    DownCmd := Active AND DownSelector AND NOT UpSelector AND NOT LowLimit;
+
+    tMove(IN := UpCmd OR DownCmd, PT := MoveTimeout);
+    MovementTimeout := tMove.Q;
+END_FUNCTION_BLOCK

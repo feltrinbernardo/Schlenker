@@ -1,0 +1,70 @@
+FUNCTION_BLOCK "FB_VacuumCIP"
+VAR_INPUT
+    ProductionMode      : Bool;
+    CIPMode             : Bool;
+    TankFull100         : Bool;
+    ResetSequence       : Bool;
+    CIPVacuumTime       : Time;
+END_VAR
+VAR_OUTPUT
+    VacuumPumpCmd       : Bool;
+    EV210               : Bool;
+    EV211               : Bool;
+    EV212               : Bool;
+    CIPVacuumDone       : Bool;
+    Step                : USInt;
+END_VAR
+VAR
+    tCIP                : TON;
+    RunTimer            : Bool;
+END_VAR
+
+BEGIN
+    // Defaults each scan.
+    VacuumPumpCmd := FALSE;
+    EV210 := FALSE;
+    EV211 := FALSE;
+    EV212 := FALSE;
+    RunTimer := FALSE;
+
+    IF ResetSequence OR NOT CIPMode THEN
+        IF NOT ProductionMode THEN Step := 0; END_IF;
+        CIPVacuumDone := FALSE;
+    END_IF;
+
+    IF ProductionMode THEN
+        Step := 0;
+        CIPVacuumDone := FALSE;
+        VacuumPumpCmd := TRUE;
+        EV210 := FALSE;
+        EV211 := TRUE;
+        EV212 := FALSE;
+
+    ELSIF CIPMode THEN
+        CASE Step OF
+            0:
+                EV210 := TRUE;
+                EV212 := TRUE;
+                IF TankFull100 THEN Step := 10; END_IF;
+
+            10:
+                EV210 := TRUE;
+                EV211 := TRUE;
+                EV212 := TRUE;
+                VacuumPumpCmd := TRUE;
+                RunTimer := TRUE;
+                IF tCIP.Q THEN Step := 20; END_IF;
+
+            20:
+                EV210 := TRUE;
+                EV211 := FALSE;
+                EV212 := TRUE;
+                CIPVacuumDone := TRUE;
+        ELSE
+            Step := 0;
+        END_CASE;
+    END_IF;
+
+    // Timer is called exactly once per scan. Leaving step 10 resets elapsed time.
+    tCIP(IN := RunTimer, PT := CIPVacuumTime);
+END_FUNCTION_BLOCK

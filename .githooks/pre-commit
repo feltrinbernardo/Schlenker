@@ -1,0 +1,41 @@
+#!/bin/sh
+
+set -eu
+
+staged_files=$(git diff --cached --name-only --diff-filter=ACMR)
+
+if [ -z "$staged_files" ]; then
+    exit 0
+fi
+
+non_log_changes=$(printf '%s\n' "$staged_files" | grep -v '^logs/change-log/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]\.md$' || true)
+
+if [ -z "$non_log_changes" ]; then
+    exit 0
+fi
+
+staged_change_logs=$(printf '%s\n' "$staged_files" | grep '^logs/change-log/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]\.md$' || true)
+
+if [ -z "$staged_change_logs" ]; then
+    cat >&2 <<'EOF'
+ERROR: This commit changes repository files but has no staged change-log entry.
+
+Create an entry with:
+  powershell -File scripts/write-change-log.ps1 \
+    -Request "Short summary of the request" \
+    -Summary "What changed" \
+    -Files path/to/file
+
+Then stage the generated logs/change-log/YYYY-MM-DD.md file.
+EOF
+    exit 1
+fi
+
+if ! git diff --cached --unified=0 -- $staged_change_logs |
+    grep -Eq '^\+## [0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}'; then
+    echo 'ERROR: The staged change log has no newly added ISO-8601 timestamp entry.' >&2
+    exit 1
+fi
+
+exit 0
+

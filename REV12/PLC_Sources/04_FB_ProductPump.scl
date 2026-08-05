@@ -1,0 +1,63 @@
+FUNCTION_BLOCK "FB_ProductPump"
+VAR_INPUT
+    Enable              : Bool;
+    EmptyingMode        : Bool;
+    DriveReady          : Bool;
+    DriveFault          : Bool;
+    LevelPct            : Real;
+    SetpointPct         : Real;
+    DeadbandPct         : Real;
+    MinSpeedPct         : Real;
+    MaxSpeedPct         : Real;
+    RampPctPerCycle     : Real;
+END_VAR
+VAR_OUTPUT
+    RunCmd              : Bool;
+    SpeedRefPct         : Real;
+    LevelSignalFault    : Bool;
+    LowLevelWarning     : Bool;
+END_VAR
+VAR
+    TargetSpeed         : Real;
+    ErrorPct            : Real;
+END_VAR
+
+BEGIN
+    LevelSignalFault := (LevelPct < -1.0) OR (LevelPct > 101.0);
+    LowLevelWarning := (LevelPct < 5.0) AND NOT EmptyingMode;
+
+    RunCmd := Enable AND DriveReady AND NOT DriveFault AND NOT LevelSignalFault;
+
+    IF NOT RunCmd THEN
+        TargetSpeed := 0.0;
+    ELSE
+        ErrorPct := SetpointPct - LevelPct;
+
+        // Below setpoint: progressively increase speed.
+        IF ErrorPct > DeadbandPct THEN
+            TargetSpeed := MinSpeedPct +
+                ((MaxSpeedPct - MinSpeedPct) * ErrorPct / 20.0);
+
+        // Inside deadband: maintain only the minimum continuous-flow speed.
+        ELSIF ABS(ErrorPct) <= DeadbandPct THEN
+            TargetSpeed := MinSpeedPct;
+
+        // Above setpoint: stop normal filling pump. This corrects REV10 overfill behavior.
+        ELSE
+            TargetSpeed := 0.0;
+        END_IF;
+
+        IF EmptyingMode THEN
+            TargetSpeed := MaxSpeedPct;
+        END_IF;
+
+        TargetSpeed := LIMIT(MN := 0.0, IN := TargetSpeed, MX := MaxSpeedPct);
+    END_IF;
+
+    // Simple parameterized ramp.
+    IF SpeedRefPct < TargetSpeed THEN
+        SpeedRefPct := MIN(IN1 := SpeedRefPct + RampPctPerCycle, IN2 := TargetSpeed);
+    ELSIF SpeedRefPct > TargetSpeed THEN
+        SpeedRefPct := MAX(IN1 := SpeedRefPct - RampPctPerCycle, IN2 := TargetSpeed);
+    END_IF;
+END_FUNCTION_BLOCK

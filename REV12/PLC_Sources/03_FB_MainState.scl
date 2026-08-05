@@ -1,0 +1,142 @@
+FUNCTION_BLOCK "FB_MainState"
+VAR_INPUT
+    Cmd                 : "UDT_Command";
+    SafetyOK            : Bool;
+    AirPressureOK       : Bool;
+    DrivesReady         : Bool;
+    EncoderHealthy      : Bool;
+    CriticalAlarm       : Bool;
+    StandbyRequest      : Bool;
+    DoorAccessActive    : Bool;
+    DoorRestartPermitted: Bool;
+    DoorAccessFault     : Bool;
+    FillerHeightActive  : Bool;
+    CapperHeightActive  : Bool;
+END_VAR
+VAR_IN_OUT
+    M                   : "UDT_Machine";
+END_VAR
+
+BEGIN
+    M.SafetyOK := SafetyOK;
+
+    IF NOT SafetyOK THEN
+        M.State := 130; // EMERGENCY_STOP
+    ELSIF DoorAccessFault OR CriticalAlarm THEN
+        M.State := 120; // ALARM_STOP
+    ELSIF DoorAccessActive THEN
+        M.State := 110; // GUARDED_ACCESS
+    ELSE
+        CASE M.State OF
+            0: // POWER_UP
+                M.TrackingValid := FALSE;
+                IF SafetyOK AND AirPressureOK AND DrivesReady THEN
+                    IF M.HomeValid AND EncoderHealthy THEN
+                        M.State := 20; // READY
+                    ELSE
+                        M.State := 10; // HOMING
+                    END_IF;
+                END_IF;
+
+            10: // HOMING
+                IF M.HomeValid AND EncoderHealthy THEN
+                    M.TrackingValid := TRUE;
+                    M.State := 20;
+                END_IF;
+                IF Cmd.Stop THEN M.State := 20; END_IF;
+
+            20: // READY
+                IF Cmd.FillerHeightEnable THEN
+                    M.State := 60;
+                ELSIF Cmd.CapperHeightEnable THEN
+                    M.State := 70;
+                ELSIF Cmd.CIPStart THEN
+                    M.State := 80;
+                ELSIF Cmd.EmptyingStart THEN
+                    M.State := 90;
+                ELSIF Cmd.ManualSelect THEN
+                    M.State := 50;
+                ELSIF Cmd.AutoStart AND M.HomeValid AND M.TrackingValid THEN
+                    M.State := 30;
+                END_IF;
+
+            30: // AUTOMATIC
+                IF Cmd.Stop THEN
+                    M.State := 100; // CONTROLLED_STOP
+                ELSIF StandbyRequest THEN
+                    M.State := 40;
+                END_IF;
+
+            40: // STANDBY
+                IF Cmd.Stop THEN
+                    M.State := 100;
+                ELSIF Cmd.AutoStart THEN
+                    M.State := 30;
+                END_IF;
+
+            50: // MANUAL
+                IF NOT Cmd.ManualSelect THEN
+                    M.State := 20;
+                ELSIF Cmd.FillerHeightEnable THEN
+                    M.State := 60;
+                ELSIF Cmd.CapperHeightEnable THEN
+                    M.State := 70;
+                END_IF;
+
+            60: // FILLER_HEIGHT
+                IF NOT Cmd.FillerHeightEnable THEN M.State := 50; END_IF;
+
+            70: // CAPPER_HEIGHT
+                IF NOT Cmd.CapperHeightEnable THEN M.State := 50; END_IF;
+
+            80: // CIP
+                IF Cmd.Stop THEN M.State := 100; END_IF;
+
+            90: // EMPTYING
+                IF Cmd.Stop THEN M.State := 100; END_IF;
+
+            100: // CONTROLLED_STOP
+                M.State := 20;
+
+            110: // GUARDED_ACCESS; restart requires the separate Start command
+                IF DoorRestartPermitted THEN
+                    M.State := 20;
+                END_IF;
+
+            120: // ALARM_STOP
+                IF Cmd.Reset AND NOT CriticalAlarm THEN M.State := 140; END_IF;
+
+            130: // EMERGENCY_STOP
+                M.HomeValid := FALSE;
+                M.TrackingValid := FALSE;
+                IF SafetyOK AND Cmd.Reset THEN M.State := 140; END_IF;
+
+            140: // RECOVERY
+                M.TrackingValid := FALSE;
+                IF Cmd.HomeStart THEN M.State := 10; END_IF;
+
+        ELSE
+            M.State := 0;
+        END_CASE;
+    END_IF;
+
+    M.AutomaticActive := M.State = 30;
+    M.StandbyActive := M.State = 40;
+    M.ManualActive := M.State = 50;
+    M.FillerHeightActive := M.State = 60;
+    M.CapperHeightActive := M.State = 70;
+    M.CIPActive := M.State = 80;
+    M.EmptyingActive := M.State = 90;
+    M.AlarmStopActive := (M.State = 120) OR (M.State = 130);
+    M.DoorAccessActive := DoorAccessActive;
+    M.DoorRestartPermitted := DoorRestartPermitted;
+    M.DoorAccessFault := DoorAccessFault;
+
+    M.RotationPermitted :=
+        SafetyOK
+        AND M.HomeValid
+        AND EncoderHealthy
+        AND NOT M.FillerHeightActive
+        AND NOT M.CapperHeightActive
+        AND ((M.State = 30) OR (M.State = 50) OR (M.State = 10));
+END_FUNCTION_BLOCK

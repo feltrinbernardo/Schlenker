@@ -1,0 +1,22 @@
+﻿Code,English,Italian,Class,Reaction
+1001,Emergency stop pressed,Arresto di emergenza premuto,Safety,Emergency stop
+1002,Low compressed-air pressure,Pressione aria compressa bassa,Critical,Controlled stop
+1101,Encoder or position signal fault,Guasto encoder o segnale posizione,Critical,Stop and re-home
+1201,Bottle gate position timeout/conflict,Timeout/conflitto posizione cancelletto,Critical,Controlled stop
+1301,Tank level signal invalid,Segnale livello serbatoio non valido,Critical,Stop product pump
+1401,SMC island/gateway communication lost,Comunicazione isola SMC/gateway persa,Critical,Outputs off
+1402,Conflicting pneumatic commands,Comandi pneumatici in conflitto,Critical,Outputs off
+1501,Filler height movement timeout,Timeout movimento altezza riempitrice,Critical,Stop movement
+1502,Capper height movement timeout,Timeout movimento altezza tappatore,Critical,Stop movement
+1601,Main drive fault,Guasto inverter motore principale,Critical,Controlled stop
+1602,Bottle conveyor drive fault,Guasto inverter nastro bottiglie,Critical,Controlled stop
+1603,Product pump drive fault,Guasto inverter pompa prodotto,Critical,Stop pump
+1604,Cap distributor drive fault,Guasto inverter distributore tappi,Critical,Controlled stop
+1701,Hood filter requires service,Filtro cappa da sostituire,Warning,Machine may continue
+1003,Safety circuit not ready,Circuito di sicurezza non pronto,Safety,Start inhibited
+1702,Air filter pressure proof failed,Pressostato filtro aria non confermato,Warning,Inspect filter and fan
+1703,Air filter needs replacement,Sostituire il filtro aria,Warning,Machine may continue
+1801,Door access sequence fault,Guasto sequenza accesso porte,Critical,Controlled stop
+1901,Invalid production speed parameter,Parametro velocita produzione non valido,Critical,Main drive command off
+1302,Product tank low level warning,Avviso livello basso serbatoio prodotto,Warning,Check product supply
+2001,Capper outfeed crash sensor active,Sensore collisione uscita tappatore attivo,Critical,Controlled stop and inspect outfeed

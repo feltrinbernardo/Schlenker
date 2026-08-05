@@ -1,0 +1,15 @@
+TYPE "UDT_MachineState" :
+STRUCT
+    State            : USInt;   // 0=PowerUp,10=Homing,20=Ready,30=Auto,40=Standby,50=Manual,60=CIP,70=Emptying,90=Alarm
+    SafetyOK         : Bool;
+    HomeValid        : Bool;
+    AutoRequest      : Bool;
+    ManualRequest    : Bool;
+    CIPRequest       : Bool;
+    EmptyingRequest  : Bool;
+    StopRequest      : Bool;
+    AlarmActive      : Bool;
+    RotationEnable   : Bool;
+    HeightModeActive : Bool;
+END_STRUCT;
+END_TYPE

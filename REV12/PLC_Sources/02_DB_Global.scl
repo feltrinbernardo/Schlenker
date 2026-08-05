@@ -1,0 +1,41 @@
+DATA_BLOCK "DB_Global"
+{ S7_Optimized_Access := 'TRUE' }
+VAR
+    Cmd             : "UDT_Command";
+    Inp             : "UDT_Input";
+    Out             : "UDT_Output";
+    Machine         : "UDT_Machine";
+    DoorAccess      : "UDT_DoorAccess";
+    Auxiliaries     : "UDT_Auxiliaries";
+    Par             : "UDT_Parameters";
+    AlarmCritical   : Bool;
+    AlarmWarning    : Bool;
+    AlarmWord1      : DWORD;
+    NetworkOK       : Bool;
+    FaultyDeviceMask: DWORD;
+    RecoveryDone    : Bool;
+    SimulationMode  : Bool;
+END_VAR
+BEGIN
+    Par.ProductionSpeedBPH := 12000.0;
+    Par.MaxSpeedBPH := 12000.0;
+    Par.JogSpeedPct := 5.0;
+    Par.ShortageSlowPct := 75.0;
+    Par.AccumulationSlowPct := 55.0;
+    Par.TankSetpointPct := 50.0;
+    Par.TankDeadbandPct := 1.0;
+    Par.PumpMinSpeedPct := 10.0;
+    Par.PumpMaxSpeedPct := 100.0;
+    Par.PumpRampPctPerCycle := 0.2;
+    Par.ShortageDelay1 := T#2s;
+    Par.ShortageDelay2 := T#7s;
+    Par.AccumulationDelay1 := T#2s;
+    Par.AccumulationDelay2 := T#7s;
+    Par.GateTimeout := T#3s;
+    Par.LiftTimeout := T#10s;
+    Par.CIPVacuumTime := T#30s;
+    Par.DoorStopTimeout := T#30s;
+    Par.DoorPowerOffTimeout := T#30s;
+    Par.DoorUnlockTimeout := T#30s;
+    Par.AirFilterProofDelay := T#10s;
+END_DATA_BLOCK

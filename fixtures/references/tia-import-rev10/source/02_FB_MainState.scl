@@ -1,0 +1,93 @@
+FUNCTION_BLOCK "FB_MainState"
+VAR_INPUT
+    SafetyOK          : Bool;
+    HomeValid         : Bool;
+    AutoRequest       : Bool;
+    ManualRequest     : Bool;
+    CIPRequest        : Bool;
+    EmptyingRequest   : Bool;
+    StopRequest       : Bool;
+    AlarmActive       : Bool;
+    HeightModeActive  : Bool;
+END_VAR
+VAR_IN_OUT
+    M : "UDT_MachineState";
+END_VAR
+
+BEGIN
+    M.SafetyOK := SafetyOK;
+    M.HomeValid := HomeValid;
+    M.HeightModeActive := HeightModeActive;
+    M.AlarmActive := AlarmActive;
+
+    IF NOT SafetyOK THEN
+        M.State := 90;
+    ELSIF AlarmActive THEN
+        M.State := 90;
+    ELSE
+        CASE M.State OF
+            0: // Power-up
+                IF HomeValid THEN
+                    M.State := 20;
+                ELSE
+                    M.State := 10;
+                END_IF;
+
+            10: // Homing
+                IF HomeValid THEN
+                    M.State := 20;
+                END_IF;
+
+            20: // Ready
+                IF HeightModeActive OR ManualRequest THEN
+                    M.State := 50;
+                ELSIF CIPRequest THEN
+                    M.State := 60;
+                ELSIF EmptyingRequest THEN
+                    M.State := 70;
+                ELSIF AutoRequest THEN
+                    M.State := 30;
+                END_IF;
+
+            30: // Automatic
+                IF StopRequest THEN
+                    M.State := 20;
+                ELSIF HeightModeActive THEN
+                    M.State := 50;
+                END_IF;
+
+            40: // Standby
+                IF StopRequest THEN
+                    M.State := 20;
+                END_IF;
+
+            50: // Manual
+                IF NOT ManualRequest AND NOT HeightModeActive THEN
+                    M.State := 20;
+                END_IF;
+
+            60: // CIP
+                IF StopRequest THEN
+                    M.State := 20;
+                END_IF;
+
+            70: // Emptying
+                IF StopRequest THEN
+                    M.State := 20;
+                END_IF;
+
+            90: // Alarm
+                IF SafetyOK AND NOT AlarmActive THEN
+                    M.State := 0;
+                END_IF;
+        ELSE
+            M.State := 0;
+        END_CASE;
+    END_IF;
+
+    // Rotation is forbidden in both filler-height and capper-height modes.
+    M.RotationEnable := SafetyOK
+                        AND HomeValid
+                        AND NOT HeightModeActive
+                        AND ((M.State = 30) OR (M.State = 50));
+END_FUNCTION_BLOCK

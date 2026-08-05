@@ -1,0 +1,49 @@
+FUNCTION_BLOCK "FB_AccumulationGate"
+VAR_INPUT
+    AutoMode          : Bool;
+    BottleShortage1   : Bool;
+    BottleShortage2   : Bool;
+    Accumulation1     : Bool;
+    Accumulation2     : Bool;
+    GateOpenFB        : Bool;
+    GateClosedFB      : Bool;
+    BaseSpeedPct      : Real;
+    SlowPctInfeed     : Real := 75.0;
+    SlowPctOutfeed    : Real := 55.0;
+END_VAR
+VAR_OUTPUT
+    GateOpenCmd       : Bool;
+    GateCloseCmd      : Bool;
+    SpeedLimitPct     : Real;
+    StandbyRequest    : Bool;
+    GateFault         : Bool;
+END_VAR
+
+BEGIN
+    GateOpenCmd := FALSE;
+    GateCloseCmd := FALSE;
+    StandbyRequest := FALSE;
+    GateFault := GateOpenFB AND GateClosedFB;
+
+    IF NOT AutoMode THEN
+        SpeedLimitPct := 0.0;
+        RETURN;
+    END_IF;
+
+    SpeedLimitPct := BaseSpeedPct;
+
+    IF BottleShortage1 THEN
+        SpeedLimitPct := MIN(SpeedLimitPct, SlowPctInfeed);
+    END_IF;
+
+    IF Accumulation1 THEN
+        SpeedLimitPct := MIN(SpeedLimitPct, SlowPctOutfeed);
+    END_IF;
+
+    IF BottleShortage2 OR Accumulation2 THEN
+        GateCloseCmd := TRUE;
+        StandbyRequest := TRUE;
+    ELSE
+        GateOpenCmd := TRUE;
+    END_IF;
+END_FUNCTION_BLOCK

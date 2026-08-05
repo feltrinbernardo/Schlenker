@@ -1,0 +1,12 @@
+Channel,Location,HMI_Display,Closed_Tag,Locked_Tag,Unlocked_Tag,Equipment_Identifier,Status
+1,Front 1,Front door 1,Guard_Front_01_Closed,Guard_Front_01_Locked,Guard_Front_01_Unlocked,To be assigned,Count and location confirmed; electrical mapping required
+2,Front 2,Front door 2,Guard_Front_02_Closed,Guard_Front_02_Locked,Guard_Front_02_Unlocked,To be assigned,Count and location confirmed; electrical mapping required
+3,Front 3,Front door 3,Guard_Front_03_Closed,Guard_Front_03_Locked,Guard_Front_03_Unlocked,To be assigned,Count and location confirmed; electrical mapping required
+4,Front 4,Front door 4,Guard_Front_04_Closed,Guard_Front_04_Locked,Guard_Front_04_Unlocked,To be assigned,Count and location confirmed; electrical mapping required
+5,Rear 1,Rear door 1,Guard_Rear_01_Closed,Guard_Rear_01_Locked,Guard_Rear_01_Unlocked,To be assigned,Count and location confirmed; electrical mapping required
+6,Rear 2,Rear door 2,Guard_Rear_02_Closed,Guard_Rear_02_Locked,Guard_Rear_02_Unlocked,To be assigned,Count and location confirmed; electrical mapping required
+7,Rear 3,Rear door 3,Guard_Rear_03_Closed,Guard_Rear_03_Locked,Guard_Rear_03_Unlocked,To be assigned,Count and location confirmed; electrical mapping required
+8,Rear 4,Rear door 4,Guard_Rear_04_Closed,Guard_Rear_04_Locked,Guard_Rear_04_Unlocked,To be assigned,Count and location confirmed; electrical mapping required
+9,Right Infeed 1,Right infeed door 1,Guard_RightInfeed_01_Closed,Guard_RightInfeed_01_Locked,Guard_RightInfeed_01_Unlocked,To be assigned,Count and location confirmed; electrical mapping required
+10,Right Infeed 2,Right infeed door 2,Guard_RightInfeed_02_Closed,Guard_RightInfeed_02_Locked,Guard_RightInfeed_02_Unlocked,To be assigned,Count and location confirmed; electrical mapping required
+11,Left Outfeed 1,Left outfeed door 1,Guard_LeftOutfeed_01_Closed,Guard_LeftOutfeed_01_Locked,Guard_LeftOutfeed_01_Unlocked,To be assigned,Count and location confirmed; electrical mapping required

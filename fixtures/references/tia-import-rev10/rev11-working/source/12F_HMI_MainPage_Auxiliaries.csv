@@ -1,0 +1,12 @@
+Tag,Type,Direction,MainPageObject,English,Italian,Status
+HMI_Main_LightsOnPB,Bool,HMI_to_PLC,Momentary button,Machine Lights ON,Luci macchina ON,I/O address not required; HMI command
+HMI_Main_LightsOffPB,Bool,HMI_to_PLC,Momentary button,Machine Lights OFF,Luci macchina OFF,I/O address not required; HMI command
+Aux_MachineLightsRelayCmd,Bool,PLC_to_Field_and_HMI,Status indicator,Machine Lights Relay ON,Relè luci macchina attivo,Independent 24 VDC PLC output to dedicated relay coil; final output relay and address required
+HMI_Main_AirFilterOnPB,Bool,HMI_to_PLC,Momentary button,Air Filter ON,Filtro aria ON,I/O address not required; HMI command
+HMI_Main_AirFilterOffPB,Bool,HMI_to_PLC,Momentary button,Air Filter OFF,Filtro aria OFF,I/O address not required; HMI command
+Aux_AirFilterRelayCmd,Bool,PLC_to_Field_and_HMI,Status indicator,Air Filter Relay ON,Relè filtro aria attivo,Independent 24 VDC PLC output to dedicated relay coil; final output relay and address required
+b_HoodPressureOK,Bool,Field_to_PLC_and_HMI,Status indicator,Air Filter Pressure OK,Pressione filtro aria OK,Existing 24 VDC input; final address required
+Aux_AirFilterFault,Bool,PLC_to_HMI,Alarm indicator,Air Filter Pressure Not Proven,Pressione filtro aria non confermata,Delayed alarm; reset by physical Alarm Reset pushbutton
+DI_AirFilterChangeRequired24V,Bool,Field_to_PLC,Maintenance input,Air Filter Change Input,Ingresso sostituzione filtro,Dedicated 24 VDC input; final address required
+Aux_AirFilterChangeWarning,Bool,PLC_to_HMI,Warning indicator,Air Filter Needs Replacement,Sostituire il filtro aria,Non-stopping warning active while the dedicated 24 VDC input is ON
+Par_AirFilterProofDelay,Time,HMI_to_PLC,Maintenance setting,Air Filter Proof Delay,Ritardo controllo filtro aria,Commissioning parameter; default 10 seconds

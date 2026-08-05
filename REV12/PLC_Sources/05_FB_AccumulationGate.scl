@@ -1,0 +1,64 @@
+FUNCTION_BLOCK "FB_AccumulationGate"
+VAR_INPUT
+    EnableAuto          : Bool;
+    SafetyOK            : Bool;
+    Shortage1           : Bool;
+    Shortage2           : Bool;
+    Accumulation1       : Bool;
+    Accumulation2       : Bool;
+    GateOpenFB          : Bool;
+    GateClosedFB        : Bool;
+    ShortageDelay1      : Time;
+    ShortageDelay2      : Time;
+    AccumulationDelay1  : Time;
+    AccumulationDelay2  : Time;
+    GateTimeout         : Time;
+    ShortageSlowPct     : Real;
+    AccumulationSlowPct : Real;
+END_VAR
+VAR_OUTPUT
+    GateOpenCmd         : Bool;
+    GateCloseCmd        : Bool;
+    SpeedLimitPct       : Real;
+    StandbyRequest      : Bool;
+    GateFault           : Bool;
+END_VAR
+VAR
+    tShort1             : TON;
+    tShort2             : TON;
+    tAccum1             : TON;
+    tAccum2             : TON;
+    tGate               : TON;
+END_VAR
+
+BEGIN
+    tShort1(IN := Shortage1, PT := ShortageDelay1);
+    tShort2(IN := Shortage2, PT := ShortageDelay2);
+    tAccum1(IN := Accumulation1, PT := AccumulationDelay1);
+    tAccum2(IN := Accumulation2, PT := AccumulationDelay2);
+
+    SpeedLimitPct := 100.0;
+    StandbyRequest := FALSE;
+    GateOpenCmd := FALSE;
+    GateCloseCmd := FALSE;
+
+    IF EnableAuto AND SafetyOK THEN
+        IF tShort1.Q THEN SpeedLimitPct := MIN(IN1 := SpeedLimitPct, IN2 := ShortageSlowPct); END_IF;
+        IF tAccum1.Q THEN SpeedLimitPct := MIN(IN1 := SpeedLimitPct, IN2 := AccumulationSlowPct); END_IF;
+
+        IF tShort2.Q OR tAccum2.Q THEN
+            GateCloseCmd := TRUE;
+            StandbyRequest := TRUE;
+        ELSE
+            GateOpenCmd := TRUE;
+        END_IF;
+    END_IF;
+
+    // Opposing commands are impossible by construction.
+    tGate(
+        IN := (GateOpenCmd AND NOT GateOpenFB) OR (GateCloseCmd AND NOT GateClosedFB),
+        PT := GateTimeout
+    );
+
+    GateFault := (GateOpenFB AND GateClosedFB) OR tGate.Q;
+END_FUNCTION_BLOCK
