@@ -24,3 +24,7 @@ jobs:
       - name: Validate tracked repository files
         shell: pwsh
         run: .\scripts\test-repository.ps1
+
+      - name: Test prompt evaluator
+        shell: pwsh
+        run: .\scripts\test-prompt-judge.ps1
