@@ -1,13 +1,45 @@
-# Generated runs and proprietary GX Works project artefacts
+# Proprietary PLC/HMI projects and generated engineering archives
+*.ap[0-9][0-9]
+*.gx3
+*.gxw
+*.zap[0-9][0-9]
+*.bak
+
+# Generated run evidence and local engineering workspaces
 runs/*
 !runs/.gitkeep
 fixtures/projects/*
 !fixtures/projects/.gitkeep
-*.gx3
-*.gxw
-*.bak
+outputs/
+programmer_progetv19/
+img-log/
+.modification_logic/
+.tmp/
+tmp/
+logs/judge/
+
+# Generated helper binaries and build output
+tools/**/*.dll
+tools/**/*.exe
+tools/**/*.exe.config
+tools/**/*.pdb
+tools/**/bin/
+tools/**/obj/
+
+# Language and editor caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+node_modules/
+.vs/
+*.user
+
+# Generic local noise
 *.log
 .DS_Store
+Thumbs.db
 
 # A fixture may be copied beside this repository for local testing, but never
-# commit GX Works project files or generated evidence.
+# commit native engineering projects, archives, compiled helpers, or generated
+# evidence. Curate reusable source and specifications into tracked directories.
