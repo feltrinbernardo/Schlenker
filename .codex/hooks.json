@@ -7,6 +7,7 @@
           {
             "type": "command",
             "command": "/usr/bin/python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/user_prompt_submit.py\"",
+            "commandWindows": "powershell.exe -NoProfile -NonInteractive -Command \"& (Join-Path $env:LOCALAPPDATA 'Programs/Python/Launcher/py.exe') -3 (Join-Path (git rev-parse --show-toplevel) '.codex/hooks/user_prompt_submit.py')\"",
             "statusMessage": "⚖️  Schlenker Judge scoring prompt…",
             "additionalContextLimit": 4000,
             "timeout": 30

@@ -34,6 +34,17 @@ from typing import Any
 
 JUDGE_DIR = Path(__file__).parent
 RUBRICS_PATH = JUDGE_DIR / "rubrics.json"
+CONFIG_PATH = JUDGE_DIR / "config.json"
+
+DEFAULT_CONFIG: dict[str, Any] = {
+    "model": "gpt-5.6-terra",
+    "reasoning_effort": "low",
+    "request_timeout_seconds": 20,
+    "max_retries": 0,
+    "threshold": 0.0,
+    "min_words": 5,
+    "log_directory": "logs/judge",
+}
 
 DIMENSION_WEIGHTS = {
     "clarity": 0.20,
@@ -50,8 +61,77 @@ SCORE_LABELS = {
     (4.5, 5.0): ("EXCELLENT", "✅"),
 }
 
-DEFAULT_MODEL = "gpt-5.6-sol"
+def load_config() -> dict[str, Any]:
+    """Load and minimally validate the versioned judge configuration."""
+    config = DEFAULT_CONFIG.copy()
+    if CONFIG_PATH.exists():
+        with CONFIG_PATH.open(encoding="utf-8") as fh:
+            loaded = json.load(fh)
+        if not isinstance(loaded, dict):
+            raise ValueError("judge/config.json must contain a JSON object")
+        config.update(loaded)
+
+    if not str(config["model"]).strip():
+        raise ValueError("judge model must not be empty")
+    if str(config["reasoning_effort"]) not in {
+        "none", "low", "medium", "high", "xhigh", "max"
+    }:
+        raise ValueError("unsupported judge reasoning_effort")
+    if float(config["request_timeout_seconds"]) <= 0:
+        raise ValueError("request_timeout_seconds must be positive")
+    if int(config["max_retries"]) < 0:
+        raise ValueError("max_retries must not be negative")
+    if not 0.0 <= float(config["threshold"]) <= 5.0:
+        raise ValueError("threshold must be between 0 and 5")
+    if int(config["min_words"]) < 1:
+        raise ValueError("min_words must be at least 1")
+    return config
+
+
+RUNTIME_CONFIG = load_config()
+DEFAULT_MODEL = os.environ.get("JUDGE_MODEL", str(RUNTIME_CONFIG["model"]))
+DEFAULT_REASONING_EFFORT = os.environ.get(
+    "JUDGE_REASONING_EFFORT",
+    str(RUNTIME_CONFIG["reasoning_effort"]),
+)
+REQUEST_TIMEOUT_SECONDS = float(os.environ.get(
+    "JUDGE_REQUEST_TIMEOUT_SECONDS",
+    str(RUNTIME_CONFIG["request_timeout_seconds"]),
+))
+MAX_RETRIES = int(os.environ.get(
+    "JUDGE_MAX_RETRIES",
+    str(RUNTIME_CONFIG["max_retries"]),
+))
 MAX_PROMPT_CHARS = 8000  # truncate very long prompts to save tokens
+
+JUDGMENT_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "scores": {
+            "type": "object",
+            "properties": {
+                dimension: {"type": "integer"}
+                for dimension in DIMENSION_WEIGHTS
+            },
+            "required": list(DIMENSION_WEIGHTS),
+            "additionalProperties": False,
+        },
+        "bonus": {"type": "number"},
+        "feedback": {
+            "type": "object",
+            "properties": {
+                dimension: {"type": "string"}
+                for dimension in DIMENSION_WEIGHTS
+            },
+            "required": list(DIMENSION_WEIGHTS),
+            "additionalProperties": False,
+        },
+        "top_issue": {"type": "string"},
+        "suggestion": {"type": "string"},
+    },
+    "required": ["scores", "bonus", "feedback", "top_issue", "suggestion"],
+    "additionalProperties": False,
+}
 
 # ---------------------------------------------------------------------------
 # Rubric loader
@@ -175,21 +255,51 @@ def call_judge(
             "openai package not installed. Run: pip install openai"
         ) from exc
 
-    client = openai.OpenAI(api_key=api_key)
+    client = openai.OpenAI(
+        api_key=api_key,
+        timeout=REQUEST_TIMEOUT_SECONDS,
+        max_retries=MAX_RETRIES,
+    )
 
-    response = client.chat.completions.create(
+    response = client.responses.create(
         model=model,
-        temperature=0.0,       # deterministic scoring
-        seed=42,               # reproducibility
-        response_format={"type": "json_object"},
-        messages=[
+        reasoning={"effort": DEFAULT_REASONING_EFFORT},
+        input=[
             {"role": "system", "content": system_prompt},
             {"role": "user",   "content": user_message},
         ],
+        text={
+            "format": {
+                "type": "json_schema",
+                "name": "schlenker_prompt_judgment",
+                "strict": True,
+                "schema": JUDGMENT_SCHEMA,
+            }
+        },
     )
 
-    raw = response.choices[0].message.content
-    return json.loads(raw)
+    if response.status != "completed":
+        raise RuntimeError(f"judge response status was {response.status!r}")
+    return json.loads(response.output_text)
+
+
+def validate_judgment(judgment: dict[str, Any]) -> None:
+    """Validate scoring ranges before using model output for hook decisions."""
+    scores = judgment.get("scores")
+    if not isinstance(scores, dict):
+        raise ValueError("judge response is missing scores")
+    for dimension in DIMENSION_WEIGHTS:
+        value = scores.get(dimension)
+        if not isinstance(value, int) or isinstance(value, bool):
+            raise ValueError(f"{dimension} score must be an integer")
+        if not 1 <= value <= 5:
+            raise ValueError(f"{dimension} score must be between 1 and 5")
+
+    bonus = judgment.get("bonus")
+    if not isinstance(bonus, (int, float)) or isinstance(bonus, bool):
+        raise ValueError("bonus must be numeric")
+    if float(bonus) not in {0.0, 0.1, 0.2, 0.3}:
+        raise ValueError("bonus must be 0.0, 0.1, 0.2, or 0.3")
 
 
 # ---------------------------------------------------------------------------
@@ -242,6 +352,7 @@ def evaluate(
     rubrics = load_rubrics()
     system_prompt, user_message = build_judge_prompt(prompt, rubrics)
     judgment = call_judge(system_prompt, user_message, api_key, model)
+    validate_judgment(judgment)
 
     scores = judgment.get("scores", {})
     bonus = float(judgment.get("bonus", 0.0))
