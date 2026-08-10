@@ -10,9 +10,10 @@ into the model's context before every prompt is processed.
 
 Every time you type a message in the Codex IDE, this judge:
 
-1. Runs a fast **hard-violation filter** (no API call) to detect forbidden
-   patterns like "write to PLC" or opening the protected source file.
-2. Calls the **judge model** (`gpt-5.6-sol` by default) to score your prompt
+1. Runs a fast **hard-violation filter** (no API call) for explicit requests to
+   bypass the safety gate, integrity checks, PLC authorization, or capture-helper
+   read-only constraints.
+2. Calls the **judge model** (`gpt-5.6-terra` by default) to score your prompt
    on four rubric dimensions.
 3. Injects a **score banner** as `additionalContext` — Codex sees it before
    answering you, so it can ask clarifying questions if your prompt is weak.
@@ -78,9 +79,13 @@ LLM-AS-A-JUDGE/
 │       └── user_prompt_submit.py       ← Hook entry point called by Codex
 ├── judge/
 │   ├── judge.py                        ← Core judge engine + formatter
+│   ├── config.json                     ← Versioned non-secret runtime settings
+│   ├── requirements.txt                ← Python dependency range
+│   ├── test_judge.py                   ← Offline unit tests
 │   └── rubrics.json                    ← Rubric definitions + score anchors
 ├── logs/
-│   └── judge-YYYY-MM-DD.jsonl          ← Append-only evaluation logs
+│   └── judge/
+│       └── judge-YYYY-MM-DD.jsonl      ← Ignored local evaluation logs
 ├── AGENTS.md                           ← Agent policy for this repo
 └── README.md                           ← This file
 ```
@@ -91,36 +96,58 @@ LLM-AS-A-JUDGE/
 
 ### 1. Install the OpenAI Python package
 
-```bash
-pip install openai
+```powershell
+python -m pip install -r .\judge\requirements.txt
 ```
 
 ### 2. Set your API key
 
-```bash
-export OPENAI_API_KEY="sk-..."
+Set the key outside the repository. On Windows, persist it for the current user
+from a private PowerShell session:
+
+```powershell
+[Environment]::SetEnvironmentVariable(
+  'OPENAI_API_KEY',
+  '<your-key>',
+  'User'
+)
 ```
 
-Add this to your shell profile or Codex `.env` file so it's always available.
+Restart Codex after changing the user environment. Never add a key to
+`.codex/config.toml`, `hooks.json`, a repository `.env` file, or GitHub.
 
-### 3. Wire the hook into Codex
-
-Copy or symlink `.codex/hooks.json` into the Schlenker repo's `.codex/` directory:
+For a temporary Unix/macOS shell session, use:
 
 ```bash
-cp /path/to/LLM-AS-A-JUDGE/.codex/hooks.json /path/to/Schlenker/.codex/hooks.json
+export OPENAI_API_KEY='<your-key>'
 ```
 
-Or run both repos side by side and point Codex at this repo's `.codex/` config.
+### 3. Confirm the hook wiring
+
+This repository is already wired through `.codex/hooks.json`, including a
+Windows-specific Python launcher command. Codex loads project hooks only for a
+trusted project.
 
 ### 4. Trust the hook in Codex
 
-In the Codex IDE, run `/hooks` and trust the `user_prompt_submit.py` hook.
+In Codex, run `/hooks` and trust the `user_prompt_submit.py` hook.
 Codex requires a one-time trust step for project-local command hooks.
 
 ### 5. Verify
 
-Submit a test prompt like:
+Run the offline test suite first:
+
+```powershell
+.\scripts\test-prompt-judge.ps1
+```
+
+After confirming the API account has credits, run one live score:
+
+```powershell
+.\scripts\test-prompt-judge.ps1 -Live
+```
+
+Then restart Codex and submit a prompt such as:
 
 ```
 Add a comment to FB_DoorAccess explaining the 11-door aggregate logic.
@@ -133,26 +160,47 @@ the agent responds.
 
 ## Configuration
 
-Set these environment variables to tune behaviour:
+Non-secret defaults live in `judge/config.json`:
+
+| Setting | Default | Description |
+|---|---:|---|
+| `model` | `gpt-5.6-terra` | Balanced GPT-5.6 judge model. |
+| `reasoning_effort` | `low` | Keeps per-prompt latency and cost bounded. |
+| `request_timeout_seconds` | `20` | API timeout below the 30-second hook limit. |
+| `max_retries` | `0` | Prevents retries from exceeding the hook timeout. |
+| `threshold` | `0.0` | Advisory mode; model scores do not block prompts. |
+| `min_words` | `5` | Shorter prompts are skipped. |
+| `log_directory` | `logs/judge` | Ignored local JSONL output. |
+
+Environment variables override the versioned defaults:
 
 | Variable | Default | Description |
 |---|---|---|
 | `OPENAI_API_KEY` | — | Required. Your OpenAI API key. |
-| `JUDGE_MODEL` | `gpt-5.6-sol` | Model used as the judge. |
+| `JUDGE_MODEL` | config file | Model used as the judge. |
+| `JUDGE_REASONING_EFFORT` | config file | Responses API reasoning effort. |
+| `JUDGE_REQUEST_TIMEOUT_SECONDS` | config file | API request timeout. |
+| `JUDGE_MAX_RETRIES` | config file | SDK retry count. |
 | `JUDGE_THRESHOLD` | `0.0` (disabled) | Block prompts scoring below this value. Set e.g. `2.5` to block POOR prompts. |
 | `JUDGE_MIN_WORDS` | `5` | Skip evaluation for prompts shorter than this. |
-| `JUDGE_LOG_DIR` | `logs/` | Directory for JSONL evaluation logs. |
+| `JUDGE_LOG_DIR` | `logs/judge/` | Directory for JSONL evaluation logs. |
+
+Keep `JUDGE_THRESHOLD` at `0.0` while establishing a baseline. The explicit
+local hard-violation filter still blocks unambiguous requests to bypass safety
+controls; normal references such as “do not write to PLC” are not blocked.
 
 ---
 
 ## How the scoring works
 
-1. **Hard-violation filter** — instant, no API call. Matches patterns like
-   `write to plc`, `d:\gx works\schlenker.gxw`, `skip the safety gate`.
-   Triggers a `decision: block` response immediately.
+1. **Hard-violation filter** — instant, no API call. Matches unambiguous bypass
+   language such as `skip the safety gate` or `bypass plc authorization` and
+   immediately returns `decision: block`. Operations that can be authorized by
+   AGENTS.md are left to the rubric and the main agent's authorization checks.
 
-2. **Judge LLM call** — sends the prompt + all four rubric definitions to
-   `gpt-5.6-sol` at `temperature=0` with `response_format: json_object`.
+2. **Judge LLM call** — sends the prompt and four rubric definitions through
+   the Responses API using `gpt-5.6-terra`, low reasoning effort, and a strict
+   JSON Schema response.
    Returns `{"scores": {...}, "bonus": 0.0, "feedback": {...}, "top_issue": "...", "suggestion": "..."}`.
 
 3. **Weighted score** — `overall = sum(score[dim] * weight[dim]) + bonus`.
@@ -220,5 +268,17 @@ Each JSONL line:
 - Hard blocks use `decision: block` — Codex stops the turn and shows the
   reason to the user. These only fire on direct safety-policy violations.
 - Score-based blocks only fire when `JUDGE_THRESHOLD > 0` — disabled by default.
-- The hook **never logs** full prompt text longer than 500 characters,
-  API keys, credentials, or PLC addresses.
+- The hook logs prompt length, score, timing, and bounded errors, but never the
+  prompt text, API key, credentials, or PLC addresses.
+
+---
+
+## Troubleshooting
+
+- `429 insufficient_quota`: the key was accepted, but the API account has no
+  remaining credits. Add credits in the OpenAI Platform billing settings, then
+  rerun `scripts/test-prompt-judge.ps1 -Live`.
+- Hook does not run: restart Codex, run `/hooks`, and trust the current hook
+  hash. Changed hook definitions require renewed trust.
+- Prompt continues without a score: read the visible judge warning and inspect
+  the ignored `logs/judge/judge-YYYY-MM-DD.jsonl` file.
