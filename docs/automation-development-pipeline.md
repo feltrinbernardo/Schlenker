@@ -51,7 +51,7 @@ Define all machine requirements before programming.
 -   Product pump
 -   Vacuum pump
 
-Deliverable: - Complete TIA Hardware Configuration
+Deliverable: Complete TIA hardware configuration.
 
 ## Phase 3 -- PLC Architecture
 

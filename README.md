@@ -1,7 +1,9 @@
 # Schlenker
 
-Local test harness for an industrial automation agent that engineers and edits
-offline Mitsubishi GX Works projects through a desktop-control loop.
+Development and evaluation repository for the Schlenker industrial automation
+work. It contains a Mitsubishi GX Works2 desktop-control harness and curated
+Siemens TIA Portal source/release material. Native engineering projects,
+generated evidence, and local build output stay outside Git.
 
 ## What is in this repository
 
@@ -12,7 +14,31 @@ offline Mitsubishi GX Works projects through a desktop-control loop.
 - `fixtures/`: local offline GX Works sample projects and requirements. Project
   files are deliberately ignored because they may be proprietary.
 - `evals/`: repeatable acceptance tasks and their expected outcomes.
+- `REV12/`: curated Siemens TIA Portal SCL, HMI, mapping, and release material.
+- `docs/`: cross-project engineering and repository documentation.
+- `scripts/`: fixture preparation, safety checks, audit logging, and repository
+  validation.
+- `tools/`: source for offline engineering helpers; compiled binaries are local
+  build output and are ignored.
+- `logs/change-log/`: append-only repository change-request records.
 - `runs/`: generated screenshots, action traces, build output, and reports.
+
+See `docs/README.md` for the documentation map and
+`docs/automation-development-pipeline.md` for the Siemens delivery lifecycle.
+
+## Repository boundaries
+
+Commit reviewable source, specifications, mappings, templates, and concise
+Markdown evidence summaries. Keep these items local:
+
+- native GX Works and TIA Portal projects or archives;
+- generated screenshots, compiler output, run evidence, and helper binaries;
+- temporary render/build trees and runtime judge logs; and
+- credentials, production connection details, or proprietary source projects.
+
+The ignore rules protect the standard local paths, but reviewers must still
+inspect every proposed diff before publication. This GitHub repository is
+public.
 
 ## Local test loop
 
@@ -124,6 +150,16 @@ The hook rejects a commit with staged repository changes unless that commit
 also contains a newly added ISO-timestamped entry in
 `logs/change-log/YYYY-MM-DD.md`. It does not replace the agent policy: entries
 should be written when work is completed, even when no commit is made.
+
+Before opening a pull request, run the same repository checks used by GitHub
+Actions:
+
+```powershell
+.\scripts\test-repository.ps1
+```
+
+The check rejects tracked native project files, generated/local-only paths, and
+compiled binaries, then validates tracked JSON, PowerShell, and Python syntax.
 
 ## Safety-policy variants
 
