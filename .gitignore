@@ -10,6 +10,7 @@ runs/*
 !runs/.gitkeep
 fixtures/projects/*
 !fixtures/projects/.gitkeep
+components/
 outputs/
 programmer_progetv19/
 img-log/
