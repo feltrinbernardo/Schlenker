@@ -20,3 +20,25 @@
 1901,Invalid production speed parameter,Parametro velocita produzione non valido,Critical,Main drive command off
 1302,Product tank low level warning,Avviso livello basso serbatoio prodotto,Warning,Check product supply
 2001,Capper outfeed crash sensor active,Sensore collisione uscita tappatore attivo,Critical,Controlled stop and inspect outfeed
+1303,Product level not reached.,Livello prodotto non raggiunto.,Warning,Machine start inhibited in gravity-feed mode
+1202,Automatic bottle gate sequence fault,Guasto sequenza automatica cancelletto bottiglie,Critical,Close gate and stop machine
+2101,Stop Production before starting CIP.,Arrestare la produzione prima di avviare il CIP.,Warning,CIP request blocked
+2102,CIP fluid presence lost.,Presenza fluido CIP persa.,Critical,Stop product pump and inspect CIP supply
+2103,Production vacuum below configured minimum.,Vuoto di produzione inferiore al minimo configurato.,Critical,Stop filler and correct vacuum fault
+2104,CIP sequence aborted or remote interface fault.,Sequenza CIP interrotta o guasto interfaccia remota.,Critical,Clear the cause and reset the CIP sequence
+2201,Cap hopper low level.,Livello tramoggia tappi basso.,Warning,Refill cap hopper
+2202,Cap channel request / low supply.,Richiesta canale tappi / alimentazione bassa.,Warning,Check cap feed and refill
+2203,Cap channel empty / caps unavailable.,Canale tappi vuoto / tappi non disponibili.,Critical,Controlled stop; restore caps and clear channel
+2204,Capper not ready during Production.,Tappatore non pronto durante la produzione.,Critical,Controlled stop; check capper permissives
+2211,Bottle shortage level 1.,Mancanza bottiglie livello 1.,Warning,Coordinate line speed and restore infeed
+2212,Bottle shortage level 2.,Mancanza bottiglie livello 2.,Critical,Controlled stop; restore bottle supply
+2213,Outfeed accumulation level 1.,Accumulo uscita livello 1.,Warning,Slow line and clear downstream accumulation
+2214,Outfeed accumulation level 2.,Accumulo uscita livello 2.,Critical,Controlled stop; clear outfeed
+2221,Main or conveyor drive not ready during Production.,Azionamento principale o trasportatore non pronto durante la produzione.,Critical,Controlled stop; open drive diagnostics
+2231,Safety system diagnostic fault.,Guasto diagnostico sistema di sicurezza.,Safety,Safety system remains authoritative; inspect Safety diagnostics
+2241,CIP remote ready/accept timeout.,Timeout pronto/accettazione remota CIP.,Critical,Hold/abort CIP and check customer handshake
+2242,CIP customer remote fault.,Guasto remoto cliente CIP.,Critical,Abort CIP to safe state and check customer interface
+2243,CIP sequence invalid state.,Stato sequenza CIP non valido.,Critical,Abort CIP and inspect active step/fault code
+2244,CIP sequence aborted by operator.,Sequenza CIP interrotta dall'operatore.,Information,Controlled abort status; acknowledge after sequence is safe
+2245,CIP complete awaiting operator acknowledgement.,CIP completato in attesa di conferma operatore.,Information,Acknowledge completion and select the next permitted mode
+2246,AL104 customer CIP interface communication fault.,Guasto comunicazione interfaccia CIP cliente AL104.,Critical,Prevent new CIP requests and open AL104 diagnostics

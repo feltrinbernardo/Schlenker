@@ -6,6 +6,8 @@ Cmd_Stop,DB_Global.Cmd.Stop,Bool,ReadWrite,Home,Controlled stop
 Cmd_Reset,DB_Global.Cmd.Reset,Bool,ReadWrite,Alarms,Reset alarms
 Speed_Setpoint_BPH,DB_Global.Par.ProductionSpeedBPH,Real,ReadWrite,Production,HMI-only speed setpoint
 Speed_Actual_Pct,DB_Global.Out.MainSpeedPct,Real,Read,Production,Main drive speed reference
+Speed_Feedback_Pct,DB_Global.Inp.MainSpeedActualPct,Real,Read,Production,Validated main drive actual speed feedback
+Speed_Feedback_Valid,DB_Global.Inp.MainSpeedActualValid,Bool,Read,Diagnostics,TRUE when the actual-speed value is valid for sequencing
 Tank_Level_Pct,DB_Global.Inp.TankLevelPct,Real,Read,Product Pump,Continuous tank level
 Tank_Setpoint_Pct,DB_Global.Par.TankSetpointPct,Real,ReadWrite,Product Pump,Range 10-100%
 Pump_Speed_Pct,DB_Global.Out.ProductPumpSpeedPct,Real,Read,Product Pump,Pump speed reference
@@ -18,6 +20,7 @@ SMC_ValveBits,DB_Global.Out.ValveBits,DWord,Read,Diagnostics,Gateway output imag
 Alarm_Critical,DB_Global.AlarmCritical,Bool,Read,Alarms,Critical alarm summary
 Alarm_Warning,DB_Global.AlarmWarning,Bool,Read,Alarms,Warning summary
 Alarm_Word1,DB_Global.AlarmWord1,DWord,Read,Alarms,Discrete alarm trigger word for codes 1001-1901
+Alarm_Word2,DB_Global.AlarmWord2,DWord,Read,Alarms,REV21 source-proven functional alarm trigger word
 Cmd_ManualSelect,DB_Global.Cmd.ManualSelect,Bool,ReadWrite,Home,Manual mode request subject to physical MAN/AUT selector confirmation
 Gate_Manual_PageActive,DB_Global.Cmd.GateManualPageActive,Bool,ReadWrite,Manual Gate,TRUE only while the manual gate page is visible
 Gate_Manual_TestEnable,DB_Global.Cmd.ManualTestEnable,Bool,ReadWrite,Manual Gate,Engineer-level manual test permission
@@ -62,14 +65,324 @@ Door_Safety_System_Fault,DB_Global.Inp.SafetySystemFault,Bool,Read,Door Access,P
 Network_OK,DB_Global.NetworkOK,Bool,Read,Diagnostics,Aggregate device-level network status retained from REV11
 Network_Faulty_Device_Mask,DB_Global.FaultyDeviceMask,DWord,Read,Diagnostics,REV11 bit-per-device communication fault map
 Network_Pilz_OK,DB_Global.Inp.PilzDeviceOK,Bool,Read,Diagnostics,Pilz PROFINET station diagnostic only
+PilzDiag_CommunicationOK,DB_Global.PilzDiag.CommunicationOK,Bool,Read,Safety Diagnostics,REV23 diagnostics-only communication health
+PilzDiag_DataValid,DB_Global.PilzDiag.DataValid,Bool,Read,Safety Diagnostics,FALSE requires COMMUNICATION FAULT / DATA INVALID display
+PilzDiag_PhysicalMapConfigured,DB_Global.PilzDiag.PhysicalMapConfigured,Bool,Read,Safety Diagnostics,FALSE until Pilz GSDML and process map are proven
+PilzDiag_SafetyReady,DB_Global.PilzDiag.SafetyReady,Bool,Read,Safety Diagnostics,Aggregate safety-ready diagnostic valid only with PilzDiag_DataValid
+PilzDiag_GeneralFault,DB_Global.PilzDiag.GeneralFault,Bool,Read,Safety Diagnostics,Aggregate Pilz or safety-system fault diagnostic
+PilzDiag_ResetRequired,DB_Global.PilzDiag.ResetRequired,Bool,Read,Safety Diagnostics,Diagnostic indication only and never a safety reset command
+PilzDiag_EStopChainHealthy,DB_Global.PilzDiag.EStopChainHealthy,Bool,Read,Safety Diagnostics,Aggregate four-device E-stop chain
+PilzDiag_AllGuardsClosed,DB_Global.PilzDiag.AllGuardsClosed,Bool,Read,Safety Diagnostics,Aggregate status for 11 guarded doors
+PilzDiag_AllGuardsUnlocked,DB_Global.PilzDiag.AllGuardsUnlocked,Bool,Read,Safety Diagnostics,Aggregate status with unverified lock topology
+PilzDiag_SafetyCircuitClosed,DB_Global.PilzDiag.SafetyCircuitClosed,Bool,Read,Safety Diagnostics,Aggregate closed safety-circuit diagnostic
+PilzDiag_StandstillConfirmed,DB_Global.PilzDiag.StandstillConfirmed,Bool,Read,Safety Diagnostics,Aggregate zero-speed diagnostic
+PilzDiag_ThreePhaseOffConfirmed,DB_Global.PilzDiag.ThreePhaseOffConfirmed,Bool,Read,Safety Diagnostics,Aggregate three-phase-off diagnostic
 Network_IOLink1_OK,DB_Global.Inp.IOLinkMaster1OK,Bool,Read,Diagnostics,IFM AL1403 number 1 station status
 Network_IOLink2_OK,DB_Global.Inp.IOLinkMaster2OK,Bool,Read,Diagnostics,IFM AL1403 number 2 station status
 Network_IOLink3_OK,DB_Global.Inp.IOLinkMaster3OK,Bool,Read,Diagnostics,IFM AL1403 number 3 station status
 Network_IOLink4_OK,DB_Global.Inp.IOLinkMaster4OK,Bool,Read,Diagnostics,IFM AL1403 number 4 station status
+Network_AL100_OK,DB_Global.Inp.IOLinkMaster1OK,Bool,Read,Diagnostics,REV18 permanent ID AL100; legacy symbolic master 1 status; physical device mapping unverified
+Network_AL101_OK,DB_Global.Inp.IOLinkMaster2OK,Bool,Read,Diagnostics,REV18 permanent ID AL101; legacy symbolic master 2 status; physical device mapping unverified
+Network_AL102_OK,DB_Global.Inp.IOLinkMaster3OK,Bool,Read,Diagnostics,REV18 permanent ID AL102; legacy symbolic master 3 status; physical device mapping unverified
+Network_AL103_OK,DB_Global.Inp.IOLinkMaster4OK,Bool,Read,Diagnostics,REV18 permanent ID AL103; legacy symbolic master 4 status; physical device mapping unverified
 Network_G120C_OK,DB_Global.Inp.DriveG120CNetworkOK,Bool,Read,Diagnostics,SINAMICS G120C network status
 Network_HMI_OK,DB_Global.Inp.HMILinkOK,Bool,Read,Diagnostics,HMI communication status
 Network_Anybus_PN_OK,DB_Global.Inp.AnybusGatewayOK,Bool,Read,Diagnostics,HMS ABC3113-A PROFINET-side status
 Network_Anybus_ECAT_OK,DB_Global.Inp.AnybusGatewayECATOK,Bool,Read,Diagnostics,HMS ABC3113-A EtherCAT-side link to SMC
+Network_SMC_OK,DB_Global.Inp.SMCCommOK,Bool,Read,Diagnostics,SMC EX260-SEC1 communication status; source remains not commissioned until gateway diagnostics are configured
+SMC_EV211_Cmd,DB_Global.Out.EV211,Bool,Read,Diagnostics,Logical EV211 command at ValveBits X5; machine function and physical SMC position remain not commissioned
 Encoder_Count,DB_Global.Inp.EncoderCount,DInt,Read,Diagnostics,TM Count machine encoder count retained from REV11
 Tank_Full_100,DB_Global.Inp.TankFull100,Bool,Read,Product Pump,Confirmed tank-full discrete input retained from REV11
 Capper_Outfeed_Crash,DB_Global.Inp.CapperOutfeedCrash,Bool,Read,Capper,Confirmed capper-discharge crash sensor retained from REV11
+Bottle_Count_In_Machine,DB_Global.Inp.BottleCountInMachine,DInt,Read,Production,Tracked number of bottles inside the monoblock; commissioning mapping required
+Bottle_Admission_Complete,DB_Global.Inp.BottleAdmissionComplete,Bool,Read,Production,Admission controller complete handshake; commissioning mapping required
+Product_Present_At_Pump,DB_Global.Inp.ProductPresentAtPump,Bool,Read,Product Pump,Product-presence sensor used by Run Out; commissioning mapping required
+External_Wash_Valve,DB_Global.Out.ExternalBottleWashValveCmd,Bool,Read,Home,External bottle washing valve after filler; SMC spare bit 9 pending physical valve identification
+Gate_Auto_Request_Enable,DB_Global.Cmd.GateAutoRequestEnable,Bool,ReadWrite,Home,Maintained Gate OFF/ON sequence request
+Gate_Auto_State,DB_Global.AutoGateRequest.State,USInt,Read,Home,Automatic gate-request sequence state
+Gate_Auto_Active,DB_Global.AutoGateRequest.Active,Bool,Read,Home,Automatic gate-request sequence active
+Gate_Auto_Completed,DB_Global.AutoGateRequest.Completed,Bool,Read,Home,Automatic gate-request sequence completed
+Gate_Auto_Fault,DB_Global.AutoGateRequest.Fault,Bool,Read,Alarms,Automatic gate-request sequence timeout fault
+Run_Out_Product_Start,DB_Global.Cmd.RunOutProductStart,Bool,ReadWrite,Home,Momentary Run Out Product start request
+Run_Out_Active,DB_Global.RunOutProduct.Active,Bool,Read,Home,Run Out Product sequence active
+Run_Out_Completed,DB_Global.RunOutProduct.Completed,Bool,Read,Home,Run Out Product sequence completed
+Product_Pump_Enable,DB_Global.Cmd.ProductPumpEnable,Bool,ReadWrite,Home,Maintained Product Pump ON/OFF selection
+Product_Level_Not_Reached,DB_Global.ProductLevelNotReached,Bool,Read,Home,Gravity-feed start interlock below configured minimum level
+Product_Pump_Start_Min_Level,DB_Global.Par.ProductPumpStartMinLevelPct,Real,ReadWrite,Product Pump,Minimum tank level required to start with Product Pump OFF
+Mode_ProductionActive,DB_Global.Machine.ProductionActive,Bool,Read,Home,Explicit production mode active status
+Mode_CIPActive,DB_Global.Machine.CIPActive,Bool,Read,Home,Explicit CIP mode active status
+Mode_RunOutActive,DB_Global.Machine.RunOutActive,Bool,Read,Home,Explicit Run Out Product mode active status
+Mode_ActiveCode,DB_Global.Machine.ActiveMode,USInt,Read,Home,Active mode code 0 Off 1 Production 2 CIP 3 Run Out
+Cmd_ProductionOn,DB_Global.Cmd.ProductionOn,Bool,ReadWrite,Home,Momentary interlocked Production ON request
+Cmd_ProductionOff,DB_Global.Cmd.ProductionOff,Bool,ReadWrite,Home,Momentary controlled Production OFF request
+Cmd_CIPStart,DB_Global.Cmd.CIPStart,Bool,ReadWrite,CIP,Momentary interlocked CIP Start request
+Cmd_CIPStop,DB_Global.Cmd.CIPStop,Bool,ReadWrite,CIP,Momentary CIP controlled-stop request
+Cmd_CIPMedium,DB_Global.Cmd.CIPMedium,USInt,ReadWrite,CIP,CIP medium selection 0 Other 1 Water 2 Hot Water 3 Caustic Soda
+Cmd_ProductPumpManualEnable,DB_Global.Cmd.ProductPumpManualEnable,Bool,ReadWrite,Manual,Manual filler product-pump command with safety and presence interlocks
+Product_Pump_Run,DB_Global.Out.ProductPumpRun,Bool,Read,Production,Product pump run output
+Vacuum_Pump_Run,DB_Global.Out.VacuumPump,Bool,Read,Production,Vacuum pump run output
+Vacuum_Actual_mbar,DB_Global.Inp.VacuumActualMbar,Real,Read,Production,Actual vacuum transmitter value in mbar
+Vacuum_Signal_Valid,DB_Global.Inp.VacuumSignalValid,Bool,Read,Production,Vacuum transmitter signal validity
+Vacuum_Min_mbar,DB_Global.Par.VacuumMinMbar,Real,ReadWrite,Production,Configurable minimum production vacuum nominal -400 mbar
+Vacuum_Ready,DB_Global.ProductionVacuum.VacuumReady,Bool,Read,Production,Production vacuum threshold achieved
+Alarm_Low_Vacuum,DB_Global.ProductionVacuum.LowVacuumAlarm,Bool,Read,Alarms,Latched two-attempt production low-vacuum alarm
+Vacuum_Attempt_Number,DB_Global.ProductionVacuum.AttemptNumber,USInt,Read,Production,Current vacuum-building attempt 1 or 2
+Vacuum_Startup_Elapsed,DB_Global.ProductionVacuum.StartupElapsed,Time,Read,Production,Elapsed vacuum startup-inhibit timer
+Valve_210_Cmd,DB_Global.Out.Valve210Cmd,Bool,Read,Production,Logical valve 210 command; physical output mapping must be confirmed
+Valve_217_Cmd,DB_Global.Out.Valve217Cmd,Bool,Read,Production,Logical valve 217 command; physical output mapping must be confirmed
+Valve_213_Cmd,DB_Global.Out.Valve213Cmd,Bool,Read,Production,Logical valve 213 command; physical output mapping must be confirmed
+Valve_212_Cmd,DB_Global.Out.Valve212Cmd,Bool,Read,Production,Logical vacuum valve 212 command; physical output mapping must be confirmed
+Valve_247_Cmd,DB_Global.Out.Valve247Cmd,Bool,Read,CIP,Logical discharge valve 247 command; physical output mapping must be confirmed
+Gate_Open_Output,DB_Global.Out.GateOpen,Bool,Read,Production,Final interlocked bottle-gate open command
+Gate_Close_Output,DB_Global.Out.GateClose,Bool,Read,Production,Final interlocked bottle-gate close command
+CIP_Forced_Gate_Closed,DB_Global.Machine.CIPActive,Bool,Read,CIP,CIP mode forces bottle infeed gate closed
+CIP_Step,DB_Global.CIP.Step,USInt,Read,CIP,CIP vacuum and circulation sequence step
+CIP_Medium,DB_Global.CIP.Medium,USInt,Read,CIP,Active CIP medium code
+CIP_Elapsed_Time,DB_Global.CIP.ElapsedTime,Time,Read,CIP,Elapsed time for current timed CIP sequence step
+CIP_Media_Seen,DB_Global.CIP.MediaSeen,Bool,Read,CIP,Water or CIP fluid has been detected this cycle
+CIP_Media_Loss_Alarm,DB_Global.CIP.MediaLossAlarm,Bool,Read,Alarms,CIP media absence exceeded configurable timeout
+CIP_Vacuum_Sequence_Done,DB_Global.CIP.VacuumSequenceDone,Bool,Read,CIP,Tank-full vacuum sequence completed
+CIP_Start_Blocked,DB_Global.CIPStartBlocked,Bool,Read,Alarms,CIP request blocked because production or run out is active
+Run_Out_State,DB_Global.RunOutProduct.State,USInt,Read,Run Out,Run Out Product sequence step
+Run_Out_Final_Elapsed,DB_Global.RunOutProduct.FinalRunElapsed,Time,Read,Run Out,Elapsed final bottle-clearing timer
+External_Wash_Active,DB_Global.Out.ExternalBottleWashValveCmd,Bool,Read,Production,Bottle washing valve active command
+Efficiency_Total_Seconds,DB_Global.Efficiency.TotalSeconds,DInt,Read,Efficiency,Accumulated classified machine time since PLC restart or counter initialization
+Efficiency_Run_Seconds,DB_Global.Efficiency.RunSeconds,DInt,Read,Efficiency,Accumulated main-run time in seconds
+Efficiency_Stop_Seconds,DB_Global.Efficiency.StopSeconds,DInt,Read,Efficiency,Accumulated stopped time in seconds
+Efficiency_Waiting_Seconds,DB_Global.Efficiency.WaitingSeconds,DInt,Read,Efficiency,Accumulated standby waiting time in seconds
+Efficiency_Breakdown_Seconds,DB_Global.Efficiency.BreakdownSeconds,DInt,Read,Efficiency,Accumulated critical-alarm breakdown time in seconds
+Lift_Filler_Confirm_Cmd,DB_Global.Cmd.FillerLiftConfirm,Bool,ReadWrite,Lift Confirmation,Momentary acknowledgement that filler mechanical lock is released and movement area is clear
+Lift_Capper_Confirm_Cmd,DB_Global.Cmd.CapperLiftConfirm,Bool,ReadWrite,Lift Confirmation,Momentary acknowledgement that capper mechanical lock is released and movement area is clear
+Lift_Filler_Confirmed,DB_Global.LiftConfirmation.FillerConfirmed,Bool,Read,Lift Confirmation,PLC-latched filler lift confirmation permissive
+Lift_Capper_Confirmed,DB_Global.LiftConfirmation.CapperConfirmed,Bool,Read,Lift Confirmation,PLC-latched capper lift confirmation permissive
+Lift_Confirmation_Valid,DB_Global.LiftConfirmation.ConfirmationValid,Bool,Read,Lift Confirmation,Selected lift has valid PLC confirmation
+DI_AirPressure_OK,DB_Global.Inp.AirPressureOK,Bool,Read,Settings Inputs,PS100 - Main pneumatic pressure - Pneumatic main - address TBC
+DI_MainDrive_Ready,DB_Global.Inp.MainDriveReady,Bool,Read,Settings Inputs,M100 - Main drive ready - Main drive - network channel TBC
+DI_MainDrive_Fault,DB_Global.Inp.MainDriveFault,Bool,Read,Settings Inputs,M100 - Main drive fault - Main drive - network channel TBC
+DI_Conveyor_Ready,DB_Global.Inp.ConveyorReady,Bool,Read,Settings Inputs,M101 - Conveyor ready - Outfeed - network channel TBC
+DI_Conveyor_Fault,DB_Global.Inp.ConveyorFault,Bool,Read,Settings Inputs,M101 - Conveyor fault - Outfeed - network channel TBC
+DI_ProductPump_Ready,DB_Global.Inp.ProductPumpReady,Bool,Read,Settings Inputs,M102 - Product pump ready - Product circuit - network channel TBC
+DI_ProductPump_Fault,DB_Global.Inp.ProductPumpFault,Bool,Read,Settings Inputs,M102 - Product pump fault - Product circuit - network channel TBC
+DI_CapDrive_Ready,DB_Global.Inp.CapDriveReady,Bool,Read,Settings Inputs,Cap drive ready - Capper - network channel TBC
+DI_CapDrive_Fault,DB_Global.Inp.CapDriveFault,Bool,Read,Settings Inputs,Cap drive fault - Capper - network channel TBC
+DI_Encoder_Healthy,DB_Global.Inp.EncoderHealthy,Bool,Read,Settings Inputs,E100 - Main encoder healthy - Main drive - PLC HSC address TBC
+DI_Machine_Zero,DB_Global.Inp.MachineZero,Bool,Read,Settings Inputs,ZS100 - Machine zero sensor - Filler - PLC DI address TBC
+DI_Bottle_Infeed,DB_Global.Inp.BottleInfeed,Bool,Read,Settings Inputs,SPB100 - Bottle presence - Infeed - PLC DI address TBC
+DI_Bottle_Shortage_1,DB_Global.Inp.BottleShortage1,Bool,Read,Settings Inputs,PEI100 - Infeed slowdown photoelectric - Infeed - I/O port TBC
+DI_Bottle_Shortage_2,DB_Global.Inp.BottleShortage2,Bool,Read,Settings Inputs,PEI101 - Infeed stop photoelectric - Infeed - I/O port TBC
+DI_Accumulation_1,DB_Global.Inp.Accumulation1,Bool,Read,Settings Inputs,PEO100 - Outfeed slowdown photoelectric - Outfeed - I/O port TBC
+DI_Accumulation_2,DB_Global.Inp.Accumulation2,Bool,Read,Settings Inputs,PEO101 - Outfeed stop photoelectric - Outfeed - I/O port TBC
+DI_Gate_Open_FB,DB_Global.Inp.GateOpenFB,Bool,Read,Settings Inputs,EV200 gate-open feedback - Infeed gate - channel TBC
+DI_Gate_Closed_FB,DB_Global.Inp.GateClosedFB,Bool,Read,Settings Inputs,EV200 gate-closed feedback - Infeed gate - channel TBC
+DI_Filler_Low_Limit,DB_Global.Inp.FillerLowLimit,Bool,Read,Settings Inputs,LSF101 - Filler lift lower limit - Filler - I/O port TBC
+DI_Filler_High_Limit,DB_Global.Inp.FillerHighLimit,Bool,Read,Settings Inputs,LSF100 - Filler lift upper limit - Filler - I/O port TBC
+DI_Capper_Low_Limit,DB_Global.Inp.CapperLowLimit,Bool,Read,Settings Inputs,LSC101 - Capper lift lower limit - Capper - I/O port TBC
+DI_Capper_High_Limit,DB_Global.Inp.CapperHighLimit,Bool,Read,Settings Inputs,LSC100 - Capper lift upper limit - Capper - I/O port TBC
+DI_Cap_Present,DB_Global.Inp.CapPresent,Bool,Read,Settings Inputs,CS103 - Cap present sensor - Pick and place - PLC DI address TBC
+DI_Cap_Hopper_Low,DB_Global.Inp.CapHopperLow,Bool,Read,Settings Inputs,CS100 - Low cap level - Cap hopper - I/O port TBC
+DI_Cap_Channel_Demand,DB_Global.Inp.CapChannelDemand,Bool,Read,Settings Inputs,CS101 - Orienter demand sensor - Cap chute - I/O port TBC
+DI_Caps_Missing,DB_Global.Inp.CapsMissing,Bool,Read,Settings Inputs,CS102 - Cap chute empty sensor - Cap chute - I/O port TBC
+DI_Hood_Filter_Alarm,DB_Global.Inp.HoodFilterAlarm,Bool,Read,Settings Inputs,PSH100 - Hood filter service input - Ventilation - I/O port TBC
+DO_Main_Run,DB_Global.Out.MainRun,Bool,Read,Settings Outputs,M100 - Main machine run command - Main drive
+DO_Conveyor_Run,DB_Global.Out.ConveyorRun,Bool,Read,Settings Outputs,M101 - Bottle conveyor run command - Outfeed
+DO_ProductPump_Run,DB_Global.Out.ProductPumpRun,Bool,Read,Settings Outputs,M102 - Product pump run command - Product circuit
+DO_CapDrive_Run,DB_Global.Out.CapDriveRun,Bool,Read,Settings Outputs,Cap drive run command - Capper
+DO_Gate_Open,DB_Global.Out.GateOpen,Bool,Read,Settings Outputs,EV200 - Bottle gate open command - SMC mapping TBC
+DO_Gate_Close,DB_Global.Out.GateClose,Bool,Read,Settings Outputs,EV200 - Bottle gate close command - SMC mapping TBC
+DO_Filler_Up,DB_Global.Out.FillerUp,Bool,Read,Settings Outputs,Filler lift UP command - Filler
+DO_Filler_Down,DB_Global.Out.FillerDown,Bool,Read,Settings Outputs,Filler lift DOWN command - Filler
+DO_Capper_Up,DB_Global.Out.CapperUp,Bool,Read,Settings Outputs,Capper lift UP command - Capper
+DO_Capper_Down,DB_Global.Out.CapperDown,Bool,Read,Settings Outputs,Capper lift DOWN command - Capper
+DO_Vacuum_Pump,DB_Global.Out.VacuumPump,Bool,Read,Settings Outputs,M103 - Vacuum pump command - Vacuum circuit
+DO_Valve_210,DB_Global.Out.Valve210Cmd,Bool,Read,Settings Outputs,EV210 - Product-circuit valve 210 - SMC mapping TBC
+DO_Valve_217,DB_Global.Out.Valve217Cmd,Bool,Read,Settings Outputs,EV217 - Product-circuit valve 217 - SMC mapping TBC
+DO_Valve_213,DB_Global.Out.Valve213Cmd,Bool,Read,Settings Outputs,EV213 - Product-circuit valve 213 - SMC mapping TBC
+DO_Valve_212,DB_Global.Out.Valve212Cmd,Bool,Read,Settings Outputs,EV212 - Vacuum valve 212 - SMC mapping TBC
+DO_Valve_247,DB_Global.Out.Valve247Cmd,Bool,Read,Settings Outputs,EV247 - Discharge valve 247 - SMC mapping TBC
+DO_External_Wash,DB_Global.Out.ExternalBottleWashValveCmd,Bool,Read,Settings Outputs,External bottle-wash valve - after filler - SMC mapping TBC
+Par_CIP_Tank_Full_Delay,DB_Global.Par.CIPTankFullDelay,Time,ReadWrite,Settings Timers,CIP tank-full delay seconds range 1-10 s
+Par_CIP_Pump_PreOpen_Delay,DB_Global.Par.CIPPumpPreOpenDelay,Time,ReadWrite,Settings Timers,CIP vacuum-pump pre-open delay range 0-5 s
+Par_CIP_Valve212_Open_Time,DB_Global.Par.CIPValve212OpenTime,Time,ReadWrite,Settings Timers,CIP valve 212 open time range 1-20 s
+Par_CIP_Vacuum_PostRun_Time,DB_Global.Par.CIPVacuumPostRunTime,Time,ReadWrite,Settings Timers,CIP vacuum pump post-run time range 1-30 s
+Par_CIP_Media_Loss_Delay,DB_Global.Par.CIPMediaLossDelay,Time,ReadWrite,Settings Timers,CIP media-loss timeout range 1-10 s
+Par_Vacuum_Startup_Delay,DB_Global.Par.VacuumStartupDelay,Time,ReadWrite,Settings Timers,Production vacuum alarm-inhibit delay range 1-15 s
+Par_RunOut_Final_Delay,DB_Global.Par.RunOutLastBottleDelay,Time,ReadWrite,Settings Timers,Run Out final bottle-clearing delay range 5-60 s
+Par_External_Wash_Off_Delay,DB_Global.Par.ExternalWashOffDelay,Time,ReadWrite,Settings External Wash,External bottle-wash OFF delay range 0-10 s
+Cmd_CIPPause,DB_Global.Cmd.CIPPause,Bool,ReadWrite,CIP,Pause active CIP phase
+Cmd_CIPResume,DB_Global.Cmd.CIPResume,Bool,ReadWrite,CIP,Resume paused CIP phase
+Cmd_CIPAbort,DB_Global.Cmd.CIPAbort,Bool,ReadWrite,CIP,Controlled CIP abort request
+Cmd_CIPNext,DB_Global.Cmd.CIPNext,Bool,ReadWrite,CIP,Advance one step only while the PLC manual-next permissive is valid
+Cmd_CIPAcknowledgeComplete,DB_Global.Cmd.CIPAcknowledgeComplete,Bool,ReadWrite,CIP,Acknowledge the PLC completed state
+Cmd_InternalWashOn,DB_Global.Cmd.InternalWashOn,Bool,ReadWrite,Function,Request internal wash through PLC interlocks
+Cmd_InternalWashOff,DB_Global.Cmd.InternalWashOff,Bool,ReadWrite,Function,Cancel internal wash request
+InternalWash_Requested,DB_Global.InternalWash.Requested,Bool,Read,Function,Internal wash logical request latched by PLC
+InternalWash_Active,DB_Global.InternalWash.Active,Bool,Read,Function,Internal wash permitted logical command
+InternalWash_Permissive,DB_Global.InternalWash.Permissive,Bool,Read,Function,Internal wash PLC permissive
+InternalWash_NotCommissioned,DB_Global.InternalWash.NotCommissioned,Bool,Read,Function,Physical SMC valve mapping remains uncommissioned
+CIP_Sequence_State,DB_Global.CIPSequence.State,USInt,Read,CIP,CIP state-machine state code
+CIP_Sequence_Phase,DB_Global.CIPSequence.Phase,USInt,Read,CIP,Ordered phase 1 to 14
+CIP_Requested_Medium,DB_Global.CIPSequence.RequestedMedium,USInt,Read,CIP,0 none 1 cold 2 hot 3 acid 4 citra 5 discharge
+CIP_Progress_Pct,DB_Global.CIPSequence.ProgressPct,USInt,Read,CIP,CIP sequence progress percent
+CIP_Phase_Elapsed,DB_Global.CIPSequence.PhaseElapsed,Time,Read,CIP,Elapsed time in current phase
+CIP_Phase_Duration,DB_Global.CIPSequence.PhaseDuration,Time,Read,CIP,Configured duration of current phase
+CIP_Paused,DB_Global.CIPSequence.Paused,Bool,Read,CIP,CIP phase paused
+CIP_Sequence_Complete,DB_Global.CIPSequence.Complete,Bool,Read,CIP,CIP complete awaiting operator action
+CIP_Sequence_Fault,DB_Global.CIPSequence.Fault,Bool,Read,CIP,CIP sequence or remote interface fault
+CIP_Sequence_FaultCode,DB_Global.CIPSequence.FaultCode,UInt,Read,CIP,CIP fault diagnostic code
+CIP_Total_Steps,DB_Global.CIPSequence.TotalSteps,USInt,Read,CIP,Validated recipe step count 1 to 10
+CIP_Advance_Mode,DB_Global.CIPSequence.AdvanceMode,USInt,Read,CIP,0 automatic advance 1 manual next
+CIP_Waiting_For_Next,DB_Global.CIPSequence.WaitingForNext,Bool,Read,CIP,PLC is holding at an eligible manual-next boundary
+CIP_Next_Permitted,DB_Global.CIPSequence.NextPermitted,Bool,Read,CIP,PLC confirms all manual-next permissives
+CIP_Recipe_Valid,DB_Global.CIPSequence.RecipeValid,Bool,Read,CIP,PLC recipe validation result
+CIP_Recipe_Validation_Code,DB_Global.CIPSequence.ValidationCode,UInt,Read,CIP,0 valid otherwise recipe validation diagnostic code
+CIP_Transition_Active,DB_Global.CIPSequence.TransitionActive,Bool,Read,CIP,All CIP medium requests are forced off during safe step transition
+CIP_Remaining_Time,DB_Global.CIPSequence.RemainingTime,Time,Read,CIP,Remaining time in active recipe step
+CIP_Complete_Acknowledged,DB_Global.CIPSequence.CompleteAcknowledged,Bool,Read,CIP,Operator acknowledgement received for completed cycle
+CIP_Next_Rejected,DB_Global.CIPSequence.NextRejected,Bool,Read,CIP,Manual-next request rejected by PLC permissives
+CIP_Recipe_Name,DB_Global.CIPRecipe.RecipeName,String,Read,Recipe,CIP recipe name
+CIP_Recipe_Revision,DB_Global.CIPRecipe.Revision,UInt,Read,Recipe,CIP recipe revision
+CIP_Recipe_StepCount,DB_Global.CIPRecipe.StepCount,USInt,Read,Recipe,Enabled recipe steps range 1 to 10
+CIP_Recipe_Step1_Enabled,DB_Global.CIPRecipe.Step[1].Enabled,Bool,Read,Recipe,Enable CIP recipe step 1
+CIP_Recipe_Step1_Medium,DB_Global.CIPRecipe.Step[1].Medium,USInt,Read,Recipe,CIP medium code for step 1
+CIP_Recipe_Step1_Duration,DB_Global.CIPRecipe.Step[1].Duration,Time,Read,Recipe,Configured duration for step 1
+CIP_Recipe_Step1_AdvanceMode,DB_Global.CIPRecipe.Step[1].AdvanceMode,USInt,Read,Recipe,0 AUTO 1 MANUAL NEXT for step 1
+CIP_Recipe_Step2_Enabled,DB_Global.CIPRecipe.Step[2].Enabled,Bool,Read,Recipe,Enable CIP recipe step 2
+CIP_Recipe_Step2_Medium,DB_Global.CIPRecipe.Step[2].Medium,USInt,Read,Recipe,CIP medium code for step 2
+CIP_Recipe_Step2_Duration,DB_Global.CIPRecipe.Step[2].Duration,Time,Read,Recipe,Configured duration for step 2
+CIP_Recipe_Step2_AdvanceMode,DB_Global.CIPRecipe.Step[2].AdvanceMode,USInt,Read,Recipe,0 AUTO 1 MANUAL NEXT for step 2
+CIP_Recipe_Step3_Enabled,DB_Global.CIPRecipe.Step[3].Enabled,Bool,Read,Recipe,Enable CIP recipe step 3
+CIP_Recipe_Step3_Medium,DB_Global.CIPRecipe.Step[3].Medium,USInt,Read,Recipe,CIP medium code for step 3
+CIP_Recipe_Step3_Duration,DB_Global.CIPRecipe.Step[3].Duration,Time,Read,Recipe,Configured duration for step 3
+CIP_Recipe_Step3_AdvanceMode,DB_Global.CIPRecipe.Step[3].AdvanceMode,USInt,Read,Recipe,0 AUTO 1 MANUAL NEXT for step 3
+CIP_Recipe_Step4_Enabled,DB_Global.CIPRecipe.Step[4].Enabled,Bool,Read,Recipe,Enable CIP recipe step 4
+CIP_Recipe_Step4_Medium,DB_Global.CIPRecipe.Step[4].Medium,USInt,Read,Recipe,CIP medium code for step 4
+CIP_Recipe_Step4_Duration,DB_Global.CIPRecipe.Step[4].Duration,Time,Read,Recipe,Configured duration for step 4
+CIP_Recipe_Step4_AdvanceMode,DB_Global.CIPRecipe.Step[4].AdvanceMode,USInt,Read,Recipe,0 AUTO 1 MANUAL NEXT for step 4
+CIP_Recipe_Step5_Enabled,DB_Global.CIPRecipe.Step[5].Enabled,Bool,Read,Recipe,Enable CIP recipe step 5
+CIP_Recipe_Step5_Medium,DB_Global.CIPRecipe.Step[5].Medium,USInt,Read,Recipe,CIP medium code for step 5
+CIP_Recipe_Step5_Duration,DB_Global.CIPRecipe.Step[5].Duration,Time,Read,Recipe,Configured duration for step 5
+CIP_Recipe_Step5_AdvanceMode,DB_Global.CIPRecipe.Step[5].AdvanceMode,USInt,Read,Recipe,0 AUTO 1 MANUAL NEXT for step 5
+CIP_Recipe_Step6_Enabled,DB_Global.CIPRecipe.Step[6].Enabled,Bool,Read,Recipe,Enable CIP recipe step 6
+CIP_Recipe_Step6_Medium,DB_Global.CIPRecipe.Step[6].Medium,USInt,Read,Recipe,CIP medium code for step 6
+CIP_Recipe_Step6_Duration,DB_Global.CIPRecipe.Step[6].Duration,Time,Read,Recipe,Configured duration for step 6
+CIP_Recipe_Step6_AdvanceMode,DB_Global.CIPRecipe.Step[6].AdvanceMode,USInt,Read,Recipe,0 AUTO 1 MANUAL NEXT for step 6
+CIP_Recipe_Step7_Enabled,DB_Global.CIPRecipe.Step[7].Enabled,Bool,Read,Recipe,Enable CIP recipe step 7
+CIP_Recipe_Step7_Medium,DB_Global.CIPRecipe.Step[7].Medium,USInt,Read,Recipe,CIP medium code for step 7
+CIP_Recipe_Step7_Duration,DB_Global.CIPRecipe.Step[7].Duration,Time,Read,Recipe,Configured duration for step 7
+CIP_Recipe_Step7_AdvanceMode,DB_Global.CIPRecipe.Step[7].AdvanceMode,USInt,Read,Recipe,0 AUTO 1 MANUAL NEXT for step 7
+CIP_Recipe_Step8_Enabled,DB_Global.CIPRecipe.Step[8].Enabled,Bool,Read,Recipe,Enable CIP recipe step 8
+CIP_Recipe_Step8_Medium,DB_Global.CIPRecipe.Step[8].Medium,USInt,Read,Recipe,CIP medium code for step 8
+CIP_Recipe_Step8_Duration,DB_Global.CIPRecipe.Step[8].Duration,Time,Read,Recipe,Configured duration for step 8
+CIP_Recipe_Step8_AdvanceMode,DB_Global.CIPRecipe.Step[8].AdvanceMode,USInt,Read,Recipe,0 AUTO 1 MANUAL NEXT for step 8
+CIP_Recipe_Step9_Enabled,DB_Global.CIPRecipe.Step[9].Enabled,Bool,Read,Recipe,Enable CIP recipe step 9
+CIP_Recipe_Step9_Medium,DB_Global.CIPRecipe.Step[9].Medium,USInt,Read,Recipe,CIP medium code for step 9
+CIP_Recipe_Step9_Duration,DB_Global.CIPRecipe.Step[9].Duration,Time,Read,Recipe,Configured duration for step 9
+CIP_Recipe_Step9_AdvanceMode,DB_Global.CIPRecipe.Step[9].AdvanceMode,USInt,Read,Recipe,0 AUTO 1 MANUAL NEXT for step 9
+CIP_Recipe_Step10_Enabled,DB_Global.CIPRecipe.Step[10].Enabled,Bool,Read,Recipe,Enable CIP recipe step 10
+CIP_Recipe_Step10_Medium,DB_Global.CIPRecipe.Step[10].Medium,USInt,Read,Recipe,CIP medium code for step 10
+CIP_Recipe_Step10_Duration,DB_Global.CIPRecipe.Step[10].Duration,Time,Read,Recipe,Configured duration for step 10
+CIP_Recipe_Step10_AdvanceMode,DB_Global.CIPRecipe.Step[10].AdvanceMode,USInt,Read,Recipe,0 AUTO 1 MANUAL NEXT for step 10
+CIP_Recipe_Lifecycle_State,DB_Global.CIPRecipe.LifecycleState,USInt,Read,Recipe,0 draft 1 approved 2 locked 3 superseded
+CIP_Recipe_Approved,DB_Global.CIPRecipe.Approved,Bool,Read,Recipe,PLC-approved operational recipe
+CIP_Recipe_Locked,DB_Global.CIPRecipe.Locked,Bool,Read,Recipe,Locked operational recipe cannot be edited in place
+CIP_Recipe_Operator_Selectable,DB_Global.CIPRecipe.OperatorSelectable,Bool,Read,Recipe,Approved locked recipe available to operators
+CIP_Recipe_Last_Modified_By,DB_Global.CIPRecipe.LastModifiedBy,String,Read,Recipe,Last recipe modifier recorded by PLC audit manager
+CIP_Recipe_Approved_By,DB_Global.CIPRecipe.ApprovedBy,String,Read,Recipe,Approving user recorded by PLC audit manager
+CIP_Recipe_Locked_By,DB_Global.CIPRecipe.LockedBy,String,Read,Recipe,Locking user recorded by PLC audit manager
+CIP_Active_Recipe_Name,DB_Global.CIPRecipeControl.ActiveRecipeName,String,Read,CIP,Frozen recipe snapshot name
+CIP_Active_Recipe_Revision,DB_Global.CIPRecipeControl.ActiveRecipeRevision,UInt,Read,CIP,Frozen recipe snapshot revision
+CIP_Recipe_Draft_Name,DB_Global.CIPRecipeDraft.RecipeName,String,ReadWrite,RecipeEdit,Engineering draft recipe name
+CIP_Recipe_Draft_Revision,DB_Global.CIPRecipeDraft.Revision,UInt,ReadWrite,RecipeEdit,Engineering draft revision
+CIP_Recipe_Draft_StepCount,DB_Global.CIPRecipeDraft.StepCount,USInt,ReadWrite,RecipeEdit,Engineering draft enabled steps 1 to 10
+CIP_Recipe_Draft_Step1_Enabled,DB_Global.CIPRecipeDraft.Step[1].Enabled,Bool,ReadWrite,RecipeEdit,Engineering draft step 1 enable
+CIP_Recipe_Draft_Step1_Medium,DB_Global.CIPRecipeDraft.Step[1].Medium,USInt,ReadWrite,RecipeEdit,Engineering draft step 1 medium code
+CIP_Recipe_Draft_Step1_Duration,DB_Global.CIPRecipeDraft.Step[1].Duration,Time,ReadWrite,RecipeEdit,Engineering draft step 1 duration
+CIP_Recipe_Draft_Step1_AdvanceMode,DB_Global.CIPRecipeDraft.Step[1].AdvanceMode,USInt,ReadWrite,RecipeEdit,Engineering draft step 1 advance mode
+CIP_Recipe_Draft_Step2_Enabled,DB_Global.CIPRecipeDraft.Step[2].Enabled,Bool,ReadWrite,RecipeEdit,Engineering draft step 2 enable
+CIP_Recipe_Draft_Step2_Medium,DB_Global.CIPRecipeDraft.Step[2].Medium,USInt,ReadWrite,RecipeEdit,Engineering draft step 2 medium code
+CIP_Recipe_Draft_Step2_Duration,DB_Global.CIPRecipeDraft.Step[2].Duration,Time,ReadWrite,RecipeEdit,Engineering draft step 2 duration
+CIP_Recipe_Draft_Step2_AdvanceMode,DB_Global.CIPRecipeDraft.Step[2].AdvanceMode,USInt,ReadWrite,RecipeEdit,Engineering draft step 2 advance mode
+CIP_Recipe_Draft_Step3_Enabled,DB_Global.CIPRecipeDraft.Step[3].Enabled,Bool,ReadWrite,RecipeEdit,Engineering draft step 3 enable
+CIP_Recipe_Draft_Step3_Medium,DB_Global.CIPRecipeDraft.Step[3].Medium,USInt,ReadWrite,RecipeEdit,Engineering draft step 3 medium code
+CIP_Recipe_Draft_Step3_Duration,DB_Global.CIPRecipeDraft.Step[3].Duration,Time,ReadWrite,RecipeEdit,Engineering draft step 3 duration
+CIP_Recipe_Draft_Step3_AdvanceMode,DB_Global.CIPRecipeDraft.Step[3].AdvanceMode,USInt,ReadWrite,RecipeEdit,Engineering draft step 3 advance mode
+CIP_Recipe_Draft_Step4_Enabled,DB_Global.CIPRecipeDraft.Step[4].Enabled,Bool,ReadWrite,RecipeEdit,Engineering draft step 4 enable
+CIP_Recipe_Draft_Step4_Medium,DB_Global.CIPRecipeDraft.Step[4].Medium,USInt,ReadWrite,RecipeEdit,Engineering draft step 4 medium code
+CIP_Recipe_Draft_Step4_Duration,DB_Global.CIPRecipeDraft.Step[4].Duration,Time,ReadWrite,RecipeEdit,Engineering draft step 4 duration
+CIP_Recipe_Draft_Step4_AdvanceMode,DB_Global.CIPRecipeDraft.Step[4].AdvanceMode,USInt,ReadWrite,RecipeEdit,Engineering draft step 4 advance mode
+CIP_Recipe_Draft_Step5_Enabled,DB_Global.CIPRecipeDraft.Step[5].Enabled,Bool,ReadWrite,RecipeEdit,Engineering draft step 5 enable
+CIP_Recipe_Draft_Step5_Medium,DB_Global.CIPRecipeDraft.Step[5].Medium,USInt,ReadWrite,RecipeEdit,Engineering draft step 5 medium code
+CIP_Recipe_Draft_Step5_Duration,DB_Global.CIPRecipeDraft.Step[5].Duration,Time,ReadWrite,RecipeEdit,Engineering draft step 5 duration
+CIP_Recipe_Draft_Step5_AdvanceMode,DB_Global.CIPRecipeDraft.Step[5].AdvanceMode,USInt,ReadWrite,RecipeEdit,Engineering draft step 5 advance mode
+CIP_Recipe_Draft_Step6_Enabled,DB_Global.CIPRecipeDraft.Step[6].Enabled,Bool,ReadWrite,RecipeEdit,Engineering draft step 6 enable
+CIP_Recipe_Draft_Step6_Medium,DB_Global.CIPRecipeDraft.Step[6].Medium,USInt,ReadWrite,RecipeEdit,Engineering draft step 6 medium code
+CIP_Recipe_Draft_Step6_Duration,DB_Global.CIPRecipeDraft.Step[6].Duration,Time,ReadWrite,RecipeEdit,Engineering draft step 6 duration
+CIP_Recipe_Draft_Step6_AdvanceMode,DB_Global.CIPRecipeDraft.Step[6].AdvanceMode,USInt,ReadWrite,RecipeEdit,Engineering draft step 6 advance mode
+CIP_Recipe_Draft_Step7_Enabled,DB_Global.CIPRecipeDraft.Step[7].Enabled,Bool,ReadWrite,RecipeEdit,Engineering draft step 7 enable
+CIP_Recipe_Draft_Step7_Medium,DB_Global.CIPRecipeDraft.Step[7].Medium,USInt,ReadWrite,RecipeEdit,Engineering draft step 7 medium code
+CIP_Recipe_Draft_Step7_Duration,DB_Global.CIPRecipeDraft.Step[7].Duration,Time,ReadWrite,RecipeEdit,Engineering draft step 7 duration
+CIP_Recipe_Draft_Step7_AdvanceMode,DB_Global.CIPRecipeDraft.Step[7].AdvanceMode,USInt,ReadWrite,RecipeEdit,Engineering draft step 7 advance mode
+CIP_Recipe_Draft_Step8_Enabled,DB_Global.CIPRecipeDraft.Step[8].Enabled,Bool,ReadWrite,RecipeEdit,Engineering draft step 8 enable
+CIP_Recipe_Draft_Step8_Medium,DB_Global.CIPRecipeDraft.Step[8].Medium,USInt,ReadWrite,RecipeEdit,Engineering draft step 8 medium code
+CIP_Recipe_Draft_Step8_Duration,DB_Global.CIPRecipeDraft.Step[8].Duration,Time,ReadWrite,RecipeEdit,Engineering draft step 8 duration
+CIP_Recipe_Draft_Step8_AdvanceMode,DB_Global.CIPRecipeDraft.Step[8].AdvanceMode,USInt,ReadWrite,RecipeEdit,Engineering draft step 8 advance mode
+CIP_Recipe_Draft_Step9_Enabled,DB_Global.CIPRecipeDraft.Step[9].Enabled,Bool,ReadWrite,RecipeEdit,Engineering draft step 9 enable
+CIP_Recipe_Draft_Step9_Medium,DB_Global.CIPRecipeDraft.Step[9].Medium,USInt,ReadWrite,RecipeEdit,Engineering draft step 9 medium code
+CIP_Recipe_Draft_Step9_Duration,DB_Global.CIPRecipeDraft.Step[9].Duration,Time,ReadWrite,RecipeEdit,Engineering draft step 9 duration
+CIP_Recipe_Draft_Step9_AdvanceMode,DB_Global.CIPRecipeDraft.Step[9].AdvanceMode,USInt,ReadWrite,RecipeEdit,Engineering draft step 9 advance mode
+CIP_Recipe_Draft_Step10_Enabled,DB_Global.CIPRecipeDraft.Step[10].Enabled,Bool,ReadWrite,RecipeEdit,Engineering draft step 10 enable
+CIP_Recipe_Draft_Step10_Medium,DB_Global.CIPRecipeDraft.Step[10].Medium,USInt,ReadWrite,RecipeEdit,Engineering draft step 10 medium code
+CIP_Recipe_Draft_Step10_Duration,DB_Global.CIPRecipeDraft.Step[10].Duration,Time,ReadWrite,RecipeEdit,Engineering draft step 10 duration
+CIP_Recipe_Draft_Step10_AdvanceMode,DB_Global.CIPRecipeDraft.Step[10].AdvanceMode,USInt,ReadWrite,RecipeEdit,Engineering draft step 10 advance mode
+CIP_Recipe_Draft_Valid,DB_Global.CIPRecipeDraft.Valid,Bool,Read,RecipeEdit,PLC validation result for engineering draft
+CIP_Recipe_Draft_Validation_Code,DB_Global.CIPRecipeControl.DraftValidationCode,UInt,Read,RecipeEdit,PLC validation diagnostic for engineering draft
+CIP_Recipe_Engineering_Authorized,DB_Global.CIPRecipeControl.EngineeringAuthorized,Bool,ReadWrite,RecipeEdit,Short-lived permit derived from current WinCC session role
+CIP_Recipe_Actor_Name,DB_Global.CIPRecipeControl.ActorName,String,ReadWrite,RecipeEdit,Current WinCC session user recorded with lifecycle actions
+CIP_Recipe_Actor_Role,DB_Global.CIPRecipeControl.ActorRole,USInt,ReadWrite,RecipeEdit,Current WinCC role code recorded with lifecycle actions
+Cmd_CIPRecipe_SaveDraft,DB_Global.Cmd.CIPRecipeSaveDraft,Bool,ReadWrite,RecipeEdit,Save engineering draft and append audit records
+Cmd_CIPRecipe_SaveAs,DB_Global.Cmd.CIPRecipeSaveAs,Bool,ReadWrite,RecipeEdit,Create next draft revision from locked recipe
+Cmd_CIPRecipe_Approve,DB_Global.Cmd.CIPRecipeApprove,Bool,ReadWrite,RecipeEdit,Approve valid draft
+Cmd_CIPRecipe_Lock,DB_Global.Cmd.CIPRecipeLock,Bool,ReadWrite,RecipeEdit,Lock approved recipe for operator execution
+Cmd_CIPRecipe_Supersede,DB_Global.Cmd.CIPRecipeSupersede,Bool,ReadWrite,RecipeEdit,Supersede current operational recipe
+CIP_Recipe_Start_Permitted,DB_Global.CIPRecipeControl.StartPermitted,Bool,Read,CIP,PLC recipe lifecycle and process start permissive
+CIP_Recipe_Start_Rejected_Invalid,DB_Global.CIPRecipeControl.StartRejectedInvalid,Bool,Read,CIP,Start rejected because recipe validation failed
+CIP_Recipe_Start_Rejected_Unapproved,DB_Global.CIPRecipeControl.StartRejectedUnapproved,Bool,Read,CIP,Start rejected because recipe is not approved/selectable
+CIP_Recipe_Start_Rejected_Unlocked,DB_Global.CIPRecipeControl.StartRejectedUnlocked,Bool,Read,CIP,Start rejected because recipe is not locked
+CIP_Recipe_Edit_Rejected,DB_Global.CIPRecipeControl.EditRejected,Bool,Read,RecipeEdit,PLC rejected unauthorized or active-cycle recipe action
+CIP_Recipe_Audit_Count,DB_Global.CIPRecipeControl.AuditCount,USInt,Read,Recipe,Number of retained PLC lifecycle audit entries
+CIP_Recipe_Audit_Sequence,DB_Global.CIPRecipeControl.AuditSequence,UDInt,Read,Recipe,Monotonic lifecycle audit sequence
+CIP_Recipe_Last_Audit_Actor,DB_Global.CIPRecipeControl.LastAuditActorName,String,Read,Recipe,Actor for latest recipe audit entry
+CIP_Recipe_Last_Audit_Action,DB_Global.CIPRecipeControl.LastAuditAction,USInt,Read,Recipe,Latest audit action code
+CIP_Recipe_Last_Audit_Step,DB_Global.CIPRecipeControl.LastAuditStep,USInt,Read,Recipe,Step number for latest audit action
+CIP_Execution_Count,DB_Global.CIPRecipeControl.ExecutionCount,USInt,Read,Recipe,Number of retained CIP execution records
+CIP_Execution_Last_Run_ID,DB_Global.CIPRecipeControl.LastExecutionRunId,UDInt,Read,Recipe,Latest CIP execution run identifier
+CIP_Execution_Last_Result,DB_Global.CIPRecipeControl.LastExecutionResult,USInt,Read,Recipe,0 running 1 complete 2 aborted 3 faulted
+CIP_Execution_Last_Recipe,DB_Global.CIPRecipeControl.LastExecutionRecipe,String,Read,Recipe,Latest executed recipe name
+CIP_Execution_Last_Revision,DB_Global.CIPRecipeControl.LastExecutionRevision,UInt,Read,Recipe,Latest executed recipe revision
+CIP_Remote_Ready,DB_Global.CIPInterface.RemoteReady,Bool,Read,CIP,Customer CIP ready placeholder uncommissioned
+CIP_Remote_Busy,DB_Global.CIPInterface.RemoteBusy,Bool,Read,CIP,Customer CIP busy placeholder uncommissioned
+CIP_Remote_Fault,DB_Global.CIPInterface.RemoteFault,Bool,Read,CIP,Customer CIP fault placeholder uncommissioned
+CIP_Request_Accepted,DB_Global.CIPInterface.RequestAccepted,Bool,Read,CIP,Customer request accepted placeholder uncommissioned
+CIP_Medium_Available,DB_Global.CIPInterface.MediumAvailable,Bool,Read,CIP,Customer medium available placeholder uncommissioned
+CIP_Discharge_Complete,DB_Global.CIPInterface.DischargeComplete,Bool,Read,CIP,Customer discharge complete placeholder uncommissioned
+CIP_Req_Cold_Water,DB_Global.Out.CIPReqColdWater,Bool,Read,CIP,Logical cold-water request physical mapping uncommissioned
+CIP_Req_Hot_Water,DB_Global.Out.CIPReqHotWater,Bool,Read,CIP,Logical hot-water request physical mapping uncommissioned
+CIP_Req_Acid,DB_Global.Out.CIPReqAcid,Bool,Read,CIP,Logical acid chemical request physical mapping uncommissioned
+CIP_Req_Citra,DB_Global.Out.CIPReqCitra,Bool,Read,CIP,Logical citra neutralizer request physical mapping uncommissioned
+CIP_Req_Discharge,DB_Global.Out.CIPReqDischarge,Bool,Read,CIP,Logical discharge request physical mapping uncommissioned
+Production_Req_Product,DB_Global.Out.ProductionReqProduct,Bool,Read,Production,Logical product request physical mapping uncommissioned
+IOLink_Master5_Configured,DB_Global.Inp.IOLinkMaster5Configured,Bool,Read,Diagnostics,Legacy compatibility alias for REV18 AL104 configuration flag
+Network_IOLink5_OK,DB_Global.Inp.IOLinkMaster5OK,Bool,Read,Diagnostics,Legacy compatibility alias for REV18 AL104 communication status
+IOLink_AL104_Configured,DB_Global.Inp.IOLinkMaster5Configured,Bool,Read,Diagnostics,REV18 AL104 Customer CIP Interface configuration flag false until commissioned
+Network_AL104_OK,DB_Global.Inp.IOLinkMaster5OK,Bool,Read,Diagnostics,REV18 AL104 Customer CIP Interface communication status unbound until commissioned
+Par_CIP_Cold_Wash_Time,DB_Global.Par.CIPColdWashTime,Time,ReadWrite,Settings Timers,Authorized cold-water wash duration
+Par_CIP_Hot_Wash_Time,DB_Global.Par.CIPHotWashTime,Time,ReadWrite,Settings Timers,Authorized hot-water wash duration
+Par_CIP_Acid_Wash_Time,DB_Global.Par.CIPAcidWashTime,Time,ReadWrite,Settings Timers,Authorized acid chemical wash duration
+Par_CIP_Hot_Rinse_Time,DB_Global.Par.CIPHotRinseTime,Time,ReadWrite,Settings Timers,Authorized hot-water rinse duration
+Par_CIP_Cold_Rinse_Time,DB_Global.Par.CIPColdRinseTime,Time,ReadWrite,Settings Timers,Authorized cold-water rinse duration
+Par_CIP_Citra_Time,DB_Global.Par.CIPCitraTime,Time,ReadWrite,Settings Timers,Authorized citra neutralizer duration
+Par_CIP_Final_Rinse_Time,DB_Global.Par.CIPFinalRinseTime,Time,ReadWrite,Settings Timers,Authorized final cold-water rinse duration
+Par_CIP_Discharge_Time,DB_Global.Par.CIPDischargeTime,Time,ReadWrite,Settings Timers,Authorized discharge duration
+Par_CIP_Remote_Response_Timeout,DB_Global.Par.CIPRemoteResponseTimeout,Time,ReadWrite,Settings Timers,Customer interface response timeout
+Par_CIP_Require_Remote_Handshake,DB_Global.Par.CIPRequireRemoteHandshake,Bool,ReadWrite,Settings Timers,Enable only after customer handshake is commissioned
+Par_CIP_Require_Discharge_Complete,DB_Global.Par.CIPRequireDischargeComplete,Bool,ReadWrite,Settings Timers,Enable only after discharge feedback is commissioned
