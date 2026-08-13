@@ -162,6 +162,8 @@ namespace Schlenker.TiaV19
                 : null;
             bool compileSaveCurrentHmi = args.Length > 3 &&
                 args[3].Equals("--compile-save-current-hmi", StringComparison.OrdinalIgnoreCase);
+            bool compileCurrentHmiRuntimeDiagnostic = args.Length > 3 &&
+                args[3].Equals("--compile-current-hmi-runtime-diagnostic", StringComparison.OrdinalIgnoreCase);
             bool reloadExactOpenProject = args.Length > 3 &&
                 args[3].Equals("--reload-exact-open-project", StringComparison.OrdinalIgnoreCase);
 
@@ -260,9 +262,11 @@ namespace Schlenker.TiaV19
                     }
 
                     string repositoryRoot = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", ".."));
-                    if (compileSaveCurrentHmi)
+                    if (compileSaveCurrentHmi || compileCurrentHmiRuntimeDiagnostic)
                     {
-                        Console.WriteLine("STEP=COMPILE_SAVE_CURRENT_HMI");
+                        Console.WriteLine(compileCurrentHmiRuntimeDiagnostic
+                            ? "STEP=COMPILE_CURRENT_HMI_RUNTIME_DIAGNOSTIC"
+                            : "STEP=COMPILE_SAVE_CURRENT_HMI");
                     }
                     else if (cipRecipeEngine)
                     {
@@ -626,8 +630,10 @@ namespace Schlenker.TiaV19
                     }
                     }
 
-                    ICompilable compilable = hmiDevice.GetService<ICompilable>();
-                    if (compilable == null)
+                    ICompilable compilable = compileCurrentHmiRuntimeDiagnostic
+                        ? hmiDeviceItem.GetService<ICompilable>()
+                        : hmiDevice.GetService<ICompilable>();
+                    if (compilable == null && !compileCurrentHmiRuntimeDiagnostic)
                     {
                         compilable = hmiDeviceItem.GetService<ICompilable>();
                     }
@@ -637,6 +643,8 @@ namespace Schlenker.TiaV19
                             "TIA V19 did not expose an HMI compiler service on the device or runtime item.");
                     }
                     CompilerResult result = compilable.Compile();
+                    Console.WriteLine("COMPILER_SCOPE=" +
+                        (compileCurrentHmiRuntimeDiagnostic ? "HMI_RUNTIME_ITEM" : "HMI_DEVICE"));
                     PrintCompilerResult(result, "");
                     Console.WriteLine("COMPILE_ERRORS=" + result.ErrorCount);
                     Console.WriteLine("COMPILE_WARNINGS=" + result.WarningCount);
@@ -646,6 +654,13 @@ namespace Schlenker.TiaV19
                         Console.Error.WriteLine("STATUS=FAIL_NOT_SAVED");
                         Console.Error.WriteLine("Home-screen changes remain unsaved in TIA; close without saving or restore the archive.");
                         return 6;
+                    }
+
+                    if (compileCurrentHmiRuntimeDiagnostic)
+                    {
+                        Console.WriteLine("SAVE_INVOKED=NO");
+                        Console.WriteLine("STATUS=PASS_DIAGNOSTIC_NOT_SAVED");
+                        return 0;
                     }
 
                     project.Save();
@@ -3201,7 +3216,7 @@ namespace Schlenker.TiaV19
                 HmiText clock = GetOrCreate<HmiText>(screen, "REV21_Common_DateTime");
                 ConfigureText(clock, productionOnly ? 970 : 965, 53, (uint)(productionOnly ? 110 : 105), 44,
                     "00:00:00 AM\n00/00/0000", Navy, 10, HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
-                ConfigureNumericDynamization(clock, "Text", "", 
+                ConfigureNumericDynamization(clock, "Text", "",
                     "let d=new Date();" +
                     "let z=function(v){return v<10?\"0\"+v:String(v);};" +
                     "let h=d.getHours();let ap=h>=12?\"PM\":\"AM\";h=h%12;if(h===0){h=12;}" +
