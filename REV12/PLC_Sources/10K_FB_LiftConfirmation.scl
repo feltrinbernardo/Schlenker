@@ -1,0 +1,49 @@
+FUNCTION_BLOCK "FB_LiftConfirmation"
+VAR_INPUT
+    FillerSelected      : Bool;
+    CapperSelected      : Bool;
+    FillerConfirmPB     : Bool;
+    CapperConfirmPB     : Bool;
+    SafetyOK            : Bool;
+    MachineStopped      : Bool;
+    CriticalAlarm       : Bool;
+    Reset               : Bool;
+END_VAR
+VAR_IN_OUT
+    S                   : "UDT_LiftConfirmation";
+END_VAR
+
+BEGIN
+    // The PLC remains the movement authority. Confirmation is accepted only
+    // for the selected lift while the machine is stopped and all permissives
+    // are valid. Any exit, mode change, alarm, safety loss or reset cancels it.
+    IF Reset OR CriticalAlarm OR NOT SafetyOK OR NOT MachineStopped THEN
+        S.FillerConfirmed := FALSE;
+        S.CapperConfirmed := FALSE;
+        S.MovementAreaClear := FALSE;
+    ELSE
+        IF NOT FillerSelected THEN
+            S.FillerConfirmed := FALSE;
+        ELSIF FillerConfirmPB AND NOT CapperSelected THEN
+            S.FillerConfirmed := TRUE;
+            S.CapperConfirmed := FALSE;
+            S.MovementAreaClear := TRUE;
+        END_IF;
+
+        IF NOT CapperSelected THEN
+            S.CapperConfirmed := FALSE;
+        ELSIF CapperConfirmPB AND NOT FillerSelected THEN
+            S.CapperConfirmed := TRUE;
+            S.FillerConfirmed := FALSE;
+            S.MovementAreaClear := TRUE;
+        END_IF;
+
+        IF NOT FillerSelected AND NOT CapperSelected THEN
+            S.MovementAreaClear := FALSE;
+        END_IF;
+    END_IF;
+
+    S.ConfirmationValid :=
+        (FillerSelected AND S.FillerConfirmed)
+        OR (CapperSelected AND S.CapperConfirmed);
+END_FUNCTION_BLOCK

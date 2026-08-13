@@ -1,8 +1,8 @@
 {
-  "revision": "REV12",
+  "revision": "REV12.2",
   "cumulative_parent": "REV11-working",
   "merge_policy": "Retain every REV11 decision; apply REV12 corrections and keep unfinished REV11 requirements as explicit open points",
-  "status": "Corrected offline development source release - compile pending",
+  "status": "REV12 SET03 Settings/cable integration complete offline; PLC passed 0/0 and HMI verification passed with zero failures; PLCSIM and physical I/O validation pending",
   "target": {
     "ide": "TIA Portal V19",
     "plc": "S7-1512C-1 PN",
@@ -19,7 +19,14 @@
     "EV230 deterministic fast output outside the valve island"
   ],
   "native_tia_project": false,
-  "compile_validated": false,
+  "compile_validated": true,
+  "validation": {
+    "plc_software_rebuild": "2026-08-09 SET03 import and full software rebuild passed 0 errors/0 warnings",
+    "plc_hardware_compile": "passed with 0 errors; 2 security warnings deferred by operator",
+    "hmi_compile": "2026-08-07 Bernardo-aligned Home repair passed in TIA Portal V19 - 128 tags, 102 used tags, 0 errors, 0 warnings",
+    "hmi_layout_audit": "2026-08-09 SET03 passed - 144 navigation, 33 command, 218 field, 25185 boundary/overlap and 530 wording checks; 0 failures; Production overlap count 0",
+    "plcsim_fat": "pending"
+  },
   "requires": [
     "Final I/O mapping",
     "Hardware configuration",
@@ -32,7 +39,17 @@
     "Four-E-stop aggregate input validation",
     "Lights and air-filter I/O and relay assignments",
     "MAN/AUT selector contact polarity and authority relative to HMI mode commands",
-    "TIA compile",
-    "PLCSIM/FAT"
+    "Resolve IFM AL1403 port allocation without inventing ports",
+    "Confirm TLS100 interface (IO-Link or 4-20mA), scaling and address",
+    "Resolve cable-schedule DS100-111 quantity (schedule states 12; confirmed machine description states 11 doors)",
+    "Confirm cable lengths, routing, motor sizing and safety pinouts",
+    "Configure the PLC access-protection level",
+    "Configure password protection for the CPU display",
+    "PLCSIM/FAT",
+    "Map and prove bottle count, bottle-admission-complete, pump product-present and actual-speed feedback",
+    "Assign and prove the external washing valve physical SMC solenoid",
+    "Assign and prove physical SMC/electrical outputs for logical valves 217, 213 and 247",
+    "Map and scale the vacuum transmitter and validate -400 mbar comparison polarity",
+    "Confirm ownership and source of the CIP path requests for valves 217 and 213"
   ]
 }

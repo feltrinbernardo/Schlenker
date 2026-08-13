@@ -1,15 +1,78 @@
 ORGANIZATION_BLOCK "Startup"
+TITLE = "Complete Restart"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+VAR_INPUT
+    // Mandatory startup-event information supplied by the CPU operating system.
+    LostRetentive : Bool;
+    LostRTC       : Bool;
+END_VAR
 BEGIN
     "DB_Global".Machine.State := 0;
     "DB_Global".Machine.HomeValid := FALSE;
     "DB_Global".Machine.TrackingValid := FALSE;
     "DB_Global".RecoveryDone := FALSE;
     "DB_Global".AlarmWord1 := DWORD#0;
+    "DB_Global".AlarmWord2 := DWORD#0;
     "DB_Global".DoorAccess.State := 0;
     "DB_Global".DoorAccess.FaultCode := UINT#0;
     "DB_Global".Auxiliaries.MachineLightsRelayCmd := FALSE;
     "DB_Global".Auxiliaries.AirFilterRelayCmd := FALSE;
     "DB_Global".Auxiliaries.AirFilterFault := FALSE;
+    "DB_Global".AutoGateRequest.State := 0;
+    "DB_Global".RunOutProduct.State := 0;
+    "DB_Global".CIP.Step := 0;
+    "DB_Global".CIP.Medium := 0;
+    "DB_Global".CIPSequence.State := 0;
+    "DB_Global".CIPSequence.Phase := 0;
+    "DB_Global".CIPSequence.Complete := FALSE;
+    "DB_Global".CIPSequence.Fault := FALSE;
+    "DB_Global".CIPSequence.WaitingForNext := FALSE;
+    "DB_Global".CIPSequence.NextPermitted := FALSE;
+    "DB_Global".CIPSequence.TransitionActive := FALSE;
+    "DB_Global".CIPSequence.CompleteAcknowledged := FALSE;
+    "DB_Global".CIPSequence.NextRejected := FALSE;
+    "DB_Global".CIPInterface.ReqColdWater := FALSE;
+    "DB_Global".CIPInterface.ReqHotWater := FALSE;
+    "DB_Global".CIPInterface.ReqAcid := FALSE;
+    "DB_Global".CIPInterface.ReqCitra := FALSE;
+    "DB_Global".CIPInterface.ReqDischarge := FALSE;
+    "DB_Global".CIPInterface.ReqProduct := FALSE;
+    "DB_Global".InternalWash.Requested := FALSE;
+    "DB_Global".ProductionVacuum.AttemptNumber := 0;
+    "DB_Global".ProductionVacuum.LowVacuumAlarm := FALSE;
+    "DB_Global".Cmd.GateAutoRequestEnable := FALSE;
+    "DB_Global".Cmd.RunOutProductStart := FALSE;
+    "DB_Global".Cmd.ProductPumpEnable := TRUE;
+    "DB_Global".Cmd.ProductPumpManualEnable := FALSE;
+    "DB_Global".Cmd.ProductionOn := FALSE;
+    "DB_Global".Cmd.ProductionOff := FALSE;
+    "DB_Global".Cmd.CIPStop := FALSE;
+    "DB_Global".Cmd.CIPPause := FALSE;
+    "DB_Global".Cmd.CIPResume := FALSE;
+    "DB_Global".Cmd.CIPAbort := FALSE;
+    "DB_Global".Cmd.CIPNext := FALSE;
+    "DB_Global".Cmd.CIPAcknowledgeComplete := FALSE;
+    "DB_Global".Cmd.CIPRecipeSaveDraft := FALSE;
+    "DB_Global".Cmd.CIPRecipeSaveAs := FALSE;
+    "DB_Global".Cmd.CIPRecipeApprove := FALSE;
+    "DB_Global".Cmd.CIPRecipeLock := FALSE;
+    "DB_Global".Cmd.CIPRecipeSupersede := FALSE;
+    "DB_Global".CIPRecipeControl.EngineeringAuthorized := FALSE;
+    "DB_Global".CIPRecipeControl.ActiveSnapshotReady := FALSE;
+    "DB_Global".CIPRecipeControl.StartRejectedInvalid := FALSE;
+    "DB_Global".CIPRecipeControl.StartRejectedUnapproved := FALSE;
+    "DB_Global".CIPRecipeControl.StartRejectedUnlocked := FALSE;
+    "DB_Global".CIPRecipeControl.EditRejected := FALSE;
+    "DB_Global".Cmd.InternalWashOn := FALSE;
+    "DB_Global".Cmd.InternalWashOff := FALSE;
+    "DB_Global".Cmd.FillerLiftConfirm := FALSE;
+    "DB_Global".Cmd.CapperLiftConfirm := FALSE;
+    "DB_Global".LiftConfirmation.FillerConfirmed := FALSE;
+    "DB_Global".LiftConfirmation.CapperConfirmed := FALSE;
+    "DB_Global".LiftConfirmation.MovementAreaClear := FALSE;
+    "DB_Global".LiftConfirmation.ConfirmationValid := FALSE;
+    "DB_Global".ProductLevelNotReached := FALSE;
     "DB_Global".Out.MainRun := FALSE;
     "DB_Global".Out.MainSpeedPct := 0.0;
     "DB_Global".Out.ConveyorRun := FALSE;
@@ -37,4 +100,17 @@ BEGIN
     "DB_Global".Out.RequestRearBlueLampCmd := FALSE;
     "DB_Global".Out.MachineLightsRelayCmd := FALSE;
     "DB_Global".Out.AirFilterRelayCmd := FALSE;
+    "DB_Global".Out.ExternalBottleWashValveCmd := FALSE;
+    "DB_Global".Out.Valve210Cmd := FALSE;
+    "DB_Global".Out.Valve217Cmd := FALSE;
+    "DB_Global".Out.Valve213Cmd := FALSE;
+    "DB_Global".Out.Valve212Cmd := FALSE;
+    "DB_Global".Out.Valve247Cmd := FALSE;
+    "DB_Global".Out.InternalWashValveCmd := FALSE;
+    "DB_Global".Out.CIPReqColdWater := FALSE;
+    "DB_Global".Out.CIPReqHotWater := FALSE;
+    "DB_Global".Out.CIPReqAcid := FALSE;
+    "DB_Global".Out.CIPReqCitra := FALSE;
+    "DB_Global".Out.CIPReqDischarge := FALSE;
+    "DB_Global".Out.ProductionReqProduct := FALSE;
 END_ORGANIZATION_BLOCK

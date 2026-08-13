@@ -1,4 +1,12 @@
 ORGANIZATION_BLOCK "Main"
+TITLE = "Main Program Sweep (Cycle)"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+VAR_INPUT
+    // Mandatory cycle-event information supplied by the CPU operating system.
+    Initial_Call : Bool;
+    Remanence    : Bool;
+END_VAR
 BEGIN
     // The complete REV12 application is executed once per PLC cycle.
     "DB_Application"();

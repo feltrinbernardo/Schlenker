@@ -7,12 +7,23 @@ VAR
     CapperHeight        : "FB_HeightMode";
     JogPendant          : "FB_JogPendant";
     VacuumCIP           : "FB_VacuumCIP";
-    SMC                 : "FB_SMC_ValveManager";
+    ValveManager        : "FB_SMC_ValveManager";
     Alarms              : "FB_AlarmManager";
     DoorAccess          : "FB_DoorAccess";
     ManualGate          : "FB_ManualValveOverride";
     Auxiliaries         : "FB_Auxiliaries";
     NetworkDiagnostics  : "FB_NetworkDiagnostics";
+    ExternalBottleWash : "FB_ExternalBottleWash";
+    AutoBottleGate      : "FB_AutoBottleGateRequest";
+    RunOutProduct       : "FB_RunOutProduct";
+    CIPMediaPump        : "FB_CIPMediaPump";
+    ProductionVacuum    : "FB_ProductionVacuum";
+    ProductCircuit      : "FB_ProductCircuitManager";
+    LiftConfirmation    : "FB_LiftConfirmation";
+    CIPSequence         : "FB_CIPSequence";
+    CIPRecipeManager    : "FB_CIPRecipeManager";
+    InternalWash        : "FB_InternalWash";
+    EfficiencyPulse     : R_TRIG;
 
     FillerActive        : Bool;
     CapperActive        : Bool;
@@ -32,9 +43,38 @@ VAR
     ManualGateActive    : Bool;
     SpeedParameterFault : Bool;
     EffectiveCmd        : "UDT_Command";
+    ProductPumpEnableCmd: Bool;
+    ProductPumpEmptying : Bool;
+    CIPVacuumPumpCmd    : Bool;
+    CIPValve212Cmd      : Bool;
+    ProductionMediaReady : Bool;
+    BottleShortage1Alarm : Bool;
+    BottleShortage2Alarm : Bool;
+    Accumulation1Alarm   : Bool;
+    Accumulation2Alarm   : Bool;
 END_VAR
 
 BEGIN
+    // Validate all HMI-adjustable process timings in the PLC. These are
+    // process limits only; safety-certified timing remains outside this list.
+    "DB_Global".Par.CIPTankFullDelay := LIMIT(MN := T#1s, IN := "DB_Global".Par.CIPTankFullDelay, MX := T#10s);
+    "DB_Global".Par.CIPPumpPreOpenDelay := LIMIT(MN := T#0s, IN := "DB_Global".Par.CIPPumpPreOpenDelay, MX := T#5s);
+    "DB_Global".Par.CIPValve212OpenTime := LIMIT(MN := T#1s, IN := "DB_Global".Par.CIPValve212OpenTime, MX := T#20s);
+    "DB_Global".Par.CIPVacuumPostRunTime := LIMIT(MN := T#1s, IN := "DB_Global".Par.CIPVacuumPostRunTime, MX := T#30s);
+    "DB_Global".Par.CIPMediaLossDelay := LIMIT(MN := T#1s, IN := "DB_Global".Par.CIPMediaLossDelay, MX := T#10s);
+    "DB_Global".Par.VacuumStartupDelay := LIMIT(MN := T#1s, IN := "DB_Global".Par.VacuumStartupDelay, MX := T#15s);
+    "DB_Global".Par.RunOutLastBottleDelay := LIMIT(MN := T#5s, IN := "DB_Global".Par.RunOutLastBottleDelay, MX := T#60s);
+    "DB_Global".Par.ExternalWashOffDelay := LIMIT(MN := T#0s, IN := "DB_Global".Par.ExternalWashOffDelay, MX := T#10s);
+    "DB_Global".Par.CIPColdWashTime := LIMIT(MN := T#1s, IN := "DB_Global".Par.CIPColdWashTime, MX := T#4h);
+    "DB_Global".Par.CIPHotWashTime := LIMIT(MN := T#1s, IN := "DB_Global".Par.CIPHotWashTime, MX := T#4h);
+    "DB_Global".Par.CIPAcidWashTime := LIMIT(MN := T#1s, IN := "DB_Global".Par.CIPAcidWashTime, MX := T#4h);
+    "DB_Global".Par.CIPHotRinseTime := LIMIT(MN := T#1s, IN := "DB_Global".Par.CIPHotRinseTime, MX := T#4h);
+    "DB_Global".Par.CIPColdRinseTime := LIMIT(MN := T#1s, IN := "DB_Global".Par.CIPColdRinseTime, MX := T#4h);
+    "DB_Global".Par.CIPCitraTime := LIMIT(MN := T#1s, IN := "DB_Global".Par.CIPCitraTime, MX := T#4h);
+    "DB_Global".Par.CIPFinalRinseTime := LIMIT(MN := T#1s, IN := "DB_Global".Par.CIPFinalRinseTime, MX := T#4h);
+    "DB_Global".Par.CIPDischargeTime := LIMIT(MN := T#1s, IN := "DB_Global".Par.CIPDischargeTime, MX := T#1h);
+    "DB_Global".Par.CIPRemoteResponseTimeout := LIMIT(MN := T#1s, IN := "DB_Global".Par.CIPRemoteResponseTimeout, MX := T#5m);
+
     // REV11 network diagnostics are retained and executed before state control.
     NetworkDiagnostics(
         Pilz_DeviceOK := "DB_Global".Inp.PilzDeviceOK,
@@ -42,6 +82,8 @@ BEGIN
         IOLinkMaster2_OK := "DB_Global".Inp.IOLinkMaster2OK,
         IOLinkMaster3_OK := "DB_Global".Inp.IOLinkMaster3OK,
         IOLinkMaster4_OK := "DB_Global".Inp.IOLinkMaster4OK,
+        IOLinkMaster5_Configured := "DB_Global".Inp.IOLinkMaster5Configured,
+        IOLinkMaster5_OK := "DB_Global".Inp.IOLinkMaster5OK,
         Drive_G120C_OK := "DB_Global".Inp.DriveG120CNetworkOK,
         HMI_LinkOK := "DB_Global".Inp.HMILinkOK,
         AnybusGateway_OK := "DB_Global".Inp.AnybusGatewayOK,
@@ -54,12 +96,18 @@ BEGIN
     DrivesReady :=
         "DB_Global".Inp.MainDriveReady AND
         "DB_Global".Inp.ConveyorReady AND
-        "DB_Global".Inp.ProductPumpReady AND
+        ("DB_Global".Inp.ProductPumpReady OR NOT "DB_Global".Cmd.ProductPumpEnable) AND
         "DB_Global".Inp.CapDriveReady;
 
     MachineStopped := NOT "DB_Global".Out.MainRun;
     SpeedParameterFault := ("DB_Global".Par.MaxSpeedBPH <= 0.0)
                            OR ("DB_Global".Par.ProductionSpeedBPH < 0.0);
+    ProductionMediaReady := "DB_Global".Inp.ProductPresentAtPump
+                            OR ("DB_Global".Inp.TankLevelPct >= "DB_Global".Par.ProductPumpStartMinLevelPct);
+    "DB_Global".ProductLevelNotReached := NOT ProductionMediaReady;
+    "DB_Global".CIPStartBlocked := "DB_Global".Cmd.CIPStart
+                                   AND ("DB_Global".Machine.ProductionActive
+                                        OR "DB_Global".Machine.RunOutActive);
 
     DoorAccess(
         RequestOpenDoorPanelPB := "DB_Global".Inp.RequestOpenDoorPanelPB,
@@ -84,12 +132,189 @@ BEGIN
         D := "DB_Global".DoorAccess
     );
 
+    // REV23: non-safety Pilz diagnostic view. These assignments do not alter
+    // machine permissives or the validated Pilz safety authority. The current
+    // TIA project contains no Pilz device/GSDML/process-image map, therefore
+    // PhysicalMapConfigured remains FALSE and no absolute address is invented.
+    "DB_Global".PilzDiag.CommunicationOK := "DB_Global".Inp.PilzDeviceOK;
+    "DB_Global".PilzDiag.PhysicalMapConfigured := FALSE;
+    "DB_Global".PilzDiag.DataValid := "DB_Global".PilzDiag.CommunicationOK
+                                      AND "DB_Global".PilzDiag.PhysicalMapConfigured;
+    IF "DB_Global".PilzDiag.DataValid THEN
+        "DB_Global".PilzDiag.SafetyReady := "DB_Global".Inp.SafetyOK;
+        "DB_Global".PilzDiag.GeneralFault := "DB_Global".Inp.SafetySystemFault;
+        "DB_Global".PilzDiag.ResetRequired := "DB_Global".DoorAccess.AlarmResetRequired;
+        "DB_Global".PilzDiag.EStopChainHealthy := "DB_Global".Inp.EStopChain24VHealthy;
+        "DB_Global".PilzDiag.AllGuardsClosed := "DB_Global".Inp.AllDoorsClosed;
+        "DB_Global".PilzDiag.AllGuardsUnlocked := "DB_Global".Inp.AllDoorsUnlocked;
+        "DB_Global".PilzDiag.SafetyCircuitClosed := "DB_Global".Inp.SafetyCircuitClosed;
+        "DB_Global".PilzDiag.StandstillConfirmed := "DB_Global".Inp.ZeroSpeedConfirmed;
+        "DB_Global".PilzDiag.ThreePhaseOffConfirmed := "DB_Global".Inp.ThreePhaseOffConfirmed;
+    ELSE
+        // Values are deliberately cleared while DataValid is FALSE. HMI logic
+        // must display COMMUNICATION FAULT / DATA INVALID, never a false normal.
+        "DB_Global".PilzDiag.SafetyReady := FALSE;
+        "DB_Global".PilzDiag.GeneralFault := FALSE;
+        "DB_Global".PilzDiag.ResetRequired := FALSE;
+        "DB_Global".PilzDiag.EStopChainHealthy := FALSE;
+        "DB_Global".PilzDiag.AllGuardsClosed := FALSE;
+        "DB_Global".PilzDiag.AllGuardsUnlocked := FALSE;
+        "DB_Global".PilzDiag.SafetyCircuitClosed := FALSE;
+        "DB_Global".PilzDiag.StandstillConfirmed := FALSE;
+        "DB_Global".PilzDiag.ThreePhaseOffConfirmed := FALSE;
+    END_IF;
+
     EffectiveCmd := "DB_Global".Cmd;
     EffectiveCmd.AutoStart := "DB_Global".Cmd.AutoStart OR "DB_Global".Inp.StartPanelPB;
+    EffectiveCmd.ProductionOn := "DB_Global".Cmd.ProductionOn
+                                 OR "DB_Global".Cmd.AutoStart
+                                 OR "DB_Global".Inp.StartPanelPB;
     EffectiveCmd.Reset := "DB_Global".Cmd.Reset OR "DB_Global".Inp.ResetAlarmPanelPB;
     EffectiveCmd.Stop := "DB_Global".Cmd.Stop
                          OR "DB_Global".Inp.StopPanelPB
                          OR "DB_Global".DoorAccess.ControlledStopRequest;
+
+    AutoBottleGate(
+        RequestEnable := "DB_Global".Cmd.GateAutoRequestEnable,
+        ProductionMode := "DB_Global".Machine.AutomaticActive,
+        MachineRunning := "DB_Global".Out.MainRun,
+        SafetyOK := "DB_Global".Inp.SafetyOK,
+        CIPActive := "DB_Global".Machine.CIPActive,
+        CriticalAlarm := "DB_Global".AlarmCritical,
+        GateOpenFB := "DB_Global".Inp.GateOpenFB,
+        GateClosedFB := "DB_Global".Inp.GateClosedFB,
+        AdmissionComplete := "DB_Global".Inp.BottleAdmissionComplete,
+        ActualSpeedPct := "DB_Global".Inp.MainSpeedActualPct,
+        ActualSpeedValid := "DB_Global".Inp.MainSpeedActualValid,
+        MinSpeedPct := "DB_Global".Par.GateRequestMinSpeedPct,
+        SpeedTolerancePct := "DB_Global".Par.GateRequestSpeedTolerancePct,
+        StepTimeout := "DB_Global".Par.GateRequestStepTimeout,
+        Reset := EffectiveCmd.Reset,
+        S := "DB_Global".AutoGateRequest
+    );
+
+    RunOutProduct(
+        RunOutMode := "DB_Global".Machine.RunOutActive,
+        MachineRunning := "DB_Global".Out.MainRun,
+        SafetyOK := "DB_Global".Inp.SafetyOK,
+        CriticalAlarm := "DB_Global".AlarmCritical,
+        ProductPresentAtPump := "DB_Global".Inp.ProductPresentAtPump,
+        TankLevelPct := "DB_Global".Inp.TankLevelPct,
+        BottleCount := "DB_Global".Inp.BottleCountInMachine,
+        GateClosedFB := "DB_Global".Inp.GateClosedFB,
+        TankClosePct := "DB_Global".Par.RunOutTankClosePct,
+        LastBottleDelay := "DB_Global".Par.RunOutLastBottleDelay,
+        Reset := EffectiveCmd.Reset,
+        S := "DB_Global".RunOutProduct
+    );
+
+    EffectiveCmd.Stop := EffectiveCmd.Stop
+                         OR "DB_Global".AutoGateRequest.StopRequest;
+
+    CIPMediaPump(
+        CIPActive := "DB_Global".Machine.CIPActive,
+        ProductPresent := "DB_Global".Inp.ProductPresentAtPump,
+        LossDelay := "DB_Global".Par.CIPMediaLossDelay,
+        Reset := EffectiveCmd.Reset,
+        S := "DB_Global".CIP
+    );
+
+    // REV security: only a PLC-validated, approved and locked recipe may be
+    // snapshotted for execution. The active snapshot is isolated from all
+    // subsequent draft or approved-recipe edits.
+    CIPRecipeManager(
+        StartCmd := "DB_Global".Cmd.CIPStart,
+        NextCmd := "DB_Global".Cmd.CIPNext,
+        CIPActive := "DB_Global".Machine.CIPActive,
+        CIPComplete := "DB_Global".CIPSequence.Complete,
+        CIPFault := "DB_Global".CIPSequence.Fault,
+        CIPAbortActive := "DB_Global".CIPSequence.AbortActive,
+        CIPFaultCode := "DB_Global".CIPSequence.FaultCode,
+        CIPPhase := "DB_Global".CIPSequence.Phase,
+        CIPPhaseElapsed := "DB_Global".CIPSequence.PhaseElapsed,
+        SafetyOK := "DB_Global".Inp.SafetyOK,
+        CriticalAlarm := "DB_Global".AlarmCritical,
+        ProductionActive := "DB_Global".Machine.ProductionActive,
+        RunOutActive := "DB_Global".Machine.RunOutActive,
+        InterfaceReady := (NOT "DB_Global".Par.CIPRequireRemoteHandshake)
+                          OR ("DB_Global".CIPInterface.MasterConfigured
+                              AND "DB_Global".CIPInterface.MasterCommOK
+                              AND "DB_Global".Inp.CIPRemoteReady),
+        Cmd := "DB_Global".Cmd,
+        Draft := "DB_Global".CIPRecipeDraft,
+        Approved := "DB_Global".CIPRecipe,
+        Previous := "DB_Global".CIPRecipePrevious,
+        Active := "DB_Global".CIPRecipeActive,
+        Control := "DB_Global".CIPRecipeControl,
+        Audit := "DB_Global".CIPRecipeAudit,
+        Execution := "DB_Global".CIPExecutionHistory
+    );
+
+    EffectiveCmd.CIPStart := EffectiveCmd.CIPStart
+                             AND "DB_Global".CIPRecipeControl.StartPermitted;
+    "DB_Global".CIPStartBlocked := "DB_Global".Cmd.CIPStart
+                                    AND NOT "DB_Global".CIPRecipeControl.StartPermitted;
+
+    CIPSequence(
+        CIPActive := "DB_Global".Machine.CIPActive,
+        SafetyOK := "DB_Global".Inp.SafetyOK,
+        CriticalAlarm := "DB_Global".AlarmCritical,
+        PauseCmd := "DB_Global".Cmd.CIPPause,
+        ResumeCmd := "DB_Global".Cmd.CIPResume,
+        AbortCmd := "DB_Global".Cmd.CIPAbort,
+        NextCmd := "DB_Global".Cmd.CIPNext,
+        AcknowledgeCompleteCmd := "DB_Global".Cmd.CIPAcknowledgeComplete,
+        Reset := EffectiveCmd.Reset,
+        Blink1Hz := "DB_Global".Inp.Blink1Hz,
+        RemoteReady := "DB_Global".Inp.CIPRemoteReady,
+        RemoteBusy := "DB_Global".Inp.CIPRemoteBusy,
+        RemoteFault := "DB_Global".Inp.CIPRemoteFault,
+        RequestAccepted := "DB_Global".Inp.CIPRemoteRequestAccepted,
+        MediumAvailable := "DB_Global".Inp.CIPMediumAvailable,
+        DischargeComplete := "DB_Global".Inp.CIPDischargeComplete,
+        RequireRemoteHandshake := "DB_Global".Par.CIPRequireRemoteHandshake,
+        RequireDischargeComplete := "DB_Global".Par.CIPRequireDischargeComplete,
+        ColdWashTime := "DB_Global".Par.CIPColdWashTime,
+        HotWashTime := "DB_Global".Par.CIPHotWashTime,
+        AcidWashTime := "DB_Global".Par.CIPAcidWashTime,
+        HotRinseTime := "DB_Global".Par.CIPHotRinseTime,
+        ColdRinseTime := "DB_Global".Par.CIPColdRinseTime,
+        CitraTime := "DB_Global".Par.CIPCitraTime,
+        FinalRinseTime := "DB_Global".Par.CIPFinalRinseTime,
+        DischargeTime := "DB_Global".Par.CIPDischargeTime,
+        RemoteResponseTimeout := "DB_Global".Par.CIPRemoteResponseTimeout,
+        S := "DB_Global".CIPSequence,
+        I := "DB_Global".CIPInterface,
+        R := "DB_Global".CIPRecipeActive
+    );
+
+    // Production product request is separate from every CIP medium request.
+    "DB_Global".CIPInterface.ReqProduct :=
+        "DB_Global".Machine.ProductionActive
+        AND NOT "DB_Global".Machine.CIPActive
+        AND "DB_Global".Inp.SafetyOK
+        AND NOT "DB_Global".AlarmCritical;
+    // REV18 AL104 is the fifth logical master and is reserved for Customer CIP.
+    // No physical address or port mapping is implied by these symbolic signals.
+    "DB_Global".CIPInterface.MasterConfigured := "DB_Global".Inp.IOLinkMaster5Configured;
+    "DB_Global".CIPInterface.MasterCommOK := "DB_Global".Inp.IOLinkMaster5OK;
+
+    "DB_Global".Out.CIPReqColdWater := "DB_Global".CIPInterface.ReqColdWater;
+    "DB_Global".Out.CIPReqHotWater := "DB_Global".CIPInterface.ReqHotWater;
+    "DB_Global".Out.CIPReqAcid := "DB_Global".CIPInterface.ReqAcid;
+    "DB_Global".Out.CIPReqCitra := "DB_Global".CIPInterface.ReqCitra;
+    "DB_Global".Out.CIPReqDischarge := "DB_Global".CIPInterface.ReqDischarge;
+    "DB_Global".Out.ProductionReqProduct := "DB_Global".CIPInterface.ReqProduct;
+
+    ProductionVacuum(
+        ProductionActive := "DB_Global".Machine.ProductionActive,
+        VacuumActualMbar := "DB_Global".Inp.VacuumActualMbar,
+        VacuumSignalValid := "DB_Global".Inp.VacuumSignalValid,
+        VacuumMinMbar := "DB_Global".Par.VacuumMinMbar,
+        StartupDelay := "DB_Global".Par.VacuumStartupDelay,
+        Reset := EffectiveCmd.Reset,
+        S := "DB_Global".ProductionVacuum
+    );
 
     // Alarm evaluation is performed before state control.
     Alarms(
@@ -114,9 +339,38 @@ BEGIN
         SpeedParameterFault := SpeedParameterFault,
         PumpLowWarning := PumpLowWarning,
         CapperOutfeedCrash := "DB_Global".Inp.CapperOutfeedCrash,
+        ProductLevelNotReached := "DB_Global".ProductLevelNotReached,
+        AutoGateSequenceFault := "DB_Global".AutoGateRequest.Fault,
+        CIPStartBlocked := "DB_Global".CIPStartBlocked,
+        CIPMediaLossAlarm := "DB_Global".CIP.MediaLossAlarm,
+        LowVacuumAlarm := "DB_Global".ProductionVacuum.LowVacuumAlarm,
+        // REV21 treats an operator-requested CIP abort as controlled status,
+        // not as the aggregate unexplained CIP trip.
+        CIPSequenceFault := "DB_Global".CIPSequence.Fault
+                            AND ("DB_Global".CIPSequence.FaultCode <> UINT#4),
+        CapHopperLow := "DB_Global".Inp.CapHopperLow,
+        CapChannelDemand := "DB_Global".Inp.CapChannelDemand,
+        CapsMissing := "DB_Global".Inp.CapsMissing,
+        CapperNotReady := "DB_Global".Machine.ProductionActive AND NOT "DB_Global".Inp.CapDriveReady,
+        BottleShortage1Active := BottleShortage1Alarm,
+        BottleShortage2Active := BottleShortage2Alarm,
+        Accumulation1Active := Accumulation1Alarm,
+        Accumulation2Active := Accumulation2Alarm,
+        DriveNotReady := "DB_Global".Machine.ProductionActive
+                         AND (NOT "DB_Global".Inp.MainDriveReady OR NOT "DB_Global".Inp.ConveyorReady),
+        SafetySystemFault := "DB_Global".Inp.SafetySystemFault,
+        CIPRemoteTimeout := "DB_Global".CIPSequence.Fault AND ("DB_Global".CIPSequence.FaultCode = UINT#5),
+        CIPRemoteFault := "DB_Global".CIPSequence.Fault AND ("DB_Global".CIPSequence.FaultCode = UINT#3),
+        CIPInvalidState := "DB_Global".CIPSequence.Fault AND ("DB_Global".CIPSequence.FaultCode = UINT#6),
+        CIPOperatorAbort := "DB_Global".CIPSequence.Fault AND ("DB_Global".CIPSequence.FaultCode = UINT#4),
+        CIPComplete := "DB_Global".CIPSequence.Complete,
+        AL104CommFault := "DB_Global".Inp.IOLinkMaster5Configured AND NOT "DB_Global".Inp.IOLinkMaster5OK,
+        CIPRecipeInvalid := "DB_Global".Machine.CIPActive AND NOT "DB_Global".CIPSequence.RecipeValid,
+        CIPNextRejected := "DB_Global".CIPSequence.NextRejected,
         CriticalAlarm => "DB_Global".AlarmCritical,
         WarningAlarm => "DB_Global".AlarmWarning,
-        AlarmWord1 => "DB_Global".AlarmWord1
+        AlarmWord1 => "DB_Global".AlarmWord1,
+        AlarmWord2 => "DB_Global".AlarmWord2
     );
 
     StateManager(
@@ -132,6 +386,8 @@ BEGIN
         DoorAccessFault := "DB_Global".DoorAccess.Fault,
         FillerHeightActive := FillerActive,
         CapperHeightActive := CapperActive,
+        ProductionStartPermitted := NOT "DB_Global".ProductLevelNotReached,
+        RunOutComplete := "DB_Global".RunOutProduct.Completed,
         M := "DB_Global".Machine
     );
 
@@ -156,11 +412,24 @@ BEGIN
     "DB_Global".Out.MachineLightsRelayCmd := "DB_Global".Auxiliaries.MachineLightsRelayCmd;
     "DB_Global".Out.AirFilterRelayCmd := "DB_Global".Auxiliaries.AirFilterRelayCmd;
 
+    LiftConfirmation(
+        FillerSelected := "DB_Global".Machine.FillerHeightActive,
+        CapperSelected := "DB_Global".Machine.CapperHeightActive,
+        FillerConfirmPB := "DB_Global".Cmd.FillerLiftConfirm,
+        CapperConfirmPB := "DB_Global".Cmd.CapperLiftConfirm,
+        SafetyOK := "DB_Global".Inp.SafetyOK,
+        MachineStopped := MachineStopped,
+        CriticalAlarm := "DB_Global".AlarmCritical,
+        Reset := EffectiveCmd.Reset,
+        S := "DB_Global".LiftConfirmation
+    );
+
     FillerHeight(
         Enable := "DB_Global".Machine.FillerHeightActive,
         OtherHeightActive := CapperActive,
         SafetyOK := "DB_Global".Inp.SafetyOK,
         MachineStopped := MachineStopped,
+        ConfirmationOK := "DB_Global".LiftConfirmation.FillerConfirmed,
         UpSelector := "DB_Global".Cmd.PendantUp,
         DownSelector := "DB_Global".Cmd.PendantDown,
         LowLimit := "DB_Global".Inp.FillerLowLimit,
@@ -176,6 +445,7 @@ BEGIN
         OtherHeightActive := FillerActive,
         SafetyOK := "DB_Global".Inp.SafetyOK,
         MachineStopped := MachineStopped,
+        ConfirmationOK := "DB_Global".LiftConfirmation.CapperConfirmed,
         UpSelector := "DB_Global".Cmd.PendantUp,
         DownSelector := "DB_Global".Cmd.PendantDown,
         LowLimit := "DB_Global".Inp.CapperLowLimit,
@@ -201,7 +471,7 @@ BEGIN
     );
 
     AccumGate(
-        EnableAuto := "DB_Global".Machine.AutomaticActive,
+        EnableAuto := "DB_Global".Machine.ProductionActive,
         SafetyOK := "DB_Global".Inp.SafetyOK,
         Shortage1 := "DB_Global".Inp.BottleShortage1,
         Shortage2 := "DB_Global".Inp.BottleShortage2,
@@ -220,7 +490,11 @@ BEGIN
         GateCloseCmd => GateCloseCmd,
         SpeedLimitPct => SpeedLimitPct,
         StandbyRequest => StandbyRequest,
-        GateFault => GateFault
+        GateFault => GateFault,
+        Shortage1Active => BottleShortage1Alarm,
+        Shortage2Active => BottleShortage2Alarm,
+        Accumulation1Active => Accumulation1Alarm,
+        Accumulation2Active => Accumulation2Alarm
     );
 
     ManualGate(
@@ -237,9 +511,39 @@ BEGIN
         TestModeActive => ManualGateActive
     );
 
+    // Command priority: CIP/safety/alarm closure, run-out, automatic gate
+    // request, then the existing manual/accumulation command.
+    IF "DB_Global".Machine.CIPActive
+       OR NOT "DB_Global".Inp.SafetyOK
+       OR "DB_Global".AlarmCritical THEN
+        GateFinalOpenCmd := FALSE;
+        GateFinalCloseCmd := TRUE;
+    ELSIF "DB_Global".RunOutProduct.OverrideActive THEN
+        GateFinalOpenCmd := "DB_Global".RunOutProduct.GateOpenCmd;
+        GateFinalCloseCmd := "DB_Global".RunOutProduct.GateCloseCmd;
+    ELSIF "DB_Global".AutoGateRequest.OverrideActive THEN
+        GateFinalOpenCmd := "DB_Global".AutoGateRequest.GateOpenCmd;
+        GateFinalCloseCmd := "DB_Global".AutoGateRequest.GateCloseCmd;
+    END_IF;
+
+    ProductPumpEnableCmd :=
+        ("DB_Global".Machine.ProductionActive
+         AND "DB_Global".Cmd.ProductPumpEnable
+         AND "DB_Global".Inp.ProductPresentAtPump)
+        OR ("DB_Global".Machine.RunOutActive
+            AND "DB_Global".Cmd.ProductPumpEnable
+            AND "DB_Global".RunOutProduct.PumpPermit)
+        OR ("DB_Global".Machine.CIPActive
+            AND "DB_Global".CIP.ProductPumpPermit)
+        OR ("DB_Global".Machine.ManualActive
+            AND "DB_Global".Cmd.ProductPumpManualEnable
+            AND "DB_Global".Inp.ProductPresentAtPump);
+    ProductPumpEmptying := "DB_Global".Machine.EmptyingActive
+                           OR "DB_Global".RunOutProduct.IgnoreLowLevelStop;
+
     ProductPump(
-        Enable := "DB_Global".Machine.AutomaticActive OR "DB_Global".Machine.EmptyingActive,
-        EmptyingMode := "DB_Global".Machine.EmptyingActive,
+        Enable := ProductPumpEnableCmd,
+        EmptyingMode := ProductPumpEmptying,
         DriveReady := "DB_Global".Inp.ProductPumpReady,
         DriveFault := "DB_Global".Inp.ProductPumpFault,
         LevelPct := "DB_Global".Inp.TankLevelPct,
@@ -255,26 +559,56 @@ BEGIN
     );
 
     VacuumCIP(
-        ProductionMode := "DB_Global".Machine.AutomaticActive,
         CIPMode := "DB_Global".Machine.CIPActive,
         TankFull100 := "DB_Global".Inp.TankFull100
                        OR ("DB_Global".Inp.TankLevelPct >= 99.5),
         ResetSequence := "DB_Global".Cmd.Reset,
-        CIPVacuumTime := "DB_Global".Par.CIPVacuumTime,
-        VacuumPumpCmd => "DB_Global".Out.VacuumPump,
-        EV210 => "DB_Global".Out.EV210,
-        EV211 => "DB_Global".Out.EV211,
-        EV212 => "DB_Global".Out.EV212
+        TankFullDelay := "DB_Global".Par.CIPTankFullDelay,
+        PumpPreOpenDelay := "DB_Global".Par.CIPPumpPreOpenDelay,
+        ValveOpenTime := "DB_Global".Par.CIPValve212OpenTime,
+        PumpPostRunTime := "DB_Global".Par.CIPVacuumPostRunTime,
+        S := "DB_Global".CIP,
+        VacuumPumpCmd => CIPVacuumPumpCmd,
+        Valve212Cmd => CIPValve212Cmd
     );
 
+    "DB_Global".CIP.Medium := "DB_Global".CIPSequence.RequestedMedium;
+    "DB_Global".Out.VacuumPump := CIPVacuumPumpCmd
+                                  OR "DB_Global".Machine.ProductionActive
+                                  OR "DB_Global".Machine.RunOutActive;
+
+    ProductCircuit(
+        SafetyOK := "DB_Global".Inp.SafetyOK,
+        CriticalAlarm := "DB_Global".AlarmCritical,
+        ProductionActive := "DB_Global".Machine.ProductionActive,
+        RunOutActive := "DB_Global".Machine.RunOutActive,
+        CIPActive := "DB_Global".Machine.CIPActive,
+        CIPValve217PathRequest := "DB_Global".Inp.CIPValve217PathRequest,
+        CIPValve213PathRequest := "DB_Global".Inp.CIPValve213PathRequest,
+        CIPValve212Cmd := CIPValve212Cmd,
+        Valve210Cmd => "DB_Global".Out.Valve210Cmd,
+        Valve217Cmd => "DB_Global".Out.Valve217Cmd,
+        Valve213Cmd => "DB_Global".Out.Valve213Cmd,
+        Valve212Cmd => "DB_Global".Out.Valve212Cmd,
+        Valve247Cmd => "DB_Global".Out.Valve247Cmd
+    );
+    "DB_Global".Out.EV210 := "DB_Global".Out.Valve210Cmd;
+    "DB_Global".Out.EV212 := "DB_Global".Out.Valve212Cmd;
+    // EV211 is retained for compatibility; physical mapping for valves 217,
+    // 213 and 247 requires the confirmed electrical/I/O schedule.
+    "DB_Global".Out.EV211 := "DB_Global".Machine.ProductionActive
+                             OR "DB_Global".Machine.RunOutActive;
+
     // Automatic main-drive command. JOG has priority only in Manual.
-    IF "DB_Global".Machine.AutomaticActive THEN
+    IF ("DB_Global".Machine.ProductionActive OR "DB_Global".Machine.RunOutActive)
+       AND NOT "DB_Global".RunOutProduct.StopRequest THEN
         IF NOT SpeedParameterFault THEN
             "DB_Global".Out.MainRun := TRUE;
             "DB_Global".Out.MainSpeedPct :=
                 LIMIT(MN := 0.0,
                       IN := ("DB_Global".Par.ProductionSpeedBPH / "DB_Global".Par.MaxSpeedBPH) * 100.0,
-                      MX := SpeedLimitPct);
+                      MX := MIN(IN1 := SpeedLimitPct,
+                                IN2 := "DB_Global".AutoGateRequest.SpeedLimitPct));
         ELSE
             "DB_Global".Out.MainRun := FALSE;
             "DB_Global".Out.MainSpeedPct := 0.0;
@@ -289,7 +623,33 @@ BEGIN
     "DB_Global".Out.GateOpen := GateFinalOpenCmd;
     "DB_Global".Out.GateClose := GateFinalCloseCmd;
 
-    SMC(
+    ExternalBottleWash(
+        ProductionMode := "DB_Global".Machine.ProductionActive,
+        MachineRunning := "DB_Global".Out.MainRun,
+        ManualMode := "DB_Global".Machine.ManualActive,
+        JogActive := "DB_Global".Cmd.JogPB AND "DB_Global".Out.MainRun,
+        SafetyOK := "DB_Global".Inp.SafetyOK,
+        CIPActive := "DB_Global".Machine.CIPActive,
+        BottleCount := "DB_Global".Inp.BottleCountInMachine,
+        OffDelay := "DB_Global".Par.ExternalWashOffDelay,
+        ValveCmd => "DB_Global".Out.ExternalBottleWashValveCmd
+    );
+
+    InternalWash(
+        OnCmd := "DB_Global".Cmd.InternalWashOn,
+        OffCmd := "DB_Global".Cmd.InternalWashOff,
+        ProductionMode := "DB_Global".Machine.ProductionActive,
+        ManualMode := "DB_Global".Machine.ManualActive,
+        CIPActive := "DB_Global".Machine.CIPActive,
+        SafetyOK := "DB_Global".Inp.SafetyOK,
+        AirPressureOK := "DB_Global".Inp.AirPressureOK,
+        CriticalAlarm := "DB_Global".AlarmCritical,
+        SMCCommOK := "DB_Global".Inp.SMCCommOK,
+        S := "DB_Global".InternalWash,
+        ValveCmd => "DB_Global".Out.InternalWashValveCmd
+    );
+
+    ValveManager(
         SafetyOK := "DB_Global".Inp.SafetyOK,
         CommOK := "DB_Global".Inp.SMCCommOK,
         OutputsPermitted := NOT "DB_Global".Machine.AlarmStopActive
@@ -303,8 +663,24 @@ BEGIN
         EV212Cmd := "DB_Global".Out.EV212,
         CapDistributorAir := "DB_Global".Inp.CapChannelDemand,
         CapChannelAir := "DB_Global".Inp.CapChannelDemand,
-        SpareCmd := FALSE,
+        SpareCmd := "DB_Global".Out.ExternalBottleWashValveCmd,
         ValveBits => "DB_Global".Out.ValveBits,
         ConflictAlarm => SMCConflict
     );
+
+    // One-second machine efficiency counters. The state-machine and final
+    // interlocked MainRun command remain the single authority for classification.
+    EfficiencyPulse(CLK := "DB_Global".Inp.Blink1Hz);
+    IF EfficiencyPulse.Q THEN
+        "DB_Global".Efficiency.TotalSeconds := "DB_Global".Efficiency.TotalSeconds + 1;
+        IF "DB_Global".AlarmCritical THEN
+            "DB_Global".Efficiency.BreakdownSeconds := "DB_Global".Efficiency.BreakdownSeconds + 1;
+        ELSIF "DB_Global".Out.MainRun THEN
+            "DB_Global".Efficiency.RunSeconds := "DB_Global".Efficiency.RunSeconds + 1;
+        ELSIF "DB_Global".Machine.StandbyActive THEN
+            "DB_Global".Efficiency.WaitingSeconds := "DB_Global".Efficiency.WaitingSeconds + 1;
+        ELSE
+            "DB_Global".Efficiency.StopSeconds := "DB_Global".Efficiency.StopSeconds + 1;
+        END_IF;
+    END_IF;
 END_FUNCTION_BLOCK

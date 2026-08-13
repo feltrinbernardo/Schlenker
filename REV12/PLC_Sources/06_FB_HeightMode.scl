@@ -4,6 +4,7 @@ VAR_INPUT
     OtherHeightActive   : Bool;
     SafetyOK            : Bool;
     MachineStopped      : Bool;
+    ConfirmationOK      : Bool;
     UpSelector          : Bool;
     DownSelector        : Bool;
     LowLimit            : Bool;
@@ -23,7 +24,7 @@ VAR
 END_VAR
 
 BEGIN
-    Active := Enable AND NOT OtherHeightActive AND SafetyOK AND MachineStopped;
+    Active := Enable AND NOT OtherHeightActive AND SafetyOK AND MachineStopped AND ConfirmationOK;
     RotationBlock := Active;
     DirectionConflict := UpSelector AND DownSelector;
 

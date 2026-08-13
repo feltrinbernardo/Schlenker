@@ -1,0 +1,286 @@
+FUNCTION_BLOCK "FB_CIPSequence"
+VAR_INPUT
+    CIPActive                 : Bool;
+    SafetyOK                  : Bool;
+    CriticalAlarm             : Bool;
+    PauseCmd                  : Bool;
+    ResumeCmd                 : Bool;
+    AbortCmd                  : Bool;
+    NextCmd                   : Bool;
+    AcknowledgeCompleteCmd    : Bool;
+    Reset                     : Bool;
+    Blink1Hz                  : Bool;
+    RemoteReady               : Bool;
+    RemoteBusy                : Bool;
+    RemoteFault               : Bool;
+    RequestAccepted           : Bool;
+    MediumAvailable           : Bool;
+    DischargeComplete         : Bool;
+    RequireRemoteHandshake    : Bool;
+    RequireDischargeComplete  : Bool;
+    ColdWashTime              : Time; // retained interface compatibility
+    HotWashTime               : Time; // retained interface compatibility
+    AcidWashTime              : Time; // retained interface compatibility
+    HotRinseTime              : Time; // retained interface compatibility
+    ColdRinseTime             : Time; // retained interface compatibility
+    CitraTime                 : Time; // retained interface compatibility
+    FinalRinseTime            : Time; // retained interface compatibility
+    DischargeTime             : Time; // retained interface compatibility
+    RemoteResponseTimeout     : Time;
+END_VAR
+VAR_IN_OUT
+    S                         : "UDT_CIPSequence";
+    I                         : "UDT_CIPInterface";
+    R                         : "UDT_CIPRecipe";
+END_VAR
+VAR
+    SecondPulse               : R_TRIG;
+    NextPulse                 : R_TRIG;
+    AcknowledgePulse          : R_TRIG;
+    RemoteWaitElapsed         : Time;
+    StepIndex                 : Int;
+END_VAR
+BEGIN
+    // The PLC is the single authority. Every request is cleared before the
+    // state machine selects one verified medium. State 50 deliberately leaves
+    // all requests OFF for one complete PLC scan between recipe steps.
+    I.ReqColdWater := FALSE;
+    I.ReqHotWater := FALSE;
+    I.ReqAcid := FALSE;
+    I.ReqCitra := FALSE;
+    I.ReqDischarge := FALSE;
+
+    I.RemoteReady := RemoteReady;
+    I.RemoteBusy := RemoteBusy;
+    I.RemoteFault := RemoteFault;
+    I.RequestAccepted := RequestAccepted;
+    I.MediumAvailable := MediumAvailable;
+    I.DischargeComplete := DischargeComplete;
+
+    SecondPulse(CLK := Blink1Hz);
+    NextPulse(CLK := NextCmd);
+    AcknowledgePulse(CLK := AcknowledgeCompleteCmd);
+
+    // Continuous PLC-side recipe validation. Codes 6..9 remain reserved but
+    // unavailable until their hardware paths and interlocks are commissioned.
+    R.Valid := TRUE;
+    S.ValidationCode := UINT#0;
+    IF (R.StepCount < USINT#1) OR (R.StepCount > USINT#10) THEN
+        R.Valid := FALSE;
+        S.ValidationCode := UINT#1;
+    ELSE
+        FOR StepIndex := 1 TO 10 DO
+            IF StepIndex <= USINT_TO_INT(R.StepCount) THEN
+                IF NOT R.Step[StepIndex].Enabled THEN
+                    R.Valid := FALSE;
+                    IF S.ValidationCode = UINT#0 THEN S.ValidationCode := UINT#2; END_IF;
+                ELSIF (R.Step[StepIndex].Medium < USINT#1)
+                   OR (R.Step[StepIndex].Medium > USINT#5) THEN
+                    R.Valid := FALSE;
+                    IF S.ValidationCode = UINT#0 THEN S.ValidationCode := UINT#3; END_IF;
+                ELSIF (R.Step[StepIndex].Duration < T#1s)
+                   OR (R.Step[StepIndex].Duration > T#4h) THEN
+                    R.Valid := FALSE;
+                    IF S.ValidationCode = UINT#0 THEN S.ValidationCode := UINT#4; END_IF;
+                ELSIF R.Step[StepIndex].AdvanceMode > USINT#1 THEN
+                    R.Valid := FALSE;
+                    IF S.ValidationCode = UINT#0 THEN S.ValidationCode := UINT#5; END_IF;
+                END_IF;
+            ELSIF R.Step[StepIndex].Enabled THEN
+                R.Valid := FALSE;
+                IF S.ValidationCode = UINT#0 THEN S.ValidationCode := UINT#6; END_IF;
+            END_IF;
+        END_FOR;
+    END_IF;
+    S.RecipeValid := R.Valid;
+    S.TotalSteps := R.StepCount;
+
+    IF NOT CIPActive THEN
+        S.State := USINT#0;
+        S.Phase := USINT#0;
+        S.RequestedMedium := USINT#0;
+        S.ProgressPct := USINT#0;
+        S.Active := FALSE;
+        S.Paused := FALSE;
+        S.Complete := FALSE;
+        S.Fault := FALSE;
+        S.AbortActive := FALSE;
+        S.RemoteWaitActive := FALSE;
+        S.WaitingForNext := FALSE;
+        S.NextPermitted := FALSE;
+        S.TransitionActive := FALSE;
+        S.CompleteAcknowledged := FALSE;
+        S.NextRejected := FALSE;
+        S.PhaseElapsed := T#0ms;
+        S.PhaseDuration := T#0ms;
+        S.RemainingTime := T#0ms;
+        S.FaultCode := UINT#0;
+        RemoteWaitElapsed := T#0ms;
+    ELSE
+        S.Active := TRUE;
+
+        IF Reset AND S.Fault THEN
+            S.State := USINT#10;
+            S.Phase := USINT#1;
+            S.Fault := FALSE;
+            S.AbortActive := FALSE;
+            S.FaultCode := UINT#0;
+            S.PhaseElapsed := T#0ms;
+            RemoteWaitElapsed := T#0ms;
+        END_IF;
+
+        IF AbortCmd OR NOT SafetyOK OR CriticalAlarm OR RemoteFault THEN
+            S.State := USINT#100;
+            S.Fault := TRUE;
+            S.AbortActive := TRUE;
+            S.RequestedMedium := USINT#0;
+            IF RemoteFault THEN
+                S.FaultCode := UINT#3;
+            ELSIF NOT SafetyOK THEN
+                S.FaultCode := UINT#1;
+            ELSIF CriticalAlarm THEN
+                S.FaultCode := UINT#2;
+            ELSE
+                S.FaultCode := UINT#4;
+            END_IF;
+        END_IF;
+
+        IF PauseCmd AND (S.State = USINT#40) THEN S.Paused := TRUE; END_IF;
+        IF ResumeCmd THEN S.Paused := FALSE; END_IF;
+
+        CASE S.State OF
+            USINT#0:
+                S.State := USINT#10;
+                S.Phase := USINT#1;
+                S.PhaseElapsed := T#0ms;
+                S.Complete := FALSE;
+                S.CompleteAcknowledged := FALSE;
+
+            USINT#10: // RECIPE AND PROCESS PRECHECK
+                IF NOT R.Valid THEN
+                    S.State := USINT#100;
+                    S.Fault := TRUE;
+                    S.FaultCode := UINT#7;
+                ELSIF SafetyOK AND NOT CriticalAlarm AND NOT RemoteFault THEN
+                    S.State := USINT#20;
+                END_IF;
+
+            USINT#20: // SELECT / REQUEST MEDIUM
+                S.PhaseElapsed := T#0ms;
+                RemoteWaitElapsed := T#0ms;
+                S.WaitingForNext := FALSE;
+                S.NextPermitted := FALSE;
+                S.TransitionActive := FALSE;
+                IF RequireRemoteHandshake THEN
+                    S.State := USINT#30;
+                ELSE
+                    S.State := USINT#40;
+                END_IF;
+
+            USINT#30: // WAIT REMOTE READY / ACCEPT
+                S.RemoteWaitActive := TRUE;
+                IF SecondPulse.Q THEN
+                    RemoteWaitElapsed := DINT_TO_TIME(TIME_TO_DINT(RemoteWaitElapsed) + 1000);
+                END_IF;
+                IF RemoteReady AND RequestAccepted THEN
+                    S.RemoteWaitActive := FALSE;
+                    S.State := USINT#40;
+                    RemoteWaitElapsed := T#0ms;
+                ELSIF RemoteWaitElapsed >= RemoteResponseTimeout THEN
+                    S.State := USINT#100;
+                    S.Fault := TRUE;
+                    S.FaultCode := UINT#5;
+                END_IF;
+
+            USINT#40: // ACTIVE TIMED STEP
+                IF SecondPulse.Q AND NOT S.Paused THEN
+                    S.PhaseElapsed := DINT_TO_TIME(TIME_TO_DINT(S.PhaseElapsed) + 1000);
+                END_IF;
+                IF (S.RequestedMedium = USINT#5)
+                   AND RequireDischargeComplete AND DischargeComplete THEN
+                    IF S.AdvanceMode = USINT#1 THEN S.State := USINT#45; ELSE S.State := USINT#50; END_IF;
+                ELSIF S.PhaseElapsed >= S.PhaseDuration THEN
+                    IF S.AdvanceMode = USINT#1 THEN S.State := USINT#45; ELSE S.State := USINT#50; END_IF;
+                END_IF;
+
+            USINT#45: // MANUAL NEXT HOLD
+                S.WaitingForNext := TRUE;
+                S.NextPermitted := SafetyOK AND NOT CriticalAlarm AND NOT RemoteFault;
+                S.NextRejected := NextPulse.Q AND NOT S.NextPermitted;
+                IF NextPulse.Q AND S.NextPermitted THEN
+                    S.State := USINT#50;
+                    S.WaitingForNext := FALSE;
+                    S.NextPermitted := FALSE;
+                END_IF;
+
+            USINT#50: // SAFE MEDIUM-OFF TRANSITION / NEXT STEP
+                S.NextRejected := FALSE;
+                S.RequestedMedium := USINT#0;
+                S.TransitionActive := TRUE;
+                S.PhaseElapsed := T#0ms;
+                S.Paused := FALSE;
+                IF S.Phase >= S.TotalSteps THEN
+                    S.State := USINT#90;
+                    S.Complete := TRUE;
+                    S.ProgressPct := USINT#100;
+                ELSE
+                    S.Phase := S.Phase + USINT#1;
+                    S.State := USINT#20;
+                END_IF;
+
+            USINT#90: // COMPLETE - WAIT FOR OPERATOR ACKNOWLEDGEMENT
+                S.Complete := TRUE;
+                S.RequestedMedium := USINT#0;
+                IF AcknowledgePulse.Q THEN S.CompleteAcknowledged := TRUE; END_IF;
+
+            USINT#100: // ABORT / FAULT SAFE STATE
+                S.Paused := FALSE;
+                S.WaitingForNext := FALSE;
+                S.NextPermitted := FALSE;
+                S.RequestedMedium := USINT#0;
+
+        ELSE
+            S.State := USINT#100;
+            S.Fault := TRUE;
+            S.FaultCode := UINT#6;
+        END_CASE;
+
+        IF (S.Phase >= USINT#1) AND (S.Phase <= R.StepCount) THEN
+            S.PhaseDuration := R.Step[USINT_TO_INT(S.Phase)].Duration;
+            S.AdvanceMode := R.Step[USINT_TO_INT(S.Phase)].AdvanceMode;
+            IF S.PhaseElapsed < S.PhaseDuration THEN
+                S.RemainingTime := S.PhaseDuration - S.PhaseElapsed;
+            ELSE
+                S.RemainingTime := T#0ms;
+            END_IF;
+        ELSE
+            S.PhaseDuration := T#0ms;
+            S.AdvanceMode := USINT#0;
+            S.RemainingTime := T#0ms;
+        END_IF;
+
+        IF (S.State = USINT#20) OR (S.State = USINT#30)
+           OR (S.State = USINT#40) OR (S.State = USINT#45) THEN
+            S.RequestedMedium := R.Step[USINT_TO_INT(S.Phase)].Medium;
+            CASE S.RequestedMedium OF
+                USINT#1: I.ReqColdWater := TRUE;
+                USINT#2: I.ReqHotWater := TRUE;
+                USINT#3: I.ReqAcid := TRUE;
+                USINT#4: I.ReqCitra := TRUE;
+                USINT#5: I.ReqDischarge := TRUE;
+            ELSE
+                S.RequestedMedium := USINT#0;
+            END_CASE;
+        ELSE
+            S.RequestedMedium := USINT#0;
+        END_IF;
+
+        IF S.TotalSteps > USINT#0 THEN
+            S.ProgressPct := INT_TO_USINT(
+                (USINT_TO_INT(S.Phase) * 100) / USINT_TO_INT(S.TotalSteps));
+            IF S.ProgressPct > USINT#100 THEN S.ProgressPct := USINT#100; END_IF;
+        ELSE
+            S.ProgressPct := USINT#0;
+        END_IF;
+    END_IF;
+END_FUNCTION_BLOCK

@@ -1,0 +1,459 @@
+FUNCTION "FC_CIPRecipeValidate" : UInt
+VAR_IN_OUT
+    R : "UDT_CIPRecipe";
+END_VAR
+VAR_TEMP
+    StepIndex : Int;
+END_VAR
+BEGIN
+    #FC_CIPRecipeValidate := UINT#0;
+    R.Valid := TRUE;
+
+    IF (R.StepCount < USINT#1) OR (R.StepCount > USINT#10) THEN
+        R.Valid := FALSE;
+        #FC_CIPRecipeValidate := UINT#1;
+    ELSE
+        FOR StepIndex := 1 TO 10 DO
+            IF StepIndex <= USINT_TO_INT(R.StepCount) THEN
+                IF NOT R.Step[StepIndex].Enabled THEN
+                    R.Valid := FALSE;
+                    IF #FC_CIPRecipeValidate = UINT#0 THEN #FC_CIPRecipeValidate := UINT#2; END_IF;
+                ELSIF (R.Step[StepIndex].Medium < USINT#1)
+                   OR (R.Step[StepIndex].Medium > USINT#5) THEN
+                    R.Valid := FALSE;
+                    IF #FC_CIPRecipeValidate = UINT#0 THEN #FC_CIPRecipeValidate := UINT#3; END_IF;
+                ELSIF (R.Step[StepIndex].Duration < T#1s)
+                   OR (R.Step[StepIndex].Duration > T#4h) THEN
+                    R.Valid := FALSE;
+                    IF #FC_CIPRecipeValidate = UINT#0 THEN #FC_CIPRecipeValidate := UINT#4; END_IF;
+                ELSIF R.Step[StepIndex].AdvanceMode > USINT#1 THEN
+                    R.Valid := FALSE;
+                    IF #FC_CIPRecipeValidate = UINT#0 THEN #FC_CIPRecipeValidate := UINT#5; END_IF;
+                END_IF;
+            ELSIF R.Step[StepIndex].Enabled THEN
+                R.Valid := FALSE;
+                IF #FC_CIPRecipeValidate = UINT#0 THEN #FC_CIPRecipeValidate := UINT#6; END_IF;
+            END_IF;
+        END_FOR;
+    END_IF;
+END_FUNCTION
+
+FUNCTION "FC_CIPRecipeAuditAppend" : Bool
+VAR_INPUT
+    Timestamp      : DTL;
+    TimestampValid : Bool;
+    Action         : USInt;
+    StepNumber     : USInt;
+    OldValue       : DInt;
+    NewValue       : DInt;
+END_VAR
+VAR_IN_OUT
+    Control        : "UDT_CIPRecipeControl";
+    Recipe         : "UDT_CIPRecipe";
+    Audit          : Array[1..32] of "UDT_CIPRecipeAuditEntry";
+END_VAR
+VAR_TEMP
+    Index          : Int;
+END_VAR
+BEGIN
+    IF Control.AuditHead >= USINT#32 THEN
+        Control.AuditHead := USINT#1;
+    ELSE
+        Control.AuditHead := Control.AuditHead + USINT#1;
+    END_IF;
+    IF Control.AuditCount < USINT#32 THEN
+        Control.AuditCount := Control.AuditCount + USINT#1;
+    END_IF;
+    Control.AuditSequence := Control.AuditSequence + UDINT#1;
+    Index := USINT_TO_INT(Control.AuditHead);
+
+    Audit[Index].Sequence := Control.AuditSequence;
+    Audit[Index].Timestamp := Timestamp;
+    Audit[Index].TimestampValid := TimestampValid;
+    Audit[Index].ActorName := Control.ActorName;
+    Audit[Index].ActorRole := Control.ActorRole;
+    Audit[Index].RecipeName := Recipe.RecipeName;
+    Audit[Index].Revision := Recipe.Revision;
+    Audit[Index].Action := Action;
+    Audit[Index].StepNumber := StepNumber;
+    Audit[Index].OldValue := OldValue;
+    Audit[Index].NewValue := NewValue;
+    Control.LastAuditTimestamp := Timestamp;
+    Control.LastAuditTimestampValid := TimestampValid;
+    Control.LastAuditActorName := Control.ActorName;
+    Control.LastAuditAction := Action;
+    Control.LastAuditStep := StepNumber;
+    #FC_CIPRecipeAuditAppend := TRUE;
+END_FUNCTION
+
+FUNCTION_BLOCK "FB_CIPRecipeManager"
+VAR_INPUT
+    StartCmd           : Bool;
+    NextCmd            : Bool;
+    CIPActive          : Bool;
+    CIPComplete        : Bool;
+    CIPFault           : Bool;
+    CIPAbortActive     : Bool;
+    CIPFaultCode       : UInt;
+    CIPPhase           : USInt;
+    CIPPhaseElapsed    : Time;
+    SafetyOK           : Bool;
+    CriticalAlarm      : Bool;
+    ProductionActive   : Bool;
+    RunOutActive       : Bool;
+    InterfaceReady     : Bool;
+END_VAR
+VAR_IN_OUT
+    Cmd                : "UDT_Command";
+    Draft              : "UDT_CIPRecipe";
+    Approved           : "UDT_CIPRecipe";
+    Previous           : "UDT_CIPRecipe";
+    Active             : "UDT_CIPRecipe";
+    Control            : "UDT_CIPRecipeControl";
+    Audit              : Array[1..32] of "UDT_CIPRecipeAuditEntry";
+    Execution          : Array[1..16] of "UDT_CIPExecutionRecord";
+END_VAR
+VAR
+    StartPulse         : R_TRIG;
+    SaveDraftPulse     : R_TRIG;
+    SaveAsPulse        : R_TRIG;
+    ApprovePulse       : R_TRIG;
+    LockPulse          : R_TRIG;
+    SupersedePulse     : R_TRIG;
+    NextPulse          : R_TRIG;
+    ActivePulse        : R_TRIG;
+    CompletePulse      : R_TRIG;
+    FaultPulse         : R_TRIG;
+    AbortPulse         : R_TRIG;
+    DraftBaseline      : "UDT_CIPRecipe";
+    PreviousPhase      : USInt;
+    CurrentExecutionIndex : Int;
+    StepIndex          : Int;
+    Now                : DTL;
+    ClockStatus        : Int;
+    AuditWritten       : Bool;
+END_VAR
+BEGIN
+    StartPulse(CLK := StartCmd);
+    SaveDraftPulse(CLK := Cmd.CIPRecipeSaveDraft);
+    SaveAsPulse(CLK := Cmd.CIPRecipeSaveAs);
+    ApprovePulse(CLK := Cmd.CIPRecipeApprove);
+    LockPulse(CLK := Cmd.CIPRecipeLock);
+    SupersedePulse(CLK := Cmd.CIPRecipeSupersede);
+    NextPulse(CLK := NextCmd);
+    ActivePulse(CLK := CIPActive);
+    CompletePulse(CLK := CIPComplete);
+    FaultPulse(CLK := CIPFault);
+    AbortPulse(CLK := CIPAbortActive);
+    ClockStatus := RD_SYS_T(OUT => Now);
+
+    IF NOT Control.Initialized THEN
+        IF Approved.Revision = UINT#0 THEN
+            Approved.Revision := UINT#1;
+        END_IF;
+        Approved.LifecycleState := USINT#2;
+        Approved.Approved := TRUE;
+        Approved.Locked := TRUE;
+        Approved.OperatorSelectable := TRUE;
+        Draft := Approved;
+        Draft.LifecycleState := USINT#0;
+        Draft.Approved := FALSE;
+        Draft.Locked := FALSE;
+        Draft.OperatorSelectable := FALSE;
+        DraftBaseline := Draft;
+        Control.Initialized := TRUE;
+    END_IF;
+
+    Control.DraftValidationCode := "FC_CIPRecipeValidate"(R := Draft);
+    Control.ApprovedValidationCode := "FC_CIPRecipeValidate"(R := Approved);
+    Control.StartPermitted := Approved.Valid
+                              AND Approved.Approved
+                              AND Approved.Locked
+                              AND Approved.OperatorSelectable
+                              AND SafetyOK
+                              AND NOT CriticalAlarm
+                              AND NOT ProductionActive
+                              AND NOT RunOutActive
+                              AND InterfaceReady;
+
+    IF SaveAsPulse.Q THEN
+        IF Control.EngineeringAuthorized AND NOT CIPActive THEN
+            Draft := Approved;
+            Draft.Revision := Approved.Revision + UINT#1;
+            Draft.LifecycleState := USINT#0;
+            Draft.Approved := FALSE;
+            Draft.Locked := FALSE;
+            Draft.OperatorSelectable := FALSE;
+            Draft.LastModifiedBy := Control.ActorName;
+            Draft.LastModifiedAt := Now;
+            DraftBaseline := Draft;
+            AuditWritten := "FC_CIPRecipeAuditAppend"(
+                Timestamp := Now,
+                TimestampValid := ClockStatus = 0,
+                Action := USINT#1,
+                StepNumber := USINT#0,
+                OldValue := UINT_TO_DINT(Approved.Revision),
+                NewValue := UINT_TO_DINT(Draft.Revision),
+                Control := Control,
+                Recipe := Draft,
+                Audit := Audit);
+        ELSE
+            Control.EditRejected := TRUE;
+        END_IF;
+    END_IF;
+
+    IF SaveDraftPulse.Q THEN
+        IF Control.EngineeringAuthorized AND NOT CIPActive THEN
+            Draft.LifecycleState := USINT#0;
+            Draft.Approved := FALSE;
+            Draft.Locked := FALSE;
+            Draft.OperatorSelectable := FALSE;
+            Draft.LastModifiedBy := Control.ActorName;
+            Draft.LastModifiedAt := Now;
+            FOR StepIndex := 1 TO 10 DO
+                IF Draft.Step[StepIndex].Enabled <> DraftBaseline.Step[StepIndex].Enabled THEN
+                    IF Draft.Step[StepIndex].Enabled THEN
+                        AuditWritten := "FC_CIPRecipeAuditAppend"(
+                            Timestamp := Now,
+                            TimestampValid := ClockStatus = 0,
+                            Action := USINT#8,
+                            StepNumber := INT_TO_USINT(StepIndex),
+                            OldValue := DINT#0,
+                            NewValue := DINT#1,
+                            Control := Control,
+                            Recipe := Draft,
+                            Audit := Audit);
+                    ELSE
+                        AuditWritten := "FC_CIPRecipeAuditAppend"(
+                            Timestamp := Now,
+                            TimestampValid := ClockStatus = 0,
+                            Action := USINT#9,
+                            StepNumber := INT_TO_USINT(StepIndex),
+                            OldValue := DINT#1,
+                            NewValue := DINT#0,
+                            Control := Control,
+                            Recipe := Draft,
+                            Audit := Audit);
+                    END_IF;
+                END_IF;
+                IF Draft.Step[StepIndex].Medium <> DraftBaseline.Step[StepIndex].Medium THEN
+                    AuditWritten := "FC_CIPRecipeAuditAppend"(
+                        Timestamp := Now,
+                        TimestampValid := ClockStatus = 0,
+                        Action := USINT#10,
+                        StepNumber := INT_TO_USINT(StepIndex),
+                        OldValue := USINT_TO_DINT(DraftBaseline.Step[StepIndex].Medium),
+                        NewValue := USINT_TO_DINT(Draft.Step[StepIndex].Medium),
+                        Control := Control,
+                        Recipe := Draft,
+                        Audit := Audit);
+                END_IF;
+                IF Draft.Step[StepIndex].Duration <> DraftBaseline.Step[StepIndex].Duration THEN
+                    AuditWritten := "FC_CIPRecipeAuditAppend"(
+                        Timestamp := Now,
+                        TimestampValid := ClockStatus = 0,
+                        Action := USINT#11,
+                        StepNumber := INT_TO_USINT(StepIndex),
+                        OldValue := TIME_TO_DINT(DraftBaseline.Step[StepIndex].Duration),
+                        NewValue := TIME_TO_DINT(Draft.Step[StepIndex].Duration),
+                        Control := Control,
+                        Recipe := Draft,
+                        Audit := Audit);
+                END_IF;
+                IF Draft.Step[StepIndex].AdvanceMode <> DraftBaseline.Step[StepIndex].AdvanceMode THEN
+                    AuditWritten := "FC_CIPRecipeAuditAppend"(
+                        Timestamp := Now,
+                        TimestampValid := ClockStatus = 0,
+                        Action := USINT#12,
+                        StepNumber := INT_TO_USINT(StepIndex),
+                        OldValue := USINT_TO_DINT(DraftBaseline.Step[StepIndex].AdvanceMode),
+                        NewValue := USINT_TO_DINT(Draft.Step[StepIndex].AdvanceMode),
+                        Control := Control,
+                        Recipe := Draft,
+                        Audit := Audit);
+                END_IF;
+            END_FOR;
+            AuditWritten := "FC_CIPRecipeAuditAppend"(
+                Timestamp := Now,
+                TimestampValid := ClockStatus = 0,
+                Action := USINT#2,
+                StepNumber := USINT#0,
+                OldValue := DINT#0,
+                NewValue := DINT#1,
+                Control := Control,
+                Recipe := Draft,
+                Audit := Audit);
+            DraftBaseline := Draft;
+        ELSE
+            Control.EditRejected := TRUE;
+        END_IF;
+    END_IF;
+
+    IF ApprovePulse.Q THEN
+        IF Control.EngineeringAuthorized AND NOT CIPActive AND Draft.Valid THEN
+            Previous := Approved;
+            Previous.LifecycleState := USINT#3;
+            Previous.OperatorSelectable := FALSE;
+            Approved := Draft;
+            Approved.LifecycleState := USINT#1;
+            Approved.Approved := TRUE;
+            Approved.Locked := FALSE;
+            Approved.OperatorSelectable := FALSE;
+            Approved.ApprovedBy := Control.ActorName;
+            Approved.ApprovedAt := Now;
+            AuditWritten := "FC_CIPRecipeAuditAppend"(
+                Timestamp := Now,
+                TimestampValid := ClockStatus = 0,
+                Action := USINT#3,
+                StepNumber := USINT#0,
+                OldValue := DINT#0,
+                NewValue := DINT#1,
+                Control := Control,
+                Recipe := Approved,
+                Audit := Audit);
+        ELSE
+            Control.EditRejected := TRUE;
+        END_IF;
+    END_IF;
+
+    IF LockPulse.Q THEN
+        IF Control.EngineeringAuthorized AND NOT CIPActive AND Approved.Valid AND Approved.Approved THEN
+            Approved.LifecycleState := USINT#2;
+            Approved.Locked := TRUE;
+            Approved.OperatorSelectable := TRUE;
+            Approved.LockedBy := Control.ActorName;
+            Approved.LockedAt := Now;
+            AuditWritten := "FC_CIPRecipeAuditAppend"(
+                Timestamp := Now,
+                TimestampValid := ClockStatus = 0,
+                Action := USINT#4,
+                StepNumber := USINT#0,
+                OldValue := DINT#0,
+                NewValue := DINT#1,
+                Control := Control,
+                Recipe := Approved,
+                Audit := Audit);
+        ELSE
+            Control.EditRejected := TRUE;
+        END_IF;
+    END_IF;
+
+    IF SupersedePulse.Q THEN
+        IF Control.EngineeringAuthorized AND NOT CIPActive THEN
+            Approved.LifecycleState := USINT#3;
+            Approved.OperatorSelectable := FALSE;
+            AuditWritten := "FC_CIPRecipeAuditAppend"(
+                Timestamp := Now,
+                TimestampValid := ClockStatus = 0,
+                Action := USINT#5,
+                StepNumber := USINT#0,
+                OldValue := DINT#1,
+                NewValue := DINT#0,
+                Control := Control,
+                Recipe := Approved,
+                Audit := Audit);
+        ELSE
+            Control.EditRejected := TRUE;
+        END_IF;
+    END_IF;
+
+    IF StartPulse.Q THEN
+        Control.StartRejectedInvalid := NOT Approved.Valid;
+        Control.StartRejectedUnapproved := NOT (Approved.Approved AND Approved.OperatorSelectable);
+        Control.StartRejectedUnlocked := NOT Approved.Locked;
+        IF Control.StartPermitted THEN
+            Active := Approved;
+            Control.ActiveSnapshotReady := TRUE;
+            Control.ActiveRecipeName := Active.RecipeName;
+            Control.ActiveRecipeRevision := Active.Revision;
+            AuditWritten := "FC_CIPRecipeAuditAppend"(
+                Timestamp := Now,
+                TimestampValid := ClockStatus = 0,
+                Action := USINT#6,
+                StepNumber := USINT#0,
+                OldValue := DINT#0,
+                NewValue := DINT#1,
+                Control := Control,
+                Recipe := Active,
+                Audit := Audit);
+        END_IF;
+    END_IF;
+
+    IF ActivePulse.Q AND Control.ActiveSnapshotReady THEN
+        IF Control.ExecutionHead >= USINT#16 THEN
+            Control.ExecutionHead := USINT#1;
+        ELSE
+            Control.ExecutionHead := Control.ExecutionHead + USINT#1;
+        END_IF;
+        IF Control.ExecutionCount < USINT#16 THEN
+            Control.ExecutionCount := Control.ExecutionCount + USINT#1;
+        END_IF;
+        Control.ExecutionSequence := Control.ExecutionSequence + UDINT#1;
+        CurrentExecutionIndex := USINT_TO_INT(Control.ExecutionHead);
+        Execution[CurrentExecutionIndex].RunId := Control.ExecutionSequence;
+        Control.LastExecutionRunId := Control.ExecutionSequence;
+        Control.LastExecutionRecipe := Active.RecipeName;
+        Control.LastExecutionRevision := Active.Revision;
+        Control.LastExecutionResult := USINT#0;
+        Execution[CurrentExecutionIndex].StartTimestamp := Now;
+        Execution[CurrentExecutionIndex].StartTimestampValid := ClockStatus = 0;
+        Execution[CurrentExecutionIndex].OperatorName := Control.ActorName;
+        Execution[CurrentExecutionIndex].RecipeName := Active.RecipeName;
+        Execution[CurrentExecutionIndex].RecipeRevision := Active.Revision;
+        Execution[CurrentExecutionIndex].Result := USINT#0;
+        Execution[CurrentExecutionIndex].ManualNextCount := USINT#0;
+        FOR StepIndex := 1 TO 10 DO
+            Execution[CurrentExecutionIndex].StepMedium[StepIndex] := Active.Step[StepIndex].Medium;
+            Execution[CurrentExecutionIndex].StepProgrammedDuration[StepIndex] := Active.Step[StepIndex].Duration;
+            Execution[CurrentExecutionIndex].StepAdvanceMode[StepIndex] := Active.Step[StepIndex].AdvanceMode;
+            Execution[CurrentExecutionIndex].StepActualDuration[StepIndex] := T#0ms;
+            Execution[CurrentExecutionIndex].StepCompleted[StepIndex] := FALSE;
+        END_FOR;
+    END_IF;
+
+    IF CIPActive AND (Control.ExecutionHead >= USINT#1) THEN
+        CurrentExecutionIndex := USINT_TO_INT(Control.ExecutionHead);
+        IF (CIPPhase >= USINT#1) AND (CIPPhase <= USINT#10) THEN
+            Execution[CurrentExecutionIndex].FinalStep := CIPPhase;
+            Execution[CurrentExecutionIndex].StepActualDuration[USINT_TO_INT(CIPPhase)] := CIPPhaseElapsed;
+        END_IF;
+        IF (PreviousPhase >= USINT#1) AND (PreviousPhase <= USINT#10) AND (CIPPhase <> PreviousPhase) THEN
+            Execution[CurrentExecutionIndex].StepCompleted[USINT_TO_INT(PreviousPhase)] := TRUE;
+        END_IF;
+        IF NextPulse.Q THEN
+            Execution[CurrentExecutionIndex].ManualNextCount := Execution[CurrentExecutionIndex].ManualNextCount + USINT#1;
+            AuditWritten := "FC_CIPRecipeAuditAppend"(
+                Timestamp := Now,
+                TimestampValid := ClockStatus = 0,
+                Action := USINT#7,
+                StepNumber := CIPPhase,
+                OldValue := DINT#0,
+                NewValue := DINT#1,
+                Control := Control,
+                Recipe := Active,
+                Audit := Audit);
+        END_IF;
+        PreviousPhase := CIPPhase;
+    END_IF;
+
+    IF (CompletePulse.Q OR FaultPulse.Q OR AbortPulse.Q) AND (Control.ExecutionHead >= USINT#1) THEN
+        CurrentExecutionIndex := USINT_TO_INT(Control.ExecutionHead);
+        Execution[CurrentExecutionIndex].FinishTimestamp := Now;
+        Execution[CurrentExecutionIndex].FinishTimestampValid := ClockStatus = 0;
+        Execution[CurrentExecutionIndex].FaultCode := CIPFaultCode;
+        IF CompletePulse.Q THEN
+            Execution[CurrentExecutionIndex].Result := USINT#1;
+            Control.LastExecutionResult := USINT#1;
+        ELSIF AbortPulse.Q THEN
+            Execution[CurrentExecutionIndex].Result := USINT#2;
+            Control.LastExecutionResult := USINT#2;
+        ELSE
+            Execution[CurrentExecutionIndex].Result := USINT#3;
+            Control.LastExecutionResult := USINT#3;
+        END_IF;
+    END_IF;
+
+    IF NOT CIPActive AND NOT StartCmd THEN
+        Control.ActiveSnapshotReady := FALSE;
+    END_IF;
+END_FUNCTION_BLOCK

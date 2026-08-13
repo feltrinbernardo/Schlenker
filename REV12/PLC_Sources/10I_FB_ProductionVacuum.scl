@@ -1,0 +1,62 @@
+FUNCTION_BLOCK "FB_ProductionVacuum"
+VAR_INPUT
+    ProductionActive : Bool;
+    VacuumActualMbar : Real;
+    VacuumSignalValid: Bool;
+    VacuumMinMbar    : Real;
+    StartupDelay     : Time;
+    Reset            : Bool;
+END_VAR
+VAR_IN_OUT
+    S                : "UDT_ProductionVacuum";
+END_VAR
+VAR
+    BuildTimer       : TON;
+    ProductionMemory: Bool;
+    ProductionPulse : Bool;
+    VacuumAdequate  : Bool;
+END_VAR
+BEGIN
+    ProductionPulse := ProductionActive AND NOT ProductionMemory;
+    ProductionMemory := ProductionActive;
+    VacuumAdequate := VacuumSignalValid AND (VacuumActualMbar <= VacuumMinMbar);
+
+    IF ProductionPulse THEN
+        IF S.AttemptNumber < USINT#2 THEN S.AttemptNumber := S.AttemptNumber + USINT#1; END_IF;
+        S.BuildActive := TRUE;
+        S.LowVacuumAlarm := FALSE;
+    END_IF;
+
+    BuildTimer(IN := ProductionActive AND S.BuildActive, PT := StartupDelay);
+    S.StartupElapsed := BuildTimer.ET;
+
+    IF ProductionActive THEN
+        IF S.BuildActive AND VacuumAdequate THEN
+            S.BuildActive := FALSE;
+            S.VacuumReady := TRUE;
+        ELSIF S.BuildActive AND BuildTimer.Q THEN
+            S.BuildActive := FALSE;
+            S.VacuumReady := FALSE;
+            S.LowVacuumAlarm := TRUE;
+        ELSIF S.VacuumReady AND NOT VacuumAdequate THEN
+            S.VacuumReady := FALSE;
+            S.LowVacuumAlarm := TRUE;
+        END_IF;
+    ELSE
+        S.BuildActive := FALSE;
+        S.VacuumReady := FALSE;
+    END_IF;
+
+    IF Reset AND S.LowVacuumAlarm THEN
+        IF VacuumAdequate THEN
+            S.LowVacuumAlarm := FALSE;
+            S.AttemptNumber := USINT#0;
+        ELSIF S.AttemptNumber < USINT#2 THEN
+            S.LowVacuumAlarm := FALSE;
+        END_IF;
+    ELSIF Reset AND VacuumAdequate AND NOT ProductionActive THEN
+        S.AttemptNumber := USINT#0;
+    END_IF;
+
+    S.StopRequest := S.LowVacuumAlarm;
+END_FUNCTION_BLOCK

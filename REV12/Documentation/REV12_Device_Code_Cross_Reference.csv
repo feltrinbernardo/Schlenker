@@ -1,0 +1,4 @@
+DeviceCode,Meaning,Application,Sequence,ImplementationStatus
+SPC100,Sensor Presence Cylinder,Cylinder presence sensor / first device in family,"SPC101, SPC102...",Reserved example; no physical mapping assigned
+E100,Encoder,Main machine encoder / first encoder,"E101, E102...",Existing symbolic encoder/HSC signals retained; terminal details TBC
+TLS100,Tank Level Sensor,Filler tank level sensor / first tank-level sensor,"TLS101, TLS102...",HMI/PLC process value retained; IO-Link versus 4-20mA TBC

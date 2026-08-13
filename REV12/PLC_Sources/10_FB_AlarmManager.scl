@@ -21,11 +21,36 @@ VAR_INPUT
     SpeedParameterFault : Bool;
     PumpLowWarning      : Bool;
     CapperOutfeedCrash  : Bool;
+    ProductLevelNotReached : Bool;
+    AutoGateSequenceFault  : Bool;
+    CIPStartBlocked        : Bool;
+    CIPMediaLossAlarm      : Bool;
+    LowVacuumAlarm         : Bool;
+    CIPSequenceFault       : Bool;
+    CapHopperLow           : Bool;
+    CapChannelDemand       : Bool;
+    CapsMissing            : Bool;
+    CapperNotReady         : Bool;
+    BottleShortage1Active  : Bool;
+    BottleShortage2Active  : Bool;
+    Accumulation1Active    : Bool;
+    Accumulation2Active    : Bool;
+    DriveNotReady          : Bool;
+    SafetySystemFault      : Bool;
+    CIPRemoteTimeout       : Bool;
+    CIPRemoteFault         : Bool;
+    CIPInvalidState        : Bool;
+    CIPOperatorAbort       : Bool;
+    CIPComplete            : Bool;
+    AL104CommFault         : Bool;
+    CIPRecipeInvalid       : Bool;
+    CIPNextRejected        : Bool;
 END_VAR
 VAR_OUTPUT
     CriticalAlarm       : Bool;
     WarningAlarm        : Bool;
     AlarmWord1          : DWORD;
+    AlarmWord2          : DWORD;
 END_VAR
 
 BEGIN
@@ -45,19 +70,54 @@ BEGIN
     AlarmWord1.%X12 := CapDriveFault;         // 1604
     AlarmWord1.%X13 := HoodFilterAlarm;       // 1701 warning
     AlarmWord1.%X14 := (NOT SafetyOK) AND EStopChain24VHealthy; // 1003 safety circuit not ready
-    AlarmWord1.%X15 := DoorAccessFault;        // 1801
-    AlarmWord1.%X16 := AirFilterFault;         // 1702 warning
-    AlarmWord1.%X17 := AirFilterChangeWarning; // 1703 warning
+    AlarmWord1.%X15 := AirFilterFault;         // 1702 warning
+    AlarmWord1.%X16 := AirFilterChangeWarning; // 1703 warning
+    AlarmWord1.%X17 := DoorAccessFault;        // 1801
     AlarmWord1.%X18 := SpeedParameterFault;    // 1901
     AlarmWord1.%X19 := PumpLowWarning;          // 1302 warning
     AlarmWord1.%X20 := CapperOutfeedCrash;      // 2001
+    AlarmWord1.%X21 := ProductLevelNotReached;  // 1303 warning / start inhibited
+    AlarmWord1.%X22 := AutoGateSequenceFault;   // 1202 critical
+    AlarmWord1.%X23 := CIPStartBlocked;          // 2101 warning
+    AlarmWord1.%X24 := CIPMediaLossAlarm;        // 2102 critical
+    AlarmWord1.%X25 := LowVacuumAlarm;           // 2103 critical
+    AlarmWord1.%X26 := CIPSequenceFault;          // 2104 critical
+
+    // REV21 source-proven functional alarms. AlarmWord2 is intentionally
+    // separate because AlarmWord1 already contains the retained REV12 matrix.
+    AlarmWord2 := DWORD#0;
+    AlarmWord2.%X0 := CapHopperLow;           // CAP-001 warning
+    AlarmWord2.%X1 := CapChannelDemand;        // CAP-002 warning
+    AlarmWord2.%X2 := CapsMissing;             // CAP-003 controlled stop
+    AlarmWord2.%X3 := CapperNotReady;          // CAP-007 controlled stop
+    AlarmWord2.%X4 := BottleShortage1Active;   // BOT-001 warning
+    AlarmWord2.%X5 := BottleShortage2Active;   // BOT-002 controlled stop
+    AlarmWord2.%X6 := Accumulation1Active;     // BOT-003 warning
+    AlarmWord2.%X7 := Accumulation2Active;     // BOT-004 controlled stop
+    AlarmWord2.%X8 := DriveNotReady;           // DRV-003 controlled stop
+    AlarmWord2.%X9 := SafetySystemFault;       // SAFE-003 diagnostic trip
+    AlarmWord2.%X10 := CIPRemoteTimeout;       // CIP-001
+    AlarmWord2.%X11 := CIPRemoteFault;         // CIP-002
+    AlarmWord2.%X12 := CIPInvalidState;        // CIP-006
+    AlarmWord2.%X13 := CIPOperatorAbort;       // CIP-007 information
+    AlarmWord2.%X14 := CIPComplete;            // CIP-009 information
+    AlarmWord2.%X15 := AL104CommFault;          // CIP-008
+    AlarmWord2.%X16 := CIPRecipeInvalid;         // CIP-010
+    AlarmWord2.%X17 := CIPNextRejected;          // CIP-011 warning
 
     CriticalAlarm :=
         NOT SafetyOK OR NOT EStopChain24VHealthy OR NOT AirPressureOK OR NOT EncoderHealthy OR
         GateFault OR PumpLevelFault OR NOT SMCCommOK OR SMCConflict OR
         FillerMoveTimeout OR CapperMoveTimeout OR
         MainDriveFault OR ConveyorFault OR ProductPumpFault OR CapDriveFault OR
-        DoorAccessFault OR SpeedParameterFault OR CapperOutfeedCrash;
+        DoorAccessFault OR SpeedParameterFault OR CapperOutfeedCrash OR AutoGateSequenceFault OR
+        CIPMediaLossAlarm OR LowVacuumAlarm OR CIPSequenceFault OR
+        CapsMissing OR CapperNotReady OR BottleShortage2Active OR Accumulation2Active OR
+        DriveNotReady OR SafetySystemFault OR CIPRemoteTimeout OR CIPRemoteFault OR
+        CIPInvalidState OR AL104CommFault OR CIPRecipeInvalid;
 
-    WarningAlarm := HoodFilterAlarm OR AirFilterFault OR AirFilterChangeWarning OR PumpLowWarning;
+    WarningAlarm := HoodFilterAlarm OR AirFilterFault OR AirFilterChangeWarning OR PumpLowWarning
+                    OR ProductLevelNotReached OR CIPStartBlocked OR
+                    CapHopperLow OR CapChannelDemand OR BottleShortage1Active OR Accumulation1Active OR
+                    CIPNextRejected;
 END_FUNCTION_BLOCK

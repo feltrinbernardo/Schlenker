@@ -1,0 +1,107 @@
+FUNCTION_BLOCK "FB_AutoBottleGateRequest"
+VAR_INPUT
+    RequestEnable      : Bool;
+    ProductionMode     : Bool;
+    MachineRunning     : Bool;
+    SafetyOK           : Bool;
+    CIPActive          : Bool;
+    CriticalAlarm      : Bool;
+    GateOpenFB         : Bool;
+    GateClosedFB       : Bool;
+    AdmissionComplete  : Bool;
+    ActualSpeedPct     : Real;
+    ActualSpeedValid   : Bool;
+    MinSpeedPct        : Real;
+    SpeedTolerancePct  : Real;
+    StepTimeout        : Time;
+    Reset              : Bool;
+END_VAR
+VAR_IN_OUT
+    S                  : "UDT_AutoGateRequest";
+END_VAR
+VAR
+    StepTimer          : TON;
+    TimedStep          : Bool;
+    StateMemory        : USInt;
+    TimerReset         : Bool;
+END_VAR
+BEGIN
+    S.Active := (S.State >= 10) AND (S.State <= 40);
+    // Gate OFF is authoritative: it forces the gate closed and prevents entry.
+    S.OverrideActive := NOT RequestEnable OR S.Active OR S.Completed OR S.Aborted OR S.Fault;
+    S.GateOpenCmd := FALSE;
+    S.GateCloseCmd := S.OverrideActive;
+    S.SpeedLimitPct := 100.0;
+    S.StopRequest := S.Aborted OR S.Fault;
+
+    TimedStep := (S.State = 10) OR (S.State = 20)
+                 OR (S.State = 30) OR (S.State = 40);
+    TimerReset := S.State <> StateMemory;
+    StepTimer(IN := TimedStep AND NOT TimerReset, PT := StepTimeout);
+    // Capture the state before CASE processing so each transition forces the
+    // timer input false on the following scan.
+    StateMemory := S.State;
+
+    IF NOT RequestEnable THEN
+        S.State := 0;
+        S.Completed := FALSE;
+        S.Aborted := FALSE;
+        S.Fault := FALSE;
+    ELSIF Reset AND (S.Aborted OR S.Fault) THEN
+        S.State := 0;
+        S.Aborted := FALSE;
+        S.Fault := FALSE;
+    ELSIF S.Active AND (NOT SafetyOK OR CIPActive OR CriticalAlarm) THEN
+        S.State := 90;
+        S.Aborted := TRUE;
+    ELSIF StepTimer.Q THEN
+        S.State := 90;
+        S.Fault := TRUE;
+    ELSE
+        CASE S.State OF
+            0:
+                IF RequestEnable AND ProductionMode AND MachineRunning
+                   AND SafetyOK AND NOT CIPActive
+                   AND NOT CriticalAlarm THEN
+                    S.State := 10;
+                END_IF;
+
+            10: // Reduce filler to minimum and prove the actual speed.
+                S.SpeedLimitPct := MinSpeedPct;
+                IF ActualSpeedValid
+                   AND (ActualSpeedPct <= (MinSpeedPct + SpeedTolerancePct)) THEN
+                    S.State := 20;
+                END_IF;
+
+            20: // Open the bottle gate.
+                S.SpeedLimitPct := MinSpeedPct;
+                S.GateOpenCmd := TRUE;
+                S.GateCloseCmd := FALSE;
+                IF GateOpenFB THEN S.State := 30; END_IF;
+
+            30: // Hold open until the admission controller reports complete.
+                S.SpeedLimitPct := MinSpeedPct;
+                S.GateOpenCmd := TRUE;
+                S.GateCloseCmd := FALSE;
+                IF AdmissionComplete THEN S.State := 40; END_IF;
+
+            40: // Close, then release the production speed limit.
+                S.SpeedLimitPct := MinSpeedPct;
+                IF GateClosedFB THEN
+                    S.State := 50;
+                    S.Completed := TRUE;
+                END_IF;
+
+            50: // Completed; Gate ON must be switched OFF before rearming.
+                S.GateCloseCmd := TRUE;
+
+            90: // Abort/fault: close immediately and request a machine stop.
+                S.GateCloseCmd := TRUE;
+                S.StopRequest := TRUE;
+
+        ELSE
+            S.State := 90;
+            S.Fault := TRUE;
+        END_CASE;
+    END_IF;
+END_FUNCTION_BLOCK

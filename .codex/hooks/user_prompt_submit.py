@@ -25,13 +25,14 @@ Outputs one of:
 
 Configuration (environment variables):
     OPENAI_API_KEY   — required; the key used to call the judge model
-    JUDGE_MODEL      — optional; defaults to gpt-5.6-sol
+    JUDGE_MODEL      — optional; overrides judge/config.json
+    JUDGE_REASONING_EFFORT — optional; overrides judge/config.json
     JUDGE_THRESHOLD  — optional float; prompts scoring below this cause a
                        block decision (default: disabled / 0.0 = never block)
     JUDGE_MIN_WORDS  — optional int; skip evaluation for prompts shorter than
                        this many words (default: 5)
     JUDGE_LOG_DIR    — optional path to write per-turn JSON logs
-                       (defaults to <repo>/.codex/logs/)
+                       (defaults to <repo>/logs/judge/)
 
 Safety-block threshold:
     If JUDGE_THRESHOLD is set to e.g. 2.0, any prompt scoring below 2.0
@@ -45,7 +46,6 @@ import json
 import os
 import sys
 import time
-import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -60,32 +60,40 @@ _HOOK_FILE     = Path(__file__).resolve()
 _CODEX_DIR     = _HOOK_FILE.parent          # .codex/hooks/
 _REPO_ROOT     = _CODEX_DIR.parent.parent   # Schlenker/
 _JUDGE_DIR     = _REPO_ROOT / "judge"
-_LOGS_DIR_DEFAULT = _REPO_ROOT / "logs" / "judge"
 
 if str(_JUDGE_DIR) not in sys.path:
     sys.path.insert(0, str(_JUDGE_DIR))
+
+from judge import DEFAULT_MODEL, load_config  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
 
-JUDGE_MODEL     = os.environ.get("JUDGE_MODEL", "gpt-5.6-sol")
+_CONFIG = load_config()
+_configured_log_dir = Path(str(_CONFIG["log_directory"]))
+if not _configured_log_dir.is_absolute():
+    _configured_log_dir = _REPO_ROOT / _configured_log_dir
+
+JUDGE_MODEL     = os.environ.get("JUDGE_MODEL", DEFAULT_MODEL)
 OPENAI_API_KEY  = os.environ.get("OPENAI_API_KEY", "")
-JUDGE_THRESHOLD = float(os.environ.get("JUDGE_THRESHOLD", "0.0"))
-JUDGE_MIN_WORDS = int(os.environ.get("JUDGE_MIN_WORDS", "5"))
-JUDGE_LOG_DIR   = Path(os.environ.get("JUDGE_LOG_DIR", str(_LOGS_DIR_DEFAULT)))
+JUDGE_THRESHOLD = float(os.environ.get(
+    "JUDGE_THRESHOLD", str(_CONFIG["threshold"])
+))
+JUDGE_MIN_WORDS = int(os.environ.get(
+    "JUDGE_MIN_WORDS", str(_CONFIG["min_words"])
+))
+JUDGE_LOG_DIR   = Path(os.environ.get(
+    "JUDGE_LOG_DIR", str(_configured_log_dir)
+))
 
 # Hard-violation keyword patterns — trigger an immediate safety block
 # before even calling the judge model (latency-free first-pass filter).
 HARD_VIOLATION_PATTERNS: list[tuple[str, str]] = [
-    ("write to plc",         "AGENTS.md prohibits writing to PLC without explicit authorization."),
-    ("download to plc",      "AGENTS.md prohibits downloading to PLC without explicit authorization."),
-    ("transfer to plc",      "AGENTS.md prohibits PLC transfer without explicit authorization."),
-    ("remote operation",     "AGENTS.md prohibits Remote Operation without explicit authorization."),
-    ("d:\\gx works\\schlenker.gxw", "AGENTS.md prohibits opening the protected original project."),
-    ("d:/gx works/schlenker.gxw",   "AGENTS.md prohibits opening the protected original project."),
     ("skip the safety gate", "Safety gate cannot be skipped per AGENTS.md."),
     ("bypass the hash",      "SHA-256 integrity check cannot be bypassed per AGENTS.md."),
+    ("bypass plc authorization", "PLC authorization cannot be bypassed per AGENTS.md."),
+    ("ignore plc authorization", "PLC authorization cannot be ignored per AGENTS.md."),
     ("add click to the capture",     "Capture helper must remain read-only per AGENTS.md."),
     ("add input to the capture",     "Capture helper must remain read-only per AGENTS.md."),
 ]
@@ -308,17 +316,36 @@ def main() -> None:
         print(json.dumps(output), flush=True)
         sys.exit(0)
 
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
         # Hook failures must never crash the Codex session.
-        # Log the traceback but exit 0 so Codex continues normally.
+        # Log a bounded error and tell the user scoring was skipped.
         elapsed_ms = (time.monotonic() - t0) * 1000
-        tb = traceback.format_exc()
+        error_text = f"{type(exc).__name__}: {exc}"[:1000]
         _write_log(
             session_id, turn_id,
             payload.get("prompt", "") if "payload" in dir() else "",
-            None, False, f"HOOK_ERROR: {tb}", elapsed_ms
+            None, False, f"HOOK_ERROR: {error_text}", elapsed_ms
         )
-        # Silently continue — don't break the IDE
+        if "insufficient_quota" in error_text or "no credits" in error_text.lower():
+            note = (
+                "[SCHLENKER JUDGE] API scoring unavailable: the OpenAI API "
+                "account has no remaining credits. The prompt will continue "
+                "unscored; add API credits before relying on the evaluator."
+            )
+        else:
+            note = (
+                "[SCHLENKER JUDGE] API scoring unavailable for this prompt. "
+                "The prompt will continue unscored; run "
+                "scripts/test-prompt-judge.ps1 -Live and inspect logs/judge/."
+            )
+        output = {
+            "systemMessage": note,
+            "hookSpecificOutput": {
+                "hookEventName": "UserPromptSubmit",
+                "additionalContext": note,
+            },
+        }
+        print(json.dumps(output), flush=True)
         sys.exit(0)
 
 

@@ -10,6 +10,7 @@ runs/*
 !runs/.gitkeep
 fixtures/projects/*
 !fixtures/projects/.gitkeep
+components/
 outputs/
 programmer_progetv19/
 img-log/
@@ -23,6 +24,7 @@ tools/**/*.dll
 tools/**/*.exe
 tools/**/*.exe.config
 tools/**/*.pdb
+tools/**/*.report.txt
 tools/**/bin/
 tools/**/obj/
 

@@ -1,3 +1,41 @@
+TYPE "UDT_IOLinkPortMapping" :
+STRUCT
+    Configured          : Bool;       // TRUE only after TIA hardware/port commissioning
+    QualityOK           : Bool;       // Verified port/device quality
+    DeviceFault         : Bool;       // Verified device/port diagnostic fault
+    LiveBool            : Bool;       // Logical digital state where applicable
+    LiveReal            : Real;       // Logical process value where applicable
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_IOLinkMasterMapping" :
+STRUCT
+    CommunicationOK     : Bool;       // Verified AL1403 PROFINET communication
+    HardwareConfigured  : Bool;       // FALSE until the real AL1403 exists in TIA HW
+    Port                : Array[1..8] of "UDT_IOLinkPortMapping";
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_PilzDiagnostic" :
+STRUCT
+    // REV23 non-safety diagnostic interface only. The Pilz controller remains
+    // the sole safety authority. No member of this structure commands or
+    // bypasses a safety function.
+    CommunicationOK       : Bool; // Existing aggregate PROFINET/station health
+    DataValid             : Bool; // FALSE means every dependent value is invalid
+    PhysicalMapConfigured : Bool; // Held FALSE until GSDML/process map is proven
+    SafetyReady           : Bool; // Aggregate, valid only while DataValid = TRUE
+    GeneralFault          : Bool; // Aggregate, valid only while DataValid = TRUE
+    ResetRequired         : Bool; // Standard diagnostic indication only
+    EStopChainHealthy     : Bool; // Aggregate chain; no individual device identity
+    AllGuardsClosed       : Bool; // Aggregate status for all 11 doors
+    AllGuardsUnlocked     : Bool; // Aggregate status; locking topology unverified
+    SafetyCircuitClosed   : Bool; // Aggregate closed safety-circuit indication
+    StandstillConfirmed   : Bool; // Aggregate zero-speed indication
+    ThreePhaseOffConfirmed: Bool; // Aggregate power-off indication
+END_STRUCT;
+END_TYPE
+
 TYPE "UDT_Machine" :
 STRUCT
     State               : USInt;
@@ -6,6 +44,8 @@ STRUCT
     TrackingValid       : Bool;
     RotationPermitted   : Bool;
     AutomaticActive     : Bool;
+    ProductionActive    : Bool;
+    RunOutActive        : Bool;
     ManualActive        : Bool;
     StandbyActive       : Bool;
     FillerHeightActive  : Bool;
@@ -16,6 +56,7 @@ STRUCT
     DoorAccessActive    : Bool;
     DoorRestartPermitted: Bool;
     DoorAccessFault     : Bool;
+    ActiveMode          : USInt;
 END_STRUCT;
 END_TYPE
 
@@ -27,6 +68,7 @@ STRUCT
     Reset               : Bool;
     HomeStart           : Bool;
     CIPStart            : Bool;
+    CIPStop             : Bool;
     EmptyingStart       : Bool;
     FillerHeightEnable  : Bool;
     CapperHeightEnable  : Bool;
@@ -41,6 +83,27 @@ STRUCT
     LightsOff           : Bool;
     AirFilterOn         : Bool;
     AirFilterOff        : Bool;
+    GateAutoRequestEnable : Bool;
+    RunOutProductStart  : Bool;
+    ProductPumpEnable   : Bool;
+    ProductPumpManualEnable : Bool;
+    ProductionOn        : Bool;
+    ProductionOff       : Bool;
+    CIPMedium           : USInt;
+    CIPPause            : Bool;
+    CIPResume           : Bool;
+    CIPAbort            : Bool;
+    CIPNext             : Bool;
+    CIPAcknowledgeComplete : Bool;
+    CIPRecipeSaveDraft  : Bool;
+    CIPRecipeSaveAs     : Bool;
+    CIPRecipeApprove    : Bool;
+    CIPRecipeLock       : Bool;
+    CIPRecipeSupersede  : Bool;
+    InternalWashOn      : Bool;
+    InternalWashOff     : Bool;
+    FillerLiftConfirm   : Bool;
+    CapperLiftConfirm   : Bool;
 END_STRUCT;
 END_TYPE
 
@@ -79,10 +142,14 @@ STRUCT
     HoodFilterAlarm     : Bool;
     SMCCommOK           : Bool;
     PilzDeviceOK        : Bool;
-    IOLinkMaster1OK     : Bool;
-    IOLinkMaster2OK     : Bool;
-    IOLinkMaster3OK     : Bool;
-    IOLinkMaster4OK     : Bool;
+    // REV18 permanent engineering IDs: legacy Master1..5 symbols map in order
+    // to AL100..AL104. Physical device/port assignments remain uncommissioned.
+    IOLinkMaster1OK     : Bool; // AL100 symbolic communication state
+    IOLinkMaster2OK     : Bool; // AL101 symbolic communication state
+    IOLinkMaster3OK     : Bool; // AL102 symbolic communication state
+    IOLinkMaster4OK     : Bool; // AL103 symbolic communication state
+    IOLinkMaster5Configured : Bool; // AL104 dedicated Customer CIP Interface configured
+    IOLinkMaster5OK     : Bool; // AL104 communication state
     DriveG120CNetworkOK : Bool;
     HMILinkOK           : Bool;
     AnybusGatewayOK     : Bool;
@@ -109,6 +176,21 @@ STRUCT
     ControlPowerOK         : Bool;
     AirFilterPressureOK    : Bool;
     AirFilterChangeRequired24V : Bool;
+    BottleCountInMachine       : DInt;
+    BottleAdmissionComplete    : Bool;
+    ProductPresentAtPump       : Bool;
+    MainSpeedActualPct         : Real;
+    MainSpeedActualValid       : Bool;
+    VacuumActualMbar           : Real;
+    VacuumSignalValid          : Bool;
+    CIPValve217PathRequest     : Bool;
+    CIPValve213PathRequest     : Bool;
+    CIPRemoteReady             : Bool;
+    CIPRemoteBusy              : Bool;
+    CIPRemoteFault             : Bool;
+    CIPRemoteRequestAccepted   : Bool;
+    CIPMediumAvailable         : Bool;
+    CIPDischargeComplete       : Bool;
 END_STRUCT;
 END_TYPE
 
@@ -141,6 +223,19 @@ STRUCT
     RequestRearBlueLampCmd  : Bool;
     MachineLightsRelayCmd : Bool;
     AirFilterRelayCmd     : Bool;
+    ExternalBottleWashValveCmd : Bool;
+    Valve210Cmd         : Bool;
+    Valve217Cmd         : Bool;
+    Valve213Cmd         : Bool;
+    Valve212Cmd         : Bool;
+    Valve247Cmd         : Bool;
+    InternalWashValveCmd : Bool;
+    CIPReqColdWater     : Bool;
+    CIPReqHotWater      : Bool;
+    CIPReqAcid          : Bool;
+    CIPReqCitra         : Bool;
+    CIPReqDischarge     : Bool;
+    ProductionReqProduct : Bool;
 END_STRUCT;
 END_TYPE
 
@@ -167,6 +262,243 @@ STRUCT
     DoorPowerOffTimeout     : Time;
     DoorUnlockTimeout       : Time;
     AirFilterProofDelay     : Time;
+    ExternalWashOffDelay    : Time;
+    GateRequestMinSpeedPct  : Real;
+    GateRequestSpeedTolerancePct : Real;
+    GateRequestStepTimeout  : Time;
+    RunOutTankClosePct      : Real;
+    RunOutLastBottleDelay   : Time;
+    ProductPumpStartMinLevelPct : Real;
+    CIPMediaLossDelay       : Time;
+    CIPTankFullDelay        : Time;
+    CIPPumpPreOpenDelay     : Time;
+    CIPValve212OpenTime     : Time;
+    CIPVacuumPostRunTime    : Time;
+    VacuumStartupDelay      : Time;
+    VacuumMinMbar           : Real;
+    CIPColdWashTime         : Time;
+    CIPHotWashTime          : Time;
+    CIPAcidWashTime         : Time;
+    CIPHotRinseTime         : Time;
+    CIPColdRinseTime        : Time;
+    CIPCitraTime            : Time;
+    CIPFinalRinseTime       : Time;
+    CIPDischargeTime        : Time;
+    CIPRemoteResponseTimeout : Time;
+    CIPRequireRemoteHandshake : Bool;
+    CIPRequireDischargeComplete : Bool;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_AutoGateRequest" :
+STRUCT
+    State               : USInt;
+    Active              : Bool;
+    Completed           : Bool;
+    Aborted             : Bool;
+    Fault               : Bool;
+    OverrideActive      : Bool;
+    GateOpenCmd         : Bool;
+    GateCloseCmd        : Bool;
+    SpeedLimitPct       : Real;
+    StopRequest         : Bool;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_CIP" :
+STRUCT
+    Step                : USInt;
+    Active              : Bool;
+    VacuumSequenceDone  : Bool;
+    ProductPumpPermit   : Bool;
+    MediaSeen           : Bool;
+    MediaLossAlarm      : Bool;
+    Medium              : USInt;
+    ElapsedTime         : Time;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_CIPSequence" :
+STRUCT
+    State               : USInt;
+    Phase               : USInt;
+    RequestedMedium     : USInt;
+    ProgressPct         : USInt;
+    Active              : Bool;
+    Paused              : Bool;
+    Complete            : Bool;
+    Fault               : Bool;
+    AbortActive         : Bool;
+    RemoteWaitActive    : Bool;
+    PhaseElapsed        : Time;
+    PhaseDuration       : Time;
+    FaultCode           : UInt;
+    TotalSteps          : USInt;
+    AdvanceMode         : USInt; // 0 AUTO, 1 MANUAL NEXT
+    WaitingForNext      : Bool;
+    NextPermitted       : Bool;
+    RecipeValid         : Bool;
+    ValidationCode      : UInt;
+    TransitionActive    : Bool;
+    RemainingTime       : Time;
+    CompleteAcknowledged : Bool;
+    NextRejected        : Bool;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_CIPRecipeStep" :
+STRUCT
+    Enabled             : Bool;
+    Medium              : USInt; // 0 OFF, 1 cold, 2 hot, 3 caustic/acid, 4 citra, 5 discharge
+    Duration            : Time;
+    AdvanceMode         : USInt; // 0 AUTO, 1 MANUAL NEXT
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_CIPRecipe" :
+STRUCT
+    RecipeName          : String[32];
+    Revision            : UInt;
+    StepCount           : USInt;
+    Valid               : Bool; // calculated by the PLC recipe engine
+    LifecycleState      : USInt; // 0 DRAFT, 1 APPROVED, 2 LOCKED, 3 SUPERSEDED
+    Approved            : Bool;
+    Locked              : Bool;
+    OperatorSelectable  : Bool;
+    LastModifiedBy      : String[32];
+    ApprovedBy          : String[32];
+    LockedBy            : String[32];
+    LastModifiedAt      : DTL;
+    ApprovedAt          : DTL;
+    LockedAt            : DTL;
+    Step                : Array[1..10] of "UDT_CIPRecipeStep";
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_CIPRecipeControl" :
+STRUCT
+    Initialized         : Bool;
+    EngineeringAuthorized : Bool; // HMI session-derived engineering permit
+    ActorName           : String[32];
+    ActorRole           : USInt; // 0 unknown/operator, 1 maintenance, 2 engineer, 3 administrator
+    DraftValidationCode : UInt;
+    ApprovedValidationCode : UInt;
+    StartPermitted      : Bool;
+    StartRejectedInvalid : Bool;
+    StartRejectedUnapproved : Bool;
+    StartRejectedUnlocked : Bool;
+    EditRejected        : Bool;
+    ActiveSnapshotReady : Bool;
+    ActiveRecipeName    : String[32];
+    ActiveRecipeRevision : UInt;
+    AuditHead           : USInt;
+    AuditCount          : USInt;
+    AuditSequence       : UDInt;
+    LastAuditTimestamp  : DTL;
+    LastAuditTimestampValid : Bool;
+    LastAuditActorName  : String[32];
+    LastAuditAction     : USInt;
+    LastAuditStep       : USInt;
+    ExecutionHead       : USInt;
+    ExecutionCount      : USInt;
+    ExecutionSequence   : UDInt;
+    LastExecutionRunId  : UDInt;
+    LastExecutionResult : USInt;
+    LastExecutionRecipe : String[32];
+    LastExecutionRevision : UInt;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_CIPRecipeAuditEntry" :
+STRUCT
+    Sequence            : UDInt;
+    Timestamp           : DTL;
+    TimestampValid      : Bool;
+    ActorName           : String[32];
+    ActorRole           : USInt;
+    RecipeName          : String[32];
+    Revision            : UInt;
+    Action              : USInt; // 1 create, 2 save, 3 approve, 4 lock, 5 supersede, 6 start, 7 manual next, 8 enable, 9 disable, 10 medium, 11 duration, 12 advance mode
+    StepNumber          : USInt;
+    OldValue            : DInt;
+    NewValue            : DInt;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_CIPExecutionRecord" :
+STRUCT
+    RunId               : UDInt;
+    StartTimestamp      : DTL;
+    FinishTimestamp     : DTL;
+    StartTimestampValid : Bool;
+    FinishTimestampValid : Bool;
+    OperatorName        : String[32];
+    RecipeName          : String[32];
+    RecipeRevision      : UInt;
+    Result              : USInt; // 0 running, 1 completed, 2 aborted, 3 faulted
+    FinalStep           : USInt;
+    ManualNextCount     : USInt;
+    FaultCode           : UInt;
+    StepMedium          : Array[1..10] of USInt;
+    StepProgrammedDuration : Array[1..10] of Time;
+    StepActualDuration  : Array[1..10] of Time;
+    StepAdvanceMode     : Array[1..10] of USInt;
+    StepCompleted       : Array[1..10] of Bool;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_CIPInterface" :
+STRUCT
+    ReqColdWater        : Bool;
+    ReqHotWater         : Bool;
+    ReqAcid             : Bool;
+    ReqCitra            : Bool;
+    ReqDischarge        : Bool;
+    ReqProduct          : Bool;
+    RemoteReady         : Bool;
+    RemoteBusy          : Bool;
+    RemoteFault         : Bool;
+    RequestAccepted     : Bool;
+    MediumAvailable     : Bool;
+    DischargeComplete   : Bool;
+    MasterConfigured    : Bool;
+    MasterCommOK        : Bool;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_InternalWash" :
+STRUCT
+    Requested           : Bool;
+    Active              : Bool;
+    Permissive          : Bool;
+    NotCommissioned     : Bool;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_ProductionVacuum" :
+STRUCT
+    BuildActive         : Bool;
+    VacuumReady         : Bool;
+    LowVacuumAlarm      : Bool;
+    StopRequest         : Bool;
+    AttemptNumber       : USInt;
+    StartupElapsed      : Time;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_RunOutProduct" :
+STRUCT
+    State               : USInt;
+    Active              : Bool;
+    Completed           : Bool;
+    Aborted             : Bool;
+    OverrideActive      : Bool;
+    GateOpenCmd         : Bool;
+    GateCloseCmd        : Bool;
+    PumpPermit          : Bool;
+    IgnoreLowLevelStop  : Bool;
+    StopRequest         : Bool;
+    FinalRunElapsed     : Time;
 END_STRUCT;
 END_TYPE
 
@@ -204,5 +536,24 @@ STRUCT
     AirFilterPressureOK     : Bool;
     AirFilterFault          : Bool;
     AirFilterChangeWarning  : Bool;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_Efficiency" :
+STRUCT
+    TotalSeconds       : DInt;
+    RunSeconds         : DInt;
+    StopSeconds        : DInt;
+    WaitingSeconds     : DInt;
+    BreakdownSeconds   : DInt;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_LiftConfirmation" :
+STRUCT
+    FillerConfirmed     : Bool;
+    CapperConfirmed     : Bool;
+    MovementAreaClear   : Bool;
+    ConfirmationValid   : Bool;
 END_STRUCT;
 END_TYPE
