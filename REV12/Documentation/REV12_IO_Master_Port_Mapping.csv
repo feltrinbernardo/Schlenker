@@ -1,0 +1,16 @@
+DeviceCode,CableID,MasterOrPLCChannel,PLCAddress,PLCTag,HMITag,Interface,Status,HoldPoint
+E100,C-001,PLC TM Count / HSC,TBC,DB_Global.Inp.EncoderCount,Encoder_Count,HTL A/B/Z,Existing symbolic logic,Confirm technology object and terminals
+ZS100,C-002,PLC direct DI,TBC,DB_Global.Inp.MachineZero,DI_Machine_Zero,24 VDC sensor,Existing symbolic logic,Confirm terminal/address
+SPB100,C-003,PLC direct DI,%I0.7,DB_Global.Inp.BottleInfeed,DI_Bottle_Infeed,24 VDC sensor,Existing map,Point-to-point prove
+SPB101,C-004,PLC direct DI,TBC,DB_Global.Inp.CapTransfer,DI_Cap_Transfer,24 VDC sensor,Planned,Confirm address
+SPB102,C-005,PLC direct DI,TBC,DB_Global.Inp.CapperOutfeedCrash,DI_Capper_Outfeed_Crash,24 VDC sensor,Existing symbolic logic,Confirm address
+TLS100,C-006,AL1403 or PLC AI,TBC,DB_Global.Inp.TankLevelPct,Tank_Level_Pct,IO-Link or 4-20mA,Open hold point,Confirm interface scaling port and address
+LSF100,C-021,Field DI,%I1.2,DB_Global.Inp.FillerUpperLimit,DI_Filler_Lift_Upper,24 VDC switch,Existing map,Confirm field terminal
+LSF101,C-022,Field DI,%I1.3,DB_Global.Inp.FillerLowerLimit,DI_Filler_Lift_Lower,24 VDC switch,Existing map,Confirm field terminal
+LSC100,C-023,Field DI,%I1.5,DB_Global.Inp.CapperUpperLimit,DI_Capper_Lift_Upper,24 VDC switch,Existing map,Confirm field terminal
+LSC101,C-024,Field DI,%I1.6,DB_Global.Inp.CapperLowerLimit,DI_Capper_Lift_Lower,24 VDC switch,Existing map,Confirm field terminal
+EV210,C-026,SMC valve island,TBC,DB_Global.Out.Valve210Cmd,DO_Valve_210,Network solenoid,Logical command implemented,Confirm SMC bit/solenoid
+EV217,C-027,SMC valve island,TBC,DB_Global.Out.Valve217Cmd,DO_Valve_217,Network solenoid,Logical command implemented,Confirm SMC bit/solenoid
+EV213,C-028,SMC valve island,TBC,DB_Global.Out.Valve213Cmd,DO_Valve_213,Network solenoid,Logical command implemented,Confirm SMC bit/solenoid
+EV212,C-029,SMC valve island,TBC,DB_Global.Out.Valve212Cmd,DO_Valve_212,Network solenoid,Logical command implemented,Confirm SMC bit/solenoid
+EV247,C-030,SMC valve island,TBC,DB_Global.Out.Valve247Cmd,DO_Valve_247,Network solenoid,Logical command implemented,Confirm SMC bit/solenoid

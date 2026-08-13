@@ -38,7 +38,12 @@ merge status. Items from the REV11 master brief that do not yet have compiled
 implementation remain explicit open points; they are not treated as removed.
 
 ## Important engineering limitation
-This is a professional TIA source/import release, not a native `.ap19` archive. It has not been compiled in Siemens TIA Portal in this environment. The TIA engineer must:
+This is a professional TIA source/import release, not a native `.ap19` archive.
+The PLC software rebuild passed in Siemens TIA Portal V19 with zero errors and
+zero warnings on 2026-08-06. The empty HMI baseline also compiled with zero
+errors and zero warnings, but it contained zero tags. PLC-HMI connection,
+operational HMI configuration and PLCSIM/FAT validation remain pending. The
+TIA engineer must:
 
 - import the source files in the numbered order;
 - generate PLC data types first;
@@ -47,7 +52,9 @@ This is a professional TIA source/import release, not a native `.ap19` archive. 
 - connect the real TM Count technology object;
 - configure all G120C telegrams;
 - configure the Pilz, IO-Link masters and SMC gateway;
-- compile PLC and HMI;
+- compile the PLC hardware configuration and HMI;
+- close the two deferred hardware-security warnings by configuring the PLC
+  access-protection level and CPU-display password protection;
 - correct any catalog/version-specific syntax;
 - validate in PLCSIM and FAT before downloading to the machine.
 

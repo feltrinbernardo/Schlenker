@@ -1,0 +1,41 @@
+Master,Port,DeviceID,Function,DeviceType,PLCLogicalTag,HMITag,Mode,Status,PhysicalAddress
+AL100,P1,DI-031,Bottle Shortage 1 - line slowdown,Field sensor final model at build,b_BottleShortage_1,DI_Bottle_Shortage_1,DI/SIO or IO-Link,FROZEN PORT,NOT CONFIGURED
+AL100,P2,DI-032,Bottle Shortage 2 - gate/standby,Field sensor final model at build,b_BottleShortage_2,DI_Bottle_Shortage_2,DI/SIO or IO-Link,FROZEN PORT,NOT CONFIGURED
+AL100,P3,DI-033,Outfeed Accumulation 1 - slowdown,Field sensor final model at build,b_Accumulation_1,DI_Accumulation_1,DI/SIO or IO-Link,FROZEN PORT,NOT CONFIGURED
+AL100,P4,DI-034,Outfeed Accumulation 2 - gate/standby,Field sensor final model at build,b_Accumulation_2,DI_Accumulation_2,DI/SIO or IO-Link,FROZEN PORT,NOT CONFIGURED
+AL100,P5,SPARE-A100-05,Future bottle sensor,-,-,-,Spare,SPARE,NOT APPLICABLE
+AL100,P6,SPARE-A100-06,Future bottle sensor,-,-,-,Spare,SPARE,NOT APPLICABLE
+AL100,P7,SPARE-A100-07,Future expansion,-,-,-,Spare,SPARE,NOT APPLICABLE
+AL100,P8,SPARE-A100-08,Future expansion,-,-,-,Spare,SPARE,NOT APPLICABLE
+AL101,P1,DI-040,Cap Present - Pick and Place,Field sensor final model at build,b_CapPresent_PP,DI_Cap_Present,DI/SIO or IO-Link,FROZEN PORT,NOT CONFIGURED
+AL101,P2,DI-060,Cap Hopper Low Level,Field sensor final model at build,b_CapHopper_Low,DI_Cap_Hopper_Low,DI/SIO or IO-Link,FROZEN PORT,NOT CONFIGURED
+AL101,P3,DI-061,Cap Channel Request,Field sensor final model at build,b_CapChannel_Req,DI_Cap_Channel_Demand,DI/SIO or IO-Link,FROZEN PORT,NOT CONFIGURED
+AL101,P4,DI-062,Cap Channel Empty,Field sensor final model at build,b_CapChannel_Empty,DI_Caps_Missing,DI/SIO or IO-Link,FROZEN PORT,NOT CONFIGURED
+AL101,P5,DI-010,Machine Air Pressure OK,Pressure switch/sensor,b_AirPressureOK,DI_AirPressure_OK,DI/IO-Link if supported,FROZEN PORT,NOT CONFIGURED
+AL101,P6,SPARE-A101-06,Cap/pneumatic expansion,-,-,-,Spare,SPARE,NOT APPLICABLE
+AL101,P7,SPARE-A101-07,Cap/pneumatic expansion,-,-,-,Spare,SPARE,NOT APPLICABLE
+AL101,P8,SPARE-A101-08,Future expansion,-,-,-,Spare,SPARE,NOT APPLICABLE
+AL102,P1,PT-PRODUCT,Product Pressure,IFM PN7094 candidate,ai_ProductPressure,-,IO-Link,ASSIGN DEVICE AT BUILD,NOT CONFIGURED
+AL102,P2,PT-AIR,Pneumatic/Process Pressure Diagnostic,IFM PN7094 candidate,ai_AirPressure,-,IO-Link,ASSIGN DEVICE AT BUILD,NOT CONFIGURED
+AL102,P3,PT-CIP,CIP/Service Pressure Diagnostic,IFM PN7094 candidate,ai_CIPPressure,-,IO-Link,ASSIGN DEVICE AT BUILD,NOT CONFIGURED
+AL102,P4,PT-SPARE,Spare Pressure Measurement,IFM PN7094 candidate,ai_SparePressure,-,IO-Link,SPARE INSTRUMENT,NOT CONFIGURED
+AL102,P5,LT-PRODUCT,Product Level/Continuous Level,IFM LR2050 candidate,ai_ProductLevel,-,IO-Link,ASSIGN DEVICE AT BUILD,NOT CONFIGURED
+AL102,P6,LT-CIP,CIP/Process Level,IFM LR2050 candidate,ai_CIPLevel,-,IO-Link,ASSIGN DEVICE AT BUILD,NOT CONFIGURED
+AL102,P7,TT-PROCESS,Process Temperature,IFM TA2405 candidate,ai_ProcessTemperature,-,IO-Link,ASSIGN DEVICE AT BUILD,NOT CONFIGURED
+AL102,P8,SPARE-A102-08,Future process instrument,-,-,-,Spare,SPARE,NOT APPLICABLE
+AL103,P1,SEN-103-01,Additional machine sensor 1,IFM purchased sensor assign at installation,io_AL103_P1,-,IO-Link/SIO,RESERVED / NOT INSTALLED,NOT CONFIGURED
+AL103,P2,SEN-103-02,Additional machine sensor 2,IFM purchased sensor assign at installation,io_AL103_P2,-,IO-Link/SIO,RESERVED / NOT INSTALLED,NOT CONFIGURED
+AL103,P3,SEN-103-03,Additional machine sensor 3,IFM purchased sensor assign at installation,io_AL103_P3,-,IO-Link/SIO,RESERVED / NOT INSTALLED,NOT CONFIGURED
+AL103,P4,SEN-103-04,Additional machine sensor 4,IFM purchased sensor assign at installation,io_AL103_P4,-,IO-Link/SIO,RESERVED / NOT INSTALLED,NOT CONFIGURED
+AL103,P5,SPARE-A103-05,Future smart sensor,-,-,-,Spare,SPARE,NOT APPLICABLE
+AL103,P6,SPARE-A103-06,Future smart sensor,-,-,-,Spare,SPARE,NOT APPLICABLE
+AL103,P7,SPARE-A103-07,Future smart sensor,-,-,-,Spare,SPARE,NOT APPLICABLE
+AL103,P8,SPARE-A103-08,Future smart sensor,-,-,-,Spare,SPARE,NOT APPLICABLE
+AL104,P1,CIP-DO-01,Cold Water Request,Customer interface output,CIP_REQ_COLD_WATER,CIP_Req_Cold_Water,Digital output,FROZEN FUNCTION,NOT CONFIGURED
+AL104,P2,CIP-DO-02,Hot Water Request,Customer interface output,CIP_REQ_HOT_WATER,CIP_Req_Hot_Water,Digital output,FROZEN FUNCTION,NOT CONFIGURED
+AL104,P3,CIP-DO-03,Acid/Chemical Request,Customer interface output,CIP_REQ_ACID,CIP_Req_Acid,Digital output,FROZEN FUNCTION,NOT CONFIGURED
+AL104,P4,CIP-DO-04,Citra/Neutralizer Request,Customer interface output,CIP_REQ_CITRA,CIP_Req_Citra,Digital output,FROZEN FUNCTION,NOT CONFIGURED
+AL104,P5,CIP-DO-05,Discharge Request,Customer interface output,CIP_REQ_DISCHARGE,CIP_Req_Discharge,Digital output,FROZEN FUNCTION,NOT CONFIGURED
+AL104,P6,PROD-DO-01,Production/Product Request,Customer interface output,PRODUCTION_REQ_PRODUCT,Production_Req_Product,Digital output,FROZEN FUNCTION,NOT CONFIGURED
+AL104,P7,CIP-DI-01,Customer CIP Ready/Accepted,Customer feedback,CIP_REMOTE_READY,CIP_Remote_Ready,Digital input,RESERVED FEEDBACK,NOT CONFIGURED
+AL104,P8,CIP-DI-02,Customer CIP Fault/Busy,Customer feedback,CIP_REMOTE_FAULT,CIP_Remote_Fault,Digital input,RESERVED FEEDBACK,NOT CONFIGURED
