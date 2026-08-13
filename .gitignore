@@ -24,6 +24,7 @@ tools/**/*.dll
 tools/**/*.exe
 tools/**/*.exe.config
 tools/**/*.pdb
+tools/**/*.report.txt
 tools/**/bin/
 tools/**/obj/
 
