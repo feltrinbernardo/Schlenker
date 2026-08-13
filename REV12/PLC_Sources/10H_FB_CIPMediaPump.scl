@@ -1,0 +1,27 @@
+FUNCTION_BLOCK "FB_CIPMediaPump"
+VAR_INPUT
+    CIPActive       : Bool;
+    ProductPresent  : Bool;
+    LossDelay       : Time;
+    Reset           : Bool;
+END_VAR
+VAR_IN_OUT
+    S               : "UDT_CIP";
+END_VAR
+VAR
+    MediaHold       : TOF;
+END_VAR
+BEGIN
+    MediaHold(IN := CIPActive AND ProductPresent, PT := LossDelay);
+
+    IF NOT CIPActive THEN
+        S.MediaSeen := FALSE;
+        S.ProductPumpPermit := FALSE;
+        S.MediaLossAlarm := FALSE;
+    ELSE
+        IF ProductPresent THEN S.MediaSeen := TRUE; END_IF;
+        S.ProductPumpPermit := S.MediaSeen AND MediaHold.Q;
+        S.MediaLossAlarm := S.MediaSeen AND NOT MediaHold.Q;
+        IF Reset AND ProductPresent THEN S.MediaLossAlarm := FALSE; END_IF;
+    END_IF;
+END_FUNCTION_BLOCK

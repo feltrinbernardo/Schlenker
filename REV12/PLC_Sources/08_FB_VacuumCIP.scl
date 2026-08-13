@@ -1,70 +1,76 @@
 FUNCTION_BLOCK "FB_VacuumCIP"
 VAR_INPUT
-    ProductionMode      : Bool;
     CIPMode             : Bool;
     TankFull100         : Bool;
     ResetSequence       : Bool;
-    CIPVacuumTime       : Time;
+    TankFullDelay       : Time;
+    PumpPreOpenDelay    : Time;
+    ValveOpenTime       : Time;
+    PumpPostRunTime     : Time;
+END_VAR
+VAR_IN_OUT
+    S                   : "UDT_CIP";
 END_VAR
 VAR_OUTPUT
     VacuumPumpCmd       : Bool;
-    EV210               : Bool;
-    EV211               : Bool;
-    EV212               : Bool;
-    CIPVacuumDone       : Bool;
-    Step                : USInt;
+    Valve212Cmd         : Bool;
 END_VAR
 VAR
-    tCIP                : TON;
-    RunTimer            : Bool;
+    tTankFull           : TON;
+    tPreOpen            : TON;
+    tValveOpen          : TON;
+    tPostRun            : TON;
+    tStepElapsed        : TON;
+    StepMemory          : USInt;
+    MediumMemory        : USInt;
+    TimerReset          : Bool;
 END_VAR
-
 BEGIN
-    // Defaults each scan.
     VacuumPumpCmd := FALSE;
-    EV210 := FALSE;
-    EV211 := FALSE;
-    EV212 := FALSE;
-    RunTimer := FALSE;
+    Valve212Cmd := FALSE;
+    S.Active := CIPMode;
+
+    TimerReset := (S.Step <> StepMemory) OR (S.Medium <> MediumMemory);
+    tStepElapsed(IN := CIPMode AND NOT TimerReset, PT := T#24h);
+    StepMemory := S.Step;
+    MediumMemory := S.Medium;
+    S.ElapsedTime := tStepElapsed.ET;
+
+    tTankFull(IN := CIPMode AND (S.Step = USINT#10), PT := TankFullDelay);
+    tPreOpen(IN := CIPMode AND (S.Step = USINT#20), PT := PumpPreOpenDelay);
+    tValveOpen(IN := CIPMode AND (S.Step = USINT#30), PT := ValveOpenTime);
+    tPostRun(IN := CIPMode AND (S.Step = USINT#40), PT := PumpPostRunTime);
 
     IF ResetSequence OR NOT CIPMode THEN
-        IF NOT ProductionMode THEN Step := 0; END_IF;
-        CIPVacuumDone := FALSE;
-    END_IF;
+        S.Step := USINT#0;
+        S.VacuumSequenceDone := FALSE;
+        S.ElapsedTime := T#0ms;
+    ELSE
+        CASE S.Step OF
+            USINT#0: // Circulation; wait for the full-tank trigger.
+                IF TankFull100 THEN S.Step := USINT#10; END_IF;
 
-    IF ProductionMode THEN
-        Step := 0;
-        CIPVacuumDone := FALSE;
-        VacuumPumpCmd := TRUE;
-        EV210 := FALSE;
-        EV211 := TRUE;
-        EV212 := FALSE;
+            USINT#10: // Tank full confirmation delay (nominal 4 s).
+                IF tTankFull.Q THEN S.Step := USINT#20; END_IF;
 
-    ELSIF CIPMode THEN
-        CASE Step OF
-            0:
-                EV210 := TRUE;
-                EV212 := TRUE;
-                IF TankFull100 THEN Step := 10; END_IF;
-
-            10:
-                EV210 := TRUE;
-                EV211 := TRUE;
-                EV212 := TRUE;
+            USINT#20: // Start vacuum pump, keep valve closed for 1 s.
                 VacuumPumpCmd := TRUE;
-                RunTimer := TRUE;
-                IF tCIP.Q THEN Step := 20; END_IF;
+                IF tPreOpen.Q THEN S.Step := USINT#30; END_IF;
 
-            20:
-                EV210 := TRUE;
-                EV211 := FALSE;
-                EV212 := TRUE;
-                CIPVacuumDone := TRUE;
+            USINT#30: // Valve 212 open for the configured 7 s.
+                VacuumPumpCmd := TRUE;
+                Valve212Cmd := TRUE;
+                IF tValveOpen.Q THEN S.Step := USINT#40; END_IF;
+
+            USINT#40: // Valve closed; vacuum pump post-run (10 s).
+                VacuumPumpCmd := TRUE;
+                IF tPostRun.Q THEN S.Step := USINT#50; END_IF;
+
+            USINT#50:
+                S.VacuumSequenceDone := TRUE;
+
         ELSE
-            Step := 0;
+            S.Step := USINT#0;
         END_CASE;
     END_IF;
-
-    // Timer is called exactly once per scan. Leaving step 10 resets elapsed time.
-    tCIP(IN := RunTimer, PT := CIPVacuumTime);
 END_FUNCTION_BLOCK

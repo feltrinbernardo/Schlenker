@@ -1,0 +1,97 @@
+FUNCTION_BLOCK "FB_RunOutProduct"
+VAR_INPUT
+    RunOutMode         : Bool;
+    MachineRunning     : Bool;
+    SafetyOK           : Bool;
+    CriticalAlarm      : Bool;
+    ProductPresentAtPump: Bool;
+    TankLevelPct       : Real;
+    BottleCount        : DInt;
+    GateClosedFB       : Bool;
+    TankClosePct       : Real;
+    LastBottleDelay    : Time;
+    Reset              : Bool;
+END_VAR
+VAR_IN_OUT
+    S                  : "UDT_RunOutProduct";
+END_VAR
+VAR
+    LastBottleTimer    : TON;
+    ModeMemory         : Bool;
+    ModePulse          : Bool;
+END_VAR
+BEGIN
+    ModePulse := RunOutMode AND NOT ModeMemory;
+    ModeMemory := RunOutMode;
+
+    IF ModePulse THEN
+        S.State := USINT#10;
+        S.Completed := FALSE;
+        S.Aborted := FALSE;
+    END_IF;
+
+    S.Active := RunOutMode AND (S.State >= USINT#10) AND (S.State <= USINT#50);
+    S.OverrideActive := RunOutMode OR S.Completed OR S.Aborted;
+    S.GateOpenCmd := FALSE;
+    S.GateCloseCmd := S.OverrideActive;
+    S.PumpPermit := FALSE;
+    S.IgnoreLowLevelStop := RunOutMode;
+    S.StopRequest := FALSE;
+
+    LastBottleTimer(IN := RunOutMode AND (S.State = USINT#40), PT := LastBottleDelay);
+    IF S.State = USINT#40 THEN
+        S.FinalRunElapsed := LastBottleTimer.ET;
+    ELSE
+        S.FinalRunElapsed := T#0ms;
+    END_IF;
+
+    IF Reset AND NOT RunOutMode THEN
+        S.State := USINT#0;
+        S.Completed := FALSE;
+        S.Aborted := FALSE;
+    ELSIF RunOutMode AND (NOT SafetyOK OR CriticalAlarm) THEN
+        S.State := USINT#90;
+        S.Aborted := TRUE;
+    ELSIF RunOutMode THEN
+        CASE S.State OF
+            USINT#10: // Gate open; pump only while upstream product is present.
+                S.GateOpenCmd := TRUE;
+                S.GateCloseCmd := FALSE;
+                S.PumpPermit := ProductPresentAtPump;
+                IF NOT ProductPresentAtPump THEN S.State := USINT#20; END_IF;
+
+            USINT#20: // Continue production until tank reaches 3%.
+                S.GateOpenCmd := TRUE;
+                S.GateCloseCmd := FALSE;
+                IF TankLevelPct <= TankClosePct THEN S.State := USINT#30; END_IF;
+
+            USINT#30: // Close gate before waiting for tracked bottles.
+                S.GateCloseCmd := TRUE;
+                IF GateClosedFB THEN S.State := USINT#35; END_IF;
+
+            USINT#35:
+                S.GateCloseCmd := TRUE;
+                IF BottleCount <= 0 THEN S.State := USINT#40; END_IF;
+
+            USINT#40: // Final configurable clearing time.
+                S.GateCloseCmd := TRUE;
+                IF LastBottleTimer.Q THEN S.State := USINT#50; END_IF;
+
+            USINT#50:
+                S.GateCloseCmd := TRUE;
+                S.StopRequest := TRUE;
+                IF NOT MachineRunning THEN
+                    S.State := USINT#60;
+                    S.Completed := TRUE;
+                END_IF;
+
+            USINT#90:
+                S.GateCloseCmd := TRUE;
+                S.StopRequest := TRUE;
+
+        ELSE
+            S.State := USINT#90;
+            S.Aborted := TRUE;
+        END_CASE;
+    END_IF;
+END_FUNCTION_BLOCK

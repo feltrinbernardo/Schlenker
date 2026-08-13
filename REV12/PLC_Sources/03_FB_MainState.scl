@@ -12,6 +12,8 @@ VAR_INPUT
     DoorAccessFault     : Bool;
     FillerHeightActive  : Bool;
     CapperHeightActive  : Bool;
+    ProductionStartPermitted : Bool;
+    RunOutComplete      : Bool;
 END_VAR
 VAR_IN_OUT
     M                   : "UDT_Machine";
@@ -56,13 +58,17 @@ BEGIN
                     M.State := 90;
                 ELSIF Cmd.ManualSelect THEN
                     M.State := 50;
-                ELSIF Cmd.AutoStart AND M.HomeValid AND M.TrackingValid THEN
+                ELSIF (Cmd.AutoStart OR Cmd.ProductionOn)
+                      AND M.HomeValid AND M.TrackingValid
+                      AND ProductionStartPermitted THEN
                     M.State := 30;
                 END_IF;
 
             30: // AUTOMATIC
-                IF Cmd.Stop THEN
+                IF Cmd.Stop OR Cmd.ProductionOff THEN
                     M.State := 100; // CONTROLLED_STOP
+                ELSIF Cmd.RunOutProductStart THEN
+                    M.State := 95; // RUN_OUT_PRODUCT
                 ELSIF StandbyRequest THEN
                     M.State := 40;
                 END_IF;
@@ -90,10 +96,13 @@ BEGIN
                 IF NOT Cmd.CapperHeightEnable THEN M.State := 50; END_IF;
 
             80: // CIP
-                IF Cmd.Stop THEN M.State := 100; END_IF;
+                IF Cmd.Stop OR Cmd.CIPStop THEN M.State := 100; END_IF;
 
             90: // EMPTYING
                 IF Cmd.Stop THEN M.State := 100; END_IF;
+
+            95: // RUN_OUT_PRODUCT
+                IF Cmd.Stop OR RunOutComplete THEN M.State := 100; END_IF;
 
             100: // CONTROLLED_STOP
                 M.State := 20;
@@ -121,6 +130,8 @@ BEGIN
     END_IF;
 
     M.AutomaticActive := M.State = 30;
+    M.ProductionActive := M.State = 30;
+    M.RunOutActive := M.State = 95;
     M.StandbyActive := M.State = 40;
     M.ManualActive := M.State = 50;
     M.FillerHeightActive := M.State = 60;
@@ -132,11 +143,21 @@ BEGIN
     M.DoorRestartPermitted := DoorRestartPermitted;
     M.DoorAccessFault := DoorAccessFault;
 
+    IF M.CIPActive THEN
+        M.ActiveMode := USINT#2;
+    ELSIF M.RunOutActive THEN
+        M.ActiveMode := USINT#3;
+    ELSIF M.ProductionActive THEN
+        M.ActiveMode := USINT#1;
+    ELSE
+        M.ActiveMode := USINT#0;
+    END_IF;
+
     M.RotationPermitted :=
         SafetyOK
         AND M.HomeValid
         AND EncoderHealthy
         AND NOT M.FillerHeightActive
         AND NOT M.CapperHeightActive
-        AND ((M.State = 30) OR (M.State = 50) OR (M.State = 10));
+        AND ((M.State = 30) OR (M.State = 50) OR (M.State = 10) OR (M.State = 95));
 END_FUNCTION_BLOCK

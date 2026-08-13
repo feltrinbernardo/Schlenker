@@ -3,10 +3,12 @@ FUNCTION_BLOCK "FB_NetworkDiagnostics"
 // These inputs are standard diagnostics only and are not safety signals.
 VAR_INPUT
     Pilz_DeviceOK         : Bool;
-    IOLinkMaster1_OK      : Bool;
-    IOLinkMaster2_OK      : Bool;
-    IOLinkMaster3_OK      : Bool;
-    IOLinkMaster4_OK      : Bool;
+    IOLinkMaster1_OK      : Bool; // REV18 AL100 legacy symbolic status
+    IOLinkMaster2_OK      : Bool; // REV18 AL101 legacy symbolic status
+    IOLinkMaster3_OK      : Bool; // REV18 AL102 legacy symbolic status
+    IOLinkMaster4_OK      : Bool; // REV18 AL103 legacy symbolic status
+    IOLinkMaster5_Configured : Bool; // REV18 AL104 Customer CIP Interface
+    IOLinkMaster5_OK      : Bool; // REV18 AL104 communication status
     Drive_G120C_OK        : Bool;
     HMI_LinkOK            : Bool;
     AnybusGateway_OK      : Bool;
@@ -28,6 +30,7 @@ BEGIN
     IF NOT HMI_LinkOK            THEN FaultyDeviceMask.%X6 := TRUE; END_IF;
     IF NOT AnybusGateway_OK      THEN FaultyDeviceMask.%X7 := TRUE; END_IF;
     IF NOT AnybusGateway_ECAT_OK THEN FaultyDeviceMask.%X8 := TRUE; END_IF;
+    IF IOLinkMaster5_Configured AND NOT IOLinkMaster5_OK THEN FaultyDeviceMask.%X9 := TRUE; END_IF;
 
     NetworkOK := Pilz_DeviceOK
                  AND IOLinkMaster1_OK
@@ -37,5 +40,6 @@ BEGIN
                  AND Drive_G120C_OK
                  AND HMI_LinkOK
                  AND AnybusGateway_OK
-                 AND AnybusGateway_ECAT_OK;
+                 AND AnybusGateway_ECAT_OK
+                 AND (NOT IOLinkMaster5_Configured OR IOLinkMaster5_OK);
 END_FUNCTION_BLOCK

@@ -1,0 +1,41 @@
+FUNCTION_BLOCK "FB_ProductCircuitManager"
+VAR_INPUT
+    SafetyOK               : Bool;
+    CriticalAlarm          : Bool;
+    ProductionActive       : Bool;
+    RunOutActive           : Bool;
+    CIPActive              : Bool;
+    CIPValve217PathRequest : Bool;
+    CIPValve213PathRequest : Bool;
+    CIPValve212Cmd         : Bool;
+END_VAR
+VAR_OUTPUT
+    Valve210Cmd            : Bool;
+    Valve217Cmd            : Bool;
+    Valve213Cmd            : Bool;
+    Valve212Cmd            : Bool;
+    Valve247Cmd            : Bool;
+END_VAR
+BEGIN
+    Valve210Cmd := FALSE;
+    Valve217Cmd := FALSE;
+    Valve213Cmd := FALSE;
+    Valve212Cmd := FALSE;
+    Valve247Cmd := FALSE;
+
+    IF SafetyOK AND NOT CriticalAlarm THEN
+        IF CIPActive THEN
+            Valve210Cmd := TRUE;
+            Valve217Cmd := CIPValve217PathRequest;
+            Valve213Cmd := CIPValve213PathRequest;
+            Valve212Cmd := CIPValve212Cmd;
+            Valve247Cmd := TRUE;
+        ELSIF ProductionActive OR RunOutActive THEN
+            Valve210Cmd := TRUE;
+            Valve217Cmd := TRUE;
+            Valve213Cmd := FALSE;
+            Valve212Cmd := TRUE;
+            Valve247Cmd := FALSE;
+        END_IF;
+    END_IF;
+END_FUNCTION_BLOCK

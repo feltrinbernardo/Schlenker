@@ -1,0 +1,37 @@
+FUNCTION_BLOCK "FB_InternalWash"
+VAR_INPUT
+    OnCmd               : Bool;
+    OffCmd              : Bool;
+    ProductionMode      : Bool;
+    ManualMode          : Bool;
+    CIPActive           : Bool;
+    SafetyOK            : Bool;
+    AirPressureOK       : Bool;
+    CriticalAlarm       : Bool;
+    SMCCommOK           : Bool;
+END_VAR
+VAR_IN_OUT
+    S                   : "UDT_InternalWash";
+END_VAR
+VAR_OUTPUT
+    ValveCmd            : Bool;
+END_VAR
+BEGIN
+    S.Permissive := (ProductionMode OR ManualMode)
+                    AND NOT CIPActive
+                    AND SafetyOK
+                    AND AirPressureOK
+                    AND NOT CriticalAlarm
+                    AND SMCCommOK;
+
+    IF OffCmd OR NOT S.Permissive THEN
+        S.Requested := FALSE;
+    ELSIF OnCmd AND S.Permissive THEN
+        S.Requested := TRUE;
+    END_IF;
+
+    S.Active := S.Requested AND S.Permissive;
+    // Physical valve code and EX260 solenoid channel are not commissioned.
+    S.NotCommissioned := TRUE;
+    ValveCmd := S.Active;
+END_FUNCTION_BLOCK

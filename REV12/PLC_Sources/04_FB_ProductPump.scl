@@ -13,13 +13,14 @@ VAR_INPUT
 END_VAR
 VAR_OUTPUT
     RunCmd              : Bool;
-    SpeedRefPct         : Real;
+    SpeedRefPct         : Real := 0.0;
     LevelSignalFault    : Bool;
     LowLevelWarning     : Bool;
 END_VAR
 VAR
     TargetSpeed         : Real;
     ErrorPct            : Real;
+    SpeedMemory         : Real := 0.0;
 END_VAR
 
 BEGIN
@@ -55,9 +56,12 @@ BEGIN
     END_IF;
 
     // Simple parameterized ramp.
-    IF SpeedRefPct < TargetSpeed THEN
-        SpeedRefPct := MIN(IN1 := SpeedRefPct + RampPctPerCycle, IN2 := TargetSpeed);
-    ELSIF SpeedRefPct > TargetSpeed THEN
-        SpeedRefPct := MAX(IN1 := SpeedRefPct - RampPctPerCycle, IN2 := TargetSpeed);
+    IF SpeedMemory < TargetSpeed THEN
+        SpeedMemory := MIN(IN1 := SpeedMemory + RampPctPerCycle, IN2 := TargetSpeed);
+    ELSIF SpeedMemory > TargetSpeed THEN
+        SpeedMemory := MAX(IN1 := SpeedMemory - RampPctPerCycle, IN2 := TargetSpeed);
     END_IF;
+
+    // Drive the output every scan; the retained ramp state is held internally.
+    SpeedRefPct := SpeedMemory;
 END_FUNCTION_BLOCK

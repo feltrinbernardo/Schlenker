@@ -22,6 +22,12 @@ VAR_OUTPUT
     SpeedLimitPct       : Real;
     StandbyRequest      : Bool;
     GateFault           : Bool;
+    // REV21 reuses the already validated debounce timers for alarm indication.
+    // These outputs do not change gate or speed-control behaviour.
+    Shortage1Active     : Bool;
+    Shortage2Active     : Bool;
+    Accumulation1Active : Bool;
+    Accumulation2Active : Bool;
 END_VAR
 VAR
     tShort1             : TON;
@@ -36,6 +42,11 @@ BEGIN
     tShort2(IN := Shortage2, PT := ShortageDelay2);
     tAccum1(IN := Accumulation1, PT := AccumulationDelay1);
     tAccum2(IN := Accumulation2, PT := AccumulationDelay2);
+
+    Shortage1Active := tShort1.Q;
+    Shortage2Active := tShort2.Q;
+    Accumulation1Active := tAccum1.Q;
+    Accumulation2Active := tAccum2.Q;
 
     SpeedLimitPct := 100.0;
     StandbyRequest := FALSE;
