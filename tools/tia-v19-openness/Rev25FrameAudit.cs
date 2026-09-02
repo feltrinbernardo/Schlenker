@@ -18,13 +18,15 @@ namespace Schlenker.TiaV19
         private static readonly string[] GeometryProperties =
         {
             "Left", "Top", "Width", "Height",
-            "CenterX", "CenterY", "RadiusX", "RadiusY"
+            "CenterX", "CenterY", "RadiusX", "RadiusY",
+            "X1", "Y1", "X2", "Y2"
         };
 
         private static readonly string[] VisualProperties =
         {
             "Visible", "BackColor", "ForeColor", "BorderColor", "BorderWidth",
-            "FontSize", "FontWeight", "HorizontalAlignment", "VerticalAlignment", "Graphic"
+            "FontSize", "FontWeight", "HorizontalAlignment", "VerticalAlignment", "Graphic",
+            "LineColor", "LineWidth"
         };
 
         private sealed class FrameSpec
@@ -141,6 +143,9 @@ namespace Schlenker.TiaV19
         {
             string name = item.Name;
             return name.Equals("REV12_Production_User_Header", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("REV12_Mimic_Vacuum_Label_1", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("Line_1", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("Line_2", StringComparison.OrdinalIgnoreCase) ||
                 name.StartsWith("REV13_Common_", StringComparison.OrdinalIgnoreCase) ||
                 name.StartsWith("REV13_Nav_", StringComparison.OrdinalIgnoreCase) ||
                 name.StartsWith("REV14_Nav_", StringComparison.OrdinalIgnoreCase) ||
@@ -187,6 +192,22 @@ namespace Schlenker.TiaV19
                     else if (!value.Equals(pair.Value, StringComparison.Ordinal))
                     {
                         issues.Add(expected.Name + "." + pair.Key + "=" + value + " expected " + pair.Value);
+                    }
+                }
+            }
+
+            HmiScreenItemBase page;
+            if (items.TryGetValue("REV13_Common_Page", out page))
+            {
+                string value;
+                string[] names = { "Left", "Top", "Width", "Height" };
+                string[] expectedValues = { "1010", "10", "335", "34" };
+                for (int index = 0; index < names.Length; index++)
+                {
+                    if (!TryRead(page, names[index], out value) || value != expectedValues[index])
+                    {
+                        issues.Add("REV13_Common_Page." + names[index] + "=" +
+                            (value ?? "<unavailable>") + " expected " + expectedValues[index]);
                     }
                 }
             }
