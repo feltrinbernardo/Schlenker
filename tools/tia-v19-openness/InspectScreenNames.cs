@@ -34,6 +34,12 @@ internal static class InspectScreenNames
                     if (screen == null) return 3;
                     if (args.Length > 2 && args[2].Equals("--all", StringComparison.OrdinalIgnoreCase))
                     {
+                        Console.WriteLine(
+                            "SCREEN Name={0}; BackColor={1},{2},{3}; AlternateBackColor={4},{5},{6}; BackFillPattern={7}; BackgroundFillMode={8}; ItemCount={9}",
+                            screen.Name,
+                            screen.BackColor.R, screen.BackColor.G, screen.BackColor.B,
+                            screen.AlternateBackColor.R, screen.AlternateBackColor.G, screen.AlternateBackColor.B,
+                            screen.BackFillPattern, screen.BackgroundFillMode, screen.ScreenItems.Count);
                         foreach (HmiScreenItemBase screenItem in screen.ScreenItems)
                         {
                             HmiGraphicView allGraphic = screenItem as HmiGraphicView;

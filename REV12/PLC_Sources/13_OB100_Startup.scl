@@ -11,6 +11,17 @@ BEGIN
     "DB_Global".Machine.State := 0;
     "DB_Global".Machine.HomeValid := FALSE;
     "DB_Global".Machine.TrackingValid := FALSE;
+    "DB_Global".OpenPoints.ReadyPermissives := FALSE;
+    "DB_Global".OpenPoints.ControlledStopRequest := FALSE;
+    "DB_Global".OpenPoints.WaitingForInput := TRUE;
+    "DB_Global".OpenPoints.Homing.HomeValid := FALSE;
+    "DB_Global".OpenPoints.Homing.State := USINT#0;
+    "DB_Global".OpenPoints.Tracking.Valid := FALSE;
+    "DB_Global".OpenPoints.Tracking.Count := USINT#0;
+    "DB_Global".OpenPoints.EV230.OutputCommand := FALSE;
+    "DB_Global".OpenPoints.SMC.GatewayOutputImage := WORD#0;
+    "DB_Global".OpenPoints.SMC.CommunicationLossLatched := FALSE;
+    "DB_Global".OpenPoints.SMC.RecoveryRequired := FALSE;
     "DB_Global".RecoveryDone := FALSE;
     "DB_Global".AlarmWord1 := DWORD#0;
     "DB_Global".AlarmWord2 := DWORD#0;

@@ -22,14 +22,22 @@ namespace Schlenker.TiaV19
             "ValveBits", "Valve_210", "Valve_211", "Valve_212", "Valve_213",
             "Valve_217", "Valve_247", "GateOpen", "GateClose", "ProductInlet",
             "ProductClose", "IOlink", "IO_Link"
+            ,"Pilz", "PNOZ", "772100", "772138", "772140", "772142", "772170",
+            "PilzDiag", "SafetyOK", "SafetySystemFault", "EStopChain24VHealthy",
+            "AllDoorsClosed", "AllDoorsUnlocked", "SafetyCircuitClosed",
+            "ZeroSpeedConfirmed", "ThreePhaseOffConfirmed", "DoorAccess",
+            "REQ_ACCESS", "REQ_SAFETY_RESET", "DR01", "DR02", "DR03", "DR04",
+            "DR05", "DR06", "DR07", "DR08", "DR09", "DR10", "DR11", "DR12"
         };
 
         private static string ExportDirectory;
+        private static bool SkipCrossReferences;
 
         private static int Main(string[] args)
         {
             string hint = args.Length > 0 ? args[0] : "schlenkers 36-10 190036-7-8v2.12.ap19";
             ExportDirectory = args.Length > 1 ? args[1] : null;
+            SkipCrossReferences = args.Any(arg => arg.Equals("--no-xref", StringComparison.OrdinalIgnoreCase));
             try
             {
                 IList<TiaPortalProcess> processes = TiaPortal.GetProcesses();
@@ -145,6 +153,11 @@ namespace Schlenker.TiaV19
 
         private static void TryCrossReferences(IEngineeringObject owner, string label, string indent)
         {
+            if (SkipCrossReferences)
+            {
+                Console.WriteLine("{0}CROSS_REFERENCES owner={1}; skipped=YES", indent, label);
+                return;
+            }
             try
             {
                 System.Reflection.MethodInfo getter = owner.GetType().GetMethods()

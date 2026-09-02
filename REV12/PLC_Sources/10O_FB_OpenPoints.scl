@@ -1,0 +1,497 @@
+FUNCTION_BLOCK "FB_HomingManager"
+VAR_INPUT
+    Start               : Bool;
+    EncoderHealthy      : Bool;
+    MachineZero         : Bool;
+    SafetyOK            : Bool;
+    DriveReady          : Bool;
+    MachineStopped      : Bool;
+    Reset               : Bool;
+END_VAR
+VAR_IN_OUT
+    H                   : "UDT_HomingManager";
+END_VAR
+VAR
+    SequenceTimeout     : TON;
+END_VAR
+BEGIN
+    H.NotCommissioned := NOT (H.Configured AND H.ParametersApproved
+                              AND ((H.Direction = USINT#1) OR (H.Direction = USINT#2))
+                              AND (H.Timeout > T#0s));
+    H.ReferenceDetected := MachineZero;
+
+    IF (NOT SafetyOK) OR (NOT EncoderHealthy) THEN
+        H.HomeValid := FALSE;
+        H.SearchForward := FALSE;
+        H.SearchReverse := FALSE;
+        H.SetZeroRequest := FALSE;
+        IF H.State <> USINT#0 THEN
+            H.State := USINT#90;
+            H.Fault := TRUE;
+            H.FaultCode := UINT#3;
+        END_IF;
+    END_IF;
+
+    SequenceTimeout(IN := (H.State = USINT#10) OR (H.State = USINT#20), PT := H.Timeout);
+    IF SequenceTimeout.Q AND (NOT H.NotCommissioned) THEN
+        H.State := USINT#90;
+        H.Fault := TRUE;
+        H.FaultCode := UINT#1;
+        H.SearchForward := FALSE;
+        H.SearchReverse := FALSE;
+    END_IF;
+
+    IF Reset THEN
+        H.Fault := FALSE;
+        H.FaultCode := UINT#0;
+        H.SearchForward := FALSE;
+        H.SearchReverse := FALSE;
+        H.SetZeroRequest := FALSE;
+        IF H.State = USINT#90 THEN H.State := USINT#0; END_IF;
+    END_IF;
+
+    CASE H.State OF
+        USINT#0:
+            H.SearchForward := FALSE;
+            H.SearchReverse := FALSE;
+            H.SetZeroRequest := FALSE;
+            IF Start THEN H.State := USINT#10; END_IF;
+        USINT#10:
+            IF H.NotCommissioned THEN
+                H.HomeValid := FALSE;
+            ELSIF SafetyOK AND EncoderHealthy AND DriveReady AND MachineStopped THEN
+                H.State := USINT#20;
+            END_IF;
+        USINT#20:
+            H.SearchForward := H.Direction = USINT#1;
+            H.SearchReverse := H.Direction = USINT#2;
+            IF MachineZero THEN
+                H.SearchForward := FALSE;
+                H.SearchReverse := FALSE;
+                H.State := USINT#30;
+            END_IF;
+        USINT#30:
+            H.SetZeroRequest := TRUE;
+            H.State := USINT#40;
+        USINT#40:
+            IF H.ZeroSetConfirmed THEN
+                H.SetZeroRequest := FALSE;
+                H.State := USINT#50;
+            END_IF;
+        USINT#50:
+            IF SafetyOK AND EncoderHealthy AND MachineZero AND H.ZeroSetConfirmed THEN
+                H.HomeValid := TRUE;
+                H.State := USINT#60;
+            ELSE
+                H.HomeValid := FALSE;
+                H.Fault := TRUE;
+                H.FaultCode := UINT#4;
+                H.State := USINT#90;
+            END_IF;
+        USINT#60:
+            IF (NOT EncoderHealthy) OR (NOT SafetyOK) THEN H.HomeValid := FALSE; END_IF;
+        USINT#90:
+            H.HomeValid := FALSE;
+            H.SearchForward := FALSE;
+            H.SearchReverse := FALSE;
+            H.SetZeroRequest := FALSE;
+        ELSE
+            H.State := USINT#90;
+            H.Fault := TRUE;
+            H.FaultCode := UINT#5;
+    END_CASE;
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK "FB_BottleTracking"
+VAR_INPUT
+    SafetyOK            : Bool;
+    EncoderHealthy      : Bool;
+    HomeValid           : Bool;
+    EncoderCount        : DInt;
+    InfeedSensor        : Bool;
+    Reset               : Bool;
+END_VAR
+VAR_IN_OUT
+    T                   : "UDT_BottleTracking";
+END_VAR
+VAR
+    InfeedEdge          : R_TRIG;
+    Index               : Int;
+    QueueIndex          : Int;
+    Distance            : DInt;
+END_VAR
+BEGIN
+    InfeedEdge(CLK := InfeedSensor);
+    T.NotCommissioned := NOT (T.Configured AND T.SensorMapConfigured AND T.OffsetsConfigured);
+    T.Fault := T.LostBottle OR T.UnexpectedBottle OR T.DuplicateBottleID
+               OR T.StaleBottleID OR T.Overflow OR T.SensorMismatch;
+
+    IF Reset OR (NOT SafetyOK) OR (NOT EncoderHealthy) OR (NOT HomeValid) THEN
+        T.Valid := FALSE;
+        T.Head := USINT#1;
+        T.Tail := USINT#1;
+        T.Count := USINT#0;
+        T.ExpectedCapBottleID := UDINT#0;
+        FOR Index := 1 TO 128 DO
+            T.Bottle[Index].Active := FALSE;
+            T.Bottle[Index].Valid := FALSE;
+        END_FOR;
+        IF Reset THEN
+            T.LostBottle := FALSE;
+            T.UnexpectedBottle := FALSE;
+            T.DuplicateBottleID := FALSE;
+            T.StaleBottleID := FALSE;
+            T.Overflow := FALSE;
+            T.SensorMismatch := FALSE;
+            T.FaultCode := UINT#0;
+        END_IF;
+    ELSIF T.NotCommissioned THEN
+        T.Valid := FALSE;
+    ELSE
+        T.Valid := NOT T.Fault;
+        IF T.NextBottleID = UDINT#0 THEN T.NextBottleID := UDINT#1; END_IF;
+
+        IF InfeedEdge.Q THEN
+            IF T.Count >= USINT#128 THEN
+                T.Overflow := TRUE;
+                T.FaultCode := UINT#1;
+                T.Valid := FALSE;
+            ELSE
+                QueueIndex := USINT_TO_INT(T.Tail);
+                T.Bottle[QueueIndex].BottleID := T.NextBottleID;
+                T.Bottle[QueueIndex].Active := TRUE;
+                T.Bottle[QueueIndex].Valid := TRUE;
+                T.Bottle[QueueIndex].EntryEncoderCount := EncoderCount;
+                T.Bottle[QueueIndex].Station := USINT#1;
+                T.NextBottleID := T.NextBottleID + UDINT#1;
+                IF T.Tail >= USINT#128 THEN T.Tail := USINT#1; ELSE T.Tail := T.Tail + USINT#1; END_IF;
+                T.Count := T.Count + USINT#1;
+            END_IF;
+        END_IF;
+
+        T.ExpectedCapBottleID := UDINT#0;
+        FOR Index := 1 TO 128 DO
+            IF T.Bottle[Index].Active AND T.Bottle[Index].Valid THEN
+                Distance := EncoderCount - T.Bottle[Index].EntryEncoderCount;
+                IF Distance >= T.OffsetOutfeed THEN
+                    T.Bottle[Index].Active := FALSE;
+                    T.Bottle[Index].Valid := FALSE;
+                    IF T.Count > USINT#0 THEN T.Count := T.Count - USINT#1; END_IF;
+                ELSIF Distance >= T.OffsetCapper THEN
+                    T.Bottle[Index].Station := USINT#5;
+                ELSIF Distance >= T.OffsetCapRelease THEN
+                    T.Bottle[Index].Station := USINT#4;
+                    IF T.ExpectedCapBottleID = UDINT#0 THEN
+                        T.ExpectedCapBottleID := T.Bottle[Index].BottleID;
+                        T.ExpectedCapEntryCount := T.Bottle[Index].EntryEncoderCount;
+                    END_IF;
+                ELSIF Distance >= T.OffsetTransfer THEN
+                    T.Bottle[Index].Station := USINT#3;
+                ELSIF Distance >= T.OffsetFiller THEN
+                    T.Bottle[Index].Station := USINT#2;
+                ELSE
+                    T.Bottle[Index].Station := USINT#1;
+                END_IF;
+            END_IF;
+        END_FOR;
+    END_IF;
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK "FB_DriveManager"
+VAR_INPUT
+    CommunicationOK     : Bool;
+    ReadyFeedback       : Bool;
+    FaultFeedback       : Bool;
+    RunningFeedback     : Bool;
+    WarningFeedback     : Bool;
+    Reset               : Bool;
+END_VAR
+VAR_IN_OUT
+    D                   : "UDT_DriveManager";
+END_VAR
+VAR
+    StartTimer          : TON;
+    StopTimer           : TON;
+END_VAR
+BEGIN
+    D.Device.CommunicationOK := D.Device.Configured AND CommunicationOK;
+    D.Device.DataValid := D.Device.CommunicationOK AND D.ActualSpeedValid;
+    D.Device.Fault := FaultFeedback OR (D.Device.Configured AND NOT CommunicationOK);
+    D.Device.Ready := D.Device.DataValid AND ReadyFeedback AND NOT D.Device.Fault;
+    D.Device.NotCommissioned := NOT D.Device.Configured;
+    D.Running := D.Device.DataValid AND RunningFeedback;
+    D.Warning := D.Device.DataValid AND WarningFeedback;
+    D.RunCommand := (D.RequestedRun OR D.ManualRequest) AND D.Device.Ready
+                    AND (D.SpeedRequestPct > 0.0) AND (D.SpeedRequestPct <= 100.0);
+    D.CommandMismatch := D.Device.DataValid AND (D.RunCommand <> D.Running);
+
+    StartTimer(IN := D.RunCommand AND NOT D.Running, PT := D.StartupTime);
+    StopTimer(IN := (NOT D.RunCommand) AND D.Running, PT := D.StoppingTime);
+    D.StartupTimeout := StartTimer.Q AND (D.StartupTime > T#0s);
+    D.StoppingTimeout := StopTimer.Q AND (D.StoppingTime > T#0s);
+    D.Device.RecoveryRequired := D.Device.Fault OR D.StartupTimeout OR D.StoppingTimeout;
+    D.ResetCommand := Reset AND D.Device.CommunicationOK;
+
+    IF D.Device.NotCommissioned THEN D.Device.DiagnosticCode := UINT#1;
+    ELSIF NOT D.Device.CommunicationOK THEN D.Device.DiagnosticCode := UINT#2;
+    ELSIF NOT D.ActualSpeedValid THEN D.Device.DiagnosticCode := UINT#3;
+    ELSIF D.Device.Fault THEN D.Device.DiagnosticCode := UINT#4;
+    ELSIF D.StartupTimeout THEN D.Device.DiagnosticCode := UINT#5;
+    ELSIF D.StoppingTimeout THEN D.Device.DiagnosticCode := UINT#6;
+    ELSIF D.CommandMismatch THEN D.Device.DiagnosticCode := UINT#7;
+    ELSE D.Device.DiagnosticCode := UINT#0;
+    END_IF;
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK "FB_EV230Manager"
+VAR_INPUT
+    SafetyOK            : Bool;
+    HomeValid           : Bool;
+    TrackingValid       : Bool;
+    EncoderHealthy      : Bool;
+    BottleIDToPulse     : UDInt;
+    PositionWindowValid : Bool;
+    Reset               : Bool;
+END_VAR
+VAR_IN_OUT
+    E                   : "UDT_EV230Manager";
+END_VAR
+BEGIN
+    E.NotCommissioned := NOT (E.Configured AND E.TMCountConfigured
+                              AND E.FastOutputConfirmed AND E.ParametersApproved
+                              AND (E.WindowTolerance > 0)
+                              AND (E.PulseDuration > T#0s));
+    // Fail-safe until the actual high-speed output object and TM pulse parameters
+    // are supplied and accepted in commissioning. No cyclic bit is guessed here.
+    E.OutputCommand := FALSE;
+    IF Reset THEN
+        E.Fault := FALSE;
+        E.FaultCode := UINT#0;
+    END_IF;
+    IF E.NotCommissioned THEN
+        E.Fault := TRUE;
+        E.FaultCode := UINT#1;
+    END_IF;
+END_FUNCTION_BLOCK
+
+FUNCTION_BLOCK "FB_OpenPointsSupervisor"
+VAR_INPUT
+    SafetyOK            : Bool;
+    AirPressureOK       : Bool;
+    EncoderHealthy      : Bool;
+    MachineZero         : Bool;
+    EncoderCount        : DInt;
+    MachineStopped      : Bool;
+    HomeStart           : Bool;
+    Reset               : Bool;
+    ProductionActive    : Bool;
+    MachineState        : USInt;
+    BottleInfeed        : Bool;
+    MainReady           : Bool;
+    MainFault           : Bool;
+    ProductPumpReady    : Bool;
+    ProductPumpFault    : Bool;
+    ConveyorReady       : Bool;
+    ConveyorFault       : Bool;
+    CapDriveReady       : Bool;
+    CapDriveFault       : Bool;
+    DriveNetworkOK      : Bool;
+    AnybusProfinetOK    : Bool;
+    AnybusEtherCATOK    : Bool;
+    SmcCommOK           : Bool;
+    PilzCommOK          : Bool;
+    AL100CommOK         : Bool;
+    AL101CommOK         : Bool;
+    AL102CommOK         : Bool;
+    AL103CommOK         : Bool;
+    AL104CommOK         : Bool;
+    GateOpenFeedback    : Bool;
+    GateClosedFeedback  : Bool;
+    CapPresent          : Bool;
+    CapHopperLow        : Bool;
+    CapChannelDemand    : Bool;
+    CapsMissing         : Bool;
+END_VAR
+VAR_IN_OUT
+    O                   : "UDT_OpenPoints";
+    M                   : "UDT_Machine";
+    Out                 : "UDT_Output";
+END_VAR
+VAR
+    Home                : "FB_HomingManager";
+    Tracking            : "FB_BottleTracking";
+    MainDrive           : "FB_DriveManager";
+    ProductDrive        : "FB_DriveManager";
+    ConveyorDrive       : "FB_DriveManager";
+    CapDrive            : "FB_DriveManager";
+    EV230               : "FB_EV230Manager";
+    Index               : Int;
+END_VAR
+BEGIN
+    Home(Start := HomeStart, EncoderHealthy := EncoderHealthy, MachineZero := MachineZero,
+         SafetyOK := SafetyOK, DriveReady := MainReady, MachineStopped := MachineStopped,
+         Reset := Reset, H := O.Homing);
+    M.HomeValid := O.Homing.HomeValid;
+
+    Tracking(SafetyOK := SafetyOK, EncoderHealthy := EncoderHealthy, HomeValid := M.HomeValid,
+             EncoderCount := EncoderCount, InfeedSensor := BottleInfeed, Reset := Reset,
+             T := O.Tracking);
+    M.TrackingValid := O.Tracking.Valid;
+
+    O.MainDrive.RequestedRun := ProductionActive;
+    O.ProductPumpDrive.RequestedRun := ProductionActive AND Out.ProductPumpRun;
+    O.ConveyorDrive.RequestedRun := ProductionActive;
+    O.CapDistributorDrive.RequestedRun := ProductionActive;
+
+    MainDrive(CommunicationOK := DriveNetworkOK, ReadyFeedback := MainReady,
+              FaultFeedback := MainFault, RunningFeedback := Out.MainRun,
+              WarningFeedback := FALSE, Reset := Reset, D := O.MainDrive);
+    ProductDrive(CommunicationOK := DriveNetworkOK, ReadyFeedback := ProductPumpReady,
+                 FaultFeedback := ProductPumpFault, RunningFeedback := Out.ProductPumpRun,
+                 WarningFeedback := FALSE, Reset := Reset, D := O.ProductPumpDrive);
+    ConveyorDrive(CommunicationOK := DriveNetworkOK, ReadyFeedback := ConveyorReady,
+                  FaultFeedback := ConveyorFault, RunningFeedback := O.ConveyorDrive.Running,
+                  WarningFeedback := FALSE, Reset := Reset, D := O.ConveyorDrive);
+    CapDrive(CommunicationOK := DriveNetworkOK, ReadyFeedback := CapDriveReady,
+             FaultFeedback := CapDriveFault, RunningFeedback := O.CapDistributorDrive.Running,
+             WarningFeedback := FALSE, Reset := Reset, D := O.CapDistributorDrive);
+
+    O.Pilz.CommunicationOK := O.Pilz.Configured AND PilzCommOK;
+    O.Pilz.DataValid := O.Pilz.CommunicationOK;
+    O.Pilz.Ready := O.Pilz.DataValid AND SafetyOK;
+    O.Pilz.Fault := O.Pilz.Required AND (NOT O.Pilz.Ready);
+    O.Pilz.NotCommissioned := NOT O.Pilz.Configured;
+
+    O.AL100.CommunicationOK := O.AL100.Configured AND AL100CommOK;
+    O.AL101.CommunicationOK := O.AL101.Configured AND AL101CommOK;
+    O.AL102.CommunicationOK := O.AL102.Configured AND AL102CommOK;
+    O.AL103.CommunicationOK := O.AL103.Configured AND AL103CommOK;
+    O.AL104.CommunicationOK := O.AL104.Configured AND AL104CommOK;
+    O.AL100.DataValid := O.AL100.CommunicationOK;
+    O.AL101.DataValid := O.AL101.CommunicationOK;
+    O.AL102.DataValid := O.AL102.CommunicationOK;
+    O.AL103.DataValid := O.AL103.CommunicationOK;
+    O.AL104.DataValid := O.AL104.CommunicationOK;
+    O.AL100.Ready := O.AL100.DataValid;
+    O.AL101.Ready := O.AL101.DataValid;
+    O.AL102.Ready := O.AL102.DataValid;
+    O.AL103.Ready := O.AL103.DataValid;
+    O.AL104.Ready := O.AL104.DataValid;
+    O.AL100.NotCommissioned := NOT O.AL100.Configured;
+    O.AL101.NotCommissioned := NOT O.AL101.Configured;
+    O.AL102.NotCommissioned := NOT O.AL102.Configured;
+    O.AL103.NotCommissioned := NOT O.AL103.Configured;
+    O.AL104.NotCommissioned := NOT O.AL104.Configured;
+
+    O.SMC.AnybusProfinetOK := O.SMC.GatewayConfigured AND AnybusProfinetOK;
+    O.SMC.SmcEtherCATOK := O.SMC.GatewayConfigured AND AnybusEtherCATOK;
+    O.SMC.ManifoldOK := O.SMC.GatewayConfigured AND SmcCommOK;
+    O.SMC.DiagnosticDataValid := O.SMC.GatewayConfigured AND O.SMC.AnybusProfinetOK
+                                 AND O.SMC.SmcEtherCATOK AND O.SMC.ManifoldOK;
+    O.SMC.OutputDataValid := O.SMC.DiagnosticDataValid AND O.SMC.MappingConfigured;
+    O.SMC.AnybusCommFault := O.SMC.GatewayConfigured AND NOT O.SMC.AnybusProfinetOK;
+    O.SMC.SmcEtherCATFault := O.SMC.GatewayConfigured AND O.SMC.AnybusProfinetOK
+                              AND NOT O.SMC.SmcEtherCATOK;
+    O.SMC.SmcManifoldFault := O.SMC.GatewayConfigured AND O.SMC.SmcEtherCATOK
+                              AND NOT O.SMC.ManifoldOK;
+    IF O.SMC.AnybusCommFault OR O.SMC.SmcEtherCATFault OR O.SMC.SmcManifoldFault THEN
+        O.SMC.CommunicationLossLatched := TRUE;
+        O.SMC.RecoveryRequired := TRUE;
+    END_IF;
+    IF Reset AND O.SMC.DiagnosticDataValid THEN
+        O.SMC.CommunicationLossLatched := FALSE;
+        O.SMC.RecoveryRequired := FALSE;
+    END_IF;
+    O.SMC.OutputsPermitted := O.SMC.OutputDataValid AND SafetyOK AND AirPressureOK
+                              AND NOT O.SMC.RecoveryRequired;
+    O.SMC.GatewayOutputImage := WORD#0;
+    IF O.SMC.OutputsPermitted THEN
+        FOR Index := 1 TO 10 DO
+            IF O.SMC.FunctionAssigned[Index] AND O.SMC.GenericValveCommand[Index] THEN
+                O.SMC.GatewayOutputImage := O.SMC.GatewayOutputImage
+                    OR SHL(IN := WORD#1, N := INT_TO_UINT(Index - 1));
+            END_IF;
+        END_FOR;
+    ELSE
+        FOR Index := 1 TO 10 DO O.SMC.GenericValveCommand[Index] := FALSE; END_FOR;
+    END_IF;
+
+    O.Gate.OpenFeedbackValid := O.Gate.FeedbackMapConfigured AND GateOpenFeedback;
+    O.Gate.ClosedFeedbackValid := O.Gate.FeedbackMapConfigured AND GateClosedFeedback;
+    O.Gate.FeedbackContradictory := O.Gate.FeedbackMapConfigured
+                                    AND GateOpenFeedback AND GateClosedFeedback;
+    O.Gate.WaitingForInput := NOT (O.Gate.PositionWindowConfigured AND O.Gate.FeedbackMapConfigured);
+    O.Gate.AutomaticOpenPermitted := NOT O.Gate.WaitingForInput AND NOT O.Gate.FeedbackContradictory
+                                     AND SafetyOK AND AirPressureOK;
+    O.Gate.Fault := O.Gate.FeedbackContradictory;
+
+    O.CapSystem.HopperLow := CapHopperLow;
+    O.CapSystem.ChannelDemand := CapChannelDemand;
+    O.CapSystem.ChannelEmpty := CapsMissing;
+    O.CapSystem.MissingCap := O.Tracking.Valid AND (O.Tracking.ExpectedCapBottleID <> UDINT#0)
+                              AND NOT CapPresent;
+    O.CapSystem.NotCommissioned := NOT (O.CapSystem.Configured AND O.CapSystem.MappingConfigured);
+    O.CapSystem.DistributorCommand := ProductionActive AND O.CapSystem.AutoMode
+                                      AND NOT O.CapSystem.NotCommissioned AND NOT O.CapSystem.ChannelEmpty;
+    O.CapSystem.VibratorCommand := O.CapSystem.DistributorCommand AND O.CapSystem.ChannelDemand;
+    O.CapSystem.ElevatorDemand := O.CapSystem.DistributorCommand AND O.CapSystem.HopperLow;
+    O.CapSystem.Fault := O.CapSystem.ChannelEmpty OR O.CapSystem.MissingCap OR O.CapSystem.CapperNotReady;
+
+    EV230(SafetyOK := SafetyOK, HomeValid := M.HomeValid, TrackingValid := M.TrackingValid,
+          EncoderHealthy := EncoderHealthy,
+          BottleIDToPulse := O.Tracking.ExpectedCapBottleID,
+          PositionWindowValid := O.Tracking.ExpectedCapBottleID <> UDINT#0,
+          Reset := Reset, E := O.EV230);
+
+    O.ReadyPermissives := O.SystemConfigurationComplete AND SafetyOK AND AirPressureOK
+                          AND EncoderHealthy AND M.HomeValid AND M.TrackingValid
+                          AND ((NOT O.MainDrive.Device.Required) OR O.MainDrive.Device.Ready)
+                          AND ((NOT O.ProductPumpDrive.Device.Required) OR O.ProductPumpDrive.Device.Ready)
+                          AND ((NOT O.ConveyorDrive.Device.Required) OR O.ConveyorDrive.Device.Ready)
+                          AND ((NOT O.CapDistributorDrive.Device.Required) OR O.CapDistributorDrive.Device.Ready)
+                          AND ((NOT O.Pilz.Required) OR O.Pilz.Ready)
+                          AND ((NOT O.AL100.Required) OR O.AL100.Ready)
+                          AND ((NOT O.AL101.Required) OR O.AL101.Ready)
+                          AND ((NOT O.AL102.Required) OR O.AL102.Ready)
+                          AND ((NOT O.AL103.Required) OR O.AL103.Ready)
+                          AND ((NOT O.AL104.Required) OR O.AL104.Ready)
+                          AND O.SMC.OutputDataValid AND NOT O.Gate.WaitingForInput
+                          AND NOT O.CapSystem.NotCommissioned;
+    O.WaitingForInput := NOT O.SystemConfigurationComplete OR O.Homing.NotCommissioned
+                         OR O.Tracking.NotCommissioned OR O.EV230.NotCommissioned
+                         OR NOT O.SMC.MappingConfigured OR O.Gate.WaitingForInput
+                         OR O.CapSystem.NotCommissioned OR NOT O.PhysicalDoorMapConfigured;
+
+    IF NOT O.SystemConfigurationComplete THEN O.ReadyBlockedCode := UINT#1;
+    ELSIF NOT SafetyOK THEN O.ReadyBlockedCode := UINT#2;
+    ELSIF NOT AirPressureOK THEN O.ReadyBlockedCode := UINT#3;
+    ELSIF NOT M.HomeValid THEN O.ReadyBlockedCode := UINT#4;
+    ELSIF NOT M.TrackingValid THEN O.ReadyBlockedCode := UINT#5;
+    ELSIF NOT O.SMC.OutputDataValid THEN O.ReadyBlockedCode := UINT#6;
+    ELSIF O.Gate.WaitingForInput THEN O.ReadyBlockedCode := UINT#7;
+    ELSIF O.CapSystem.NotCommissioned THEN O.ReadyBlockedCode := UINT#8;
+    ELSE O.ReadyBlockedCode := UINT#0;
+    END_IF;
+
+    O.ControlledStopRequest := ((MachineState = USINT#20) OR ProductionActive)
+                               AND NOT O.ReadyPermissives;
+    IF O.ControlledStopRequest OR NOT SafetyOK THEN
+        Out.MainRun := FALSE;
+        Out.MainSpeedPct := 0.0;
+        Out.ProductPumpRun := FALSE;
+        Out.ProductPumpSpeedPct := 0.0;
+    END_IF;
+
+    Out.ConveyorRun := O.ConveyorDrive.RunCommand AND O.ReadyPermissives;
+    Out.ConveyorSpeedPct := SEL(G := Out.ConveyorRun, IN0 := 0.0,
+                                IN1 := LIMIT(MN := 0.0, IN := O.ConveyorDrive.SpeedRequestPct, MX := 100.0));
+    Out.CapDriveRun := O.CapDistributorDrive.RunCommand AND O.ReadyPermissives;
+    Out.CapDriveSpeedPct := SEL(G := Out.CapDriveRun, IN0 := 0.0,
+                                IN1 := LIMIT(MN := 0.0, IN := O.CapDistributorDrive.SpeedRequestPct, MX := 100.0));
+    Out.EV230FastRelease := O.EV230.OutputCommand AND O.ReadyPermissives;
+    Out.ValveBits := DWORD#0; // physical mapping remains isolated in the dedicated gateway layer
+    IF NOT O.Gate.AutomaticOpenPermitted THEN
+        Out.GateOpen := FALSE;
+        Out.GateClose := SafetyOK AND AirPressureOK;
+    END_IF;
+END_FUNCTION_BLOCK

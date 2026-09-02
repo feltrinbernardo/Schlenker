@@ -23,7 +23,8 @@ namespace Schlenker.TiaV19
             "Name", "Left", "Top", "Width", "Height", "Text",
             "ProcessValue", "ResourceList", "IOFieldType", "BackColor",
             "ForeColor", "BorderColor", "BorderWidth", "Enabled", "Visible",
-            "CustomID", "Graphic", "ToolTipText", "Authorization"
+            "CustomID", "Graphic", "ToolTipText", "Authorization",
+            "X1", "Y1", "X2", "Y2", "LineColor", "LineWidth"
         };
 
         private static int Main(string[] args)

@@ -33,6 +33,7 @@ VAR
     AL102           : "UDT_IOLinkMasterMapping";
     AL103           : "UDT_IOLinkMasterMapping";
     AL104           : "UDT_IOLinkMasterMapping";
+    OpenPoints      : "UDT_OpenPoints";
     Par             : "UDT_Parameters";
     AlarmCritical   : Bool;
     AlarmWarning    : Bool;
@@ -92,6 +93,22 @@ BEGIN
     Par.CIPRemoteResponseTimeout := T#30s;
     Par.CIPRequireRemoteHandshake := FALSE;
     Par.CIPRequireDischargeComplete := FALSE;
+    // Confirmed architecture is required, but every physical mapping and
+    // commissioning flag starts FALSE. This guarantees no false READY.
+    OpenPoints.SystemConfigurationComplete := FALSE;
+    OpenPoints.MainDrive.Device.Required := TRUE;
+    OpenPoints.ProductPumpDrive.Device.Required := TRUE;
+    OpenPoints.ConveyorDrive.Device.Required := TRUE;
+    OpenPoints.CapDistributorDrive.Device.Required := TRUE;
+    OpenPoints.Pilz.Required := TRUE;
+    OpenPoints.AL100.Required := TRUE;
+    OpenPoints.AL101.Required := TRUE;
+    OpenPoints.AL102.Required := TRUE;
+    OpenPoints.AL103.Required := TRUE;
+    OpenPoints.AL104.Required := FALSE;
+    OpenPoints.SMC.GatewayConfigured := FALSE;
+    OpenPoints.SMC.MappingConfigured := FALSE;
+    OpenPoints.PhysicalDoorMapConfigured := FALSE;
     Cmd.ProductPumpEnable := TRUE;
     CIPRecipe.RecipeName := 'DEFAULT 10 STEP';
     CIPRecipe.Revision := UINT#1;
