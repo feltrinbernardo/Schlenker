@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "versionId": "2026-09-02-v2.12-open-points",
+  "createdLocal": "2026-09-02T13:33:54.6144511+10:00",
+  "createdUtc": "2026-09-02T03:33:54.6177812+00:00",
+  "tiaVersion": "V19",
+  "activeProject": {
+    "path": "C:\\TIA Projects\\Schlenkers 36-10 190036-7-8v2.12",
+    "projectFile": "Backup Schlenkers 36-10 190036-7-8v2.12.ap19",
+    "projectFileSha256": "FC19FB2F197B9B50CDFC7661691CB41C0921D193030DC97A40655423A62B3E8E",
+    "modifiedByVersioning": false
+  },
+  "externalVault": {
+    "path": "C:\\TIA Projects\\Schlenkers 36-10 190036-7-8v2.12-VersionControl",
+    "gitCommit": "25153bd61ebd1b5004ecdde9850c73d163e813d3",
+    "remoteConfigured": false,
+    "binaryStorage": "Git LFS"
+  },
+  "snapshot": {
+    "type": "OFFLINE_FOLDER_COPY_NON_OFFICIAL",
+    "relativePath": "snapshots/2026-09-02-v2.12-open-points.zip",
+    "bytes": 14502938,
+    "sha256": "D27212E9381B78EC709DD61147FB8EB7680AE08E038610DB9752A19240240255",
+    "includedTopLevelItems": [
+      "AdditionalFiles",
+      "IM",
+      "src",
+      "System",
+      "UserFiles",
+      "Vci",
+      "XRef",
+      "Backup Schlenkers 36-10 190036-7-8v2.12.ap19"
+    ],
+    "excludedTopLevelItems": [
+      "TMP",
+      "Logs",
+      "Backup Schlenkers 36-10 190036-7-8v2.13"
+    ]
+  },
+  "plcSources": {
+    "repositoryPath": "REV12/PLC_Sources",
+    "vaultRelativePath": "sources/2026-09-02-v2.12-open-points",
+    "compileEvidence": "runs/open-points-integral-20260828/plc-import-attempt-20.txt",
+    "compileErrors": 0,
+    "compileWarnings": 0
+  },
+  "lastAvailableOfficialArchive": {
+    "relativePath": "archives/schlenkers-open-points-baseline-20260828-1415.zap19",
+    "sha256": "9D24F83829878FDAC38BF60F6F622A9917180B62EE5535E611ACF4DDEB9978AF",
+    "isPostCorrectionArchive": false
+  },
+  "onlineApisUsed": false,
+  "limitations": [
+    "The folder snapshot is not an official TIA Portal archive.",
+    "The snapshot itself has not been restored and compiled as a recovery test.",
+    "Create and validate a new post-correction .zap19 archive in TIA Portal V19 before formal release."
+  ]
+}
