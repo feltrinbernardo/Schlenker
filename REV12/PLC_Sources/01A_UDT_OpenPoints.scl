@@ -1,0 +1,209 @@
+TYPE "UDT_DeviceDiagnostic" :
+STRUCT
+    Required            : Bool;
+    Configured          : Bool;
+    CommunicationOK     : Bool;
+    DataValid           : Bool;
+    Ready               : Bool;
+    Fault               : Bool;
+    NotCommissioned     : Bool;
+    RecoveryRequired    : Bool;
+    DiagnosticCode      : UInt;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_DriveManager" :
+STRUCT
+    Device              : "UDT_DeviceDiagnostic";
+    RequestedRun        : Bool;
+    ManualRequest       : Bool;
+    SpeedRequestPct     : Real;
+    ActualSpeedPct      : Real;
+    ActualSpeedValid    : Bool;
+    RunCommand          : Bool;
+    ResetCommand        : Bool;
+    Running             : Bool;
+    Warning             : Bool;
+    CommandMismatch     : Bool;
+    StartupTimeout      : Bool;
+    StoppingTimeout     : Bool;
+    StartupTime         : Time;
+    StoppingTime        : Time;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_HomingManager" :
+STRUCT
+    Configured          : Bool;
+    ParametersApproved  : Bool;
+    Direction           : USInt; // 1 forward, 2 reverse; no default is assumed
+    Timeout             : Time;
+    State               : USInt; // 0 idle, 10 wait, 20 search, 30 detected, 40 zero, 50 validate, 60 complete, 90 fault
+    HomeValid           : Bool;
+    SearchForward       : Bool;
+    SearchReverse       : Bool;
+    SetZeroRequest      : Bool;
+    ZeroSetConfirmed    : Bool; // must be mapped to the approved TM Count acknowledgement
+    ReferenceDetected   : Bool;
+    Fault               : Bool;
+    FaultCode           : UInt;
+    NotCommissioned     : Bool;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_BottleRecord" :
+STRUCT
+    BottleID            : UDInt;
+    Active              : Bool;
+    Valid               : Bool;
+    EntryEncoderCount   : DInt;
+    Station             : USInt; // 1 infeed, 2 filler, 3 transfer, 4 cap release, 5 capper, 6 outfeed
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_BottleTracking" :
+STRUCT
+    Configured          : Bool;
+    SensorMapConfigured : Bool;
+    OffsetsConfigured   : Bool;
+    OffsetFiller        : DInt;
+    OffsetTransfer      : DInt;
+    OffsetCapRelease    : DInt;
+    OffsetCapper        : DInt;
+    OffsetOutfeed       : DInt;
+    Valid               : Bool;
+    NextBottleID        : UDInt;
+    Head                : USInt;
+    Tail                : USInt;
+    Count               : USInt;
+    ExpectedCapBottleID : UDInt;
+    ExpectedCapEntryCount : DInt;
+    LostBottle          : Bool;
+    UnexpectedBottle    : Bool;
+    DuplicateBottleID   : Bool;
+    StaleBottleID       : Bool;
+    Overflow            : Bool;
+    SensorMismatch      : Bool;
+    Fault               : Bool;
+    FaultCode           : UInt;
+    NotCommissioned     : Bool;
+    Bottle              : Array[1..128] of "UDT_BottleRecord";
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_EV230Manager" :
+STRUCT
+    Configured          : Bool;
+    TMCountConfigured   : Bool;
+    FastOutputConfirmed : Bool;
+    ParametersApproved  : Bool;
+    ActivationOffset    : DInt;
+    WindowTolerance     : DInt;
+    PulseDuration       : Time;
+    LastPulsedBottleID  : UDInt;
+    OutputCommand       : Bool;
+    Fault               : Bool;
+    FaultCode           : UInt;
+    NotCommissioned     : Bool;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_SMCGateway" :
+STRUCT
+    GatewayConfigured   : Bool;
+    MappingConfigured   : Bool;
+    DiagnosticDataValid : Bool;
+    OutputDataValid     : Bool;
+    AnybusProfinetOK    : Bool;
+    SmcEtherCATOK       : Bool;
+    ManifoldOK          : Bool;
+    AnybusCommFault     : Bool;
+    SmcEtherCATFault    : Bool;
+    SmcManifoldFault    : Bool;
+    CommunicationLossLatched : Bool;
+    RecoveryRequired    : Bool;
+    OutputsPermitted    : Bool;
+    GatewayFaultCode    : UInt;
+    GatewayStatusWord   : Word;
+    GenericValveCommand : Array[1..10] of Bool;
+    GenericValveStatus  : Array[1..10] of Bool;
+    FunctionAssigned    : Array[1..10] of Bool;
+    GatewayOutputImage  : Word;
+    GatewayInputStatus  : Word;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_CapSystemManager" :
+STRUCT
+    Configured          : Bool;
+    MappingConfigured   : Bool;
+    AutoMode            : Bool;
+    ManualMode          : Bool;
+    DistributorCommand  : Bool;
+    VibratorCommand     : Bool;
+    ElevatorDemand      : Bool;
+    HopperLow           : Bool;
+    ChannelDemand       : Bool;
+    ChannelEmpty        : Bool;
+    MissingCap          : Bool;
+    CapperNotReady      : Bool;
+    Fault               : Bool;
+    FaultCode           : UInt;
+    NotCommissioned     : Bool;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_GateCommissioning" :
+STRUCT
+    PositionWindowConfigured : Bool;
+    FeedbackMapConfigured : Bool;
+    OpenFeedbackValid   : Bool;
+    ClosedFeedbackValid : Bool;
+    FeedbackContradictory : Bool;
+    AutomaticOpenPermitted : Bool;
+    Fault               : Bool;
+    FaultCode           : UInt;
+    WaitingForInput     : Bool;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_DoorDiagnostic" :
+STRUCT
+    Configured          : Bool;
+    DataValid           : Bool;
+    Open                : Bool;
+    Closed              : Bool;
+    Locked              : Bool;
+    Unlocked            : Bool;
+    Discrepancy         : Bool;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_OpenPoints" :
+STRUCT
+    SystemConfigurationComplete : Bool;
+    ReadyPermissives    : Bool;
+    ControlledStopRequest : Bool;
+    ReadyBlockedCode    : UInt;
+    WaitingForInput     : Bool;
+    Homing              : "UDT_HomingManager";
+    Tracking            : "UDT_BottleTracking";
+    EV230               : "UDT_EV230Manager";
+    MainDrive           : "UDT_DriveManager";
+    ProductPumpDrive    : "UDT_DriveManager";
+    ConveyorDrive       : "UDT_DriveManager";
+    CapDistributorDrive : "UDT_DriveManager";
+    Pilz                : "UDT_DeviceDiagnostic";
+    AL100               : "UDT_DeviceDiagnostic";
+    AL101               : "UDT_DeviceDiagnostic";
+    AL102               : "UDT_DeviceDiagnostic";
+    AL103               : "UDT_DeviceDiagnostic";
+    AL104               : "UDT_DeviceDiagnostic";
+    SMC                 : "UDT_SMCGateway";
+    CapSystem           : "UDT_CapSystemManager";
+    Gate                : "UDT_GateCommissioning";
+    Door                : Array[1..12] of "UDT_DoorDiagnostic";
+    ZoneRequest         : Array[1..3] of Bool;
+    PhysicalDoorMapConfigured : Bool;
+END_STRUCT;
+END_TYPE

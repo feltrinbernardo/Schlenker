@@ -23,6 +23,7 @@ VAR
     CIPSequence         : "FB_CIPSequence";
     CIPRecipeManager    : "FB_CIPRecipeManager";
     InternalWash        : "FB_InternalWash";
+    OpenPointsSupervisor: "FB_OpenPointsSupervisor";
     EfficiencyPulse     : R_TRIG;
 
     FillerActive        : Bool;
@@ -97,7 +98,8 @@ BEGIN
         "DB_Global".Inp.MainDriveReady AND
         "DB_Global".Inp.ConveyorReady AND
         ("DB_Global".Inp.ProductPumpReady OR NOT "DB_Global".Cmd.ProductPumpEnable) AND
-        "DB_Global".Inp.CapDriveReady;
+        "DB_Global".Inp.CapDriveReady AND
+        "DB_Global".OpenPoints.ReadyPermissives;
 
     MachineStopped := NOT "DB_Global".Out.MainRun;
     SpeedParameterFault := ("DB_Global".Par.MaxSpeedBPH <= 0.0)
@@ -172,7 +174,8 @@ BEGIN
     EffectiveCmd.Reset := "DB_Global".Cmd.Reset OR "DB_Global".Inp.ResetAlarmPanelPB;
     EffectiveCmd.Stop := "DB_Global".Cmd.Stop
                          OR "DB_Global".Inp.StopPanelPB
-                         OR "DB_Global".DoorAccess.ControlledStopRequest;
+                         OR "DB_Global".DoorAccess.ControlledStopRequest
+                         OR "DB_Global".OpenPoints.ControlledStopRequest;
 
     AutoBottleGate(
         RequestEnable := "DB_Global".Cmd.GateAutoRequestEnable,
@@ -683,4 +686,47 @@ BEGIN
             "DB_Global".Efficiency.StopSeconds := "DB_Global".Efficiency.StopSeconds + 1;
         END_IF;
     END_IF;
+
+    // Final cyclic open-point supervisor. It can only reduce permission or
+    // force a safe output state; it never invents a physical address/mapping.
+    OpenPointsSupervisor(
+        SafetyOK := "DB_Global".Inp.SafetyOK,
+        AirPressureOK := "DB_Global".Inp.AirPressureOK,
+        EncoderHealthy := "DB_Global".Inp.EncoderHealthy,
+        MachineZero := "DB_Global".Inp.MachineZero,
+        EncoderCount := "DB_Global".Inp.EncoderCount,
+        MachineStopped := MachineStopped,
+        HomeStart := EffectiveCmd.HomeStart,
+        Reset := EffectiveCmd.Reset,
+        ProductionActive := "DB_Global".Machine.ProductionActive,
+        MachineState := "DB_Global".Machine.State,
+        BottleInfeed := "DB_Global".Inp.BottleInfeed,
+        MainReady := "DB_Global".Inp.MainDriveReady,
+        MainFault := "DB_Global".Inp.MainDriveFault,
+        ProductPumpReady := "DB_Global".Inp.ProductPumpReady,
+        ProductPumpFault := "DB_Global".Inp.ProductPumpFault,
+        ConveyorReady := "DB_Global".Inp.ConveyorReady,
+        ConveyorFault := "DB_Global".Inp.ConveyorFault,
+        CapDriveReady := "DB_Global".Inp.CapDriveReady,
+        CapDriveFault := "DB_Global".Inp.CapDriveFault,
+        DriveNetworkOK := "DB_Global".Inp.DriveG120CNetworkOK,
+        AnybusProfinetOK := "DB_Global".Inp.AnybusGatewayOK,
+        AnybusEtherCATOK := "DB_Global".Inp.AnybusGatewayECATOK,
+        SmcCommOK := "DB_Global".Inp.SMCCommOK,
+        PilzCommOK := "DB_Global".Inp.PilzDeviceOK,
+        AL100CommOK := "DB_Global".Inp.IOLinkMaster1OK,
+        AL101CommOK := "DB_Global".Inp.IOLinkMaster2OK,
+        AL102CommOK := "DB_Global".Inp.IOLinkMaster3OK,
+        AL103CommOK := "DB_Global".Inp.IOLinkMaster4OK,
+        AL104CommOK := "DB_Global".Inp.IOLinkMaster5OK,
+        GateOpenFeedback := "DB_Global".Inp.GateOpenFB,
+        GateClosedFeedback := "DB_Global".Inp.GateClosedFB,
+        CapPresent := "DB_Global".Inp.CapPresent,
+        CapHopperLow := "DB_Global".Inp.CapHopperLow,
+        CapChannelDemand := "DB_Global".Inp.CapChannelDemand,
+        CapsMissing := "DB_Global".Inp.CapsMissing,
+        O := "DB_Global".OpenPoints,
+        M := "DB_Global".Machine,
+        Out := "DB_Global".Out
+    );
 END_FUNCTION_BLOCK
