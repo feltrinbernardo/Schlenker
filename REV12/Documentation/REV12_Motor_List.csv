@@ -1,0 +1,7 @@
+Sequence,EquipmentCode,Function,IntendedControl,CableReference,PLCCommand,PLCFeedback,MotorDataStatus,HardwareStatus
+1,M100,Main machine,SINAMICS G120C VFD,C-032,DB_Global.Out.MainRun / MainSpeedPct,MainDriveReady / MainDriveFault / MainSpeedActualPct / EncoderHealthy,Motor data stated as known but values absent,NOT CONFIGURED
+2,M101,Bottle conveyor,SINAMICS G120C VFD,C-033,DB_Global.Out.ConveyorRun / ConveyorSpeedPct,ConveyorReady / ConveyorFault,Awaiting motor data,NOT CONFIGURED
+3,M102,Product pump,SINAMICS G120C VFD,C-034,DB_Global.Out.ProductPumpRun / ProductPumpSpeedPct,ProductPumpReady / ProductPumpFault,Awaiting motor data,NOT CONFIGURED
+4,TBC,Cap distributor,SINAMICS G120C VFD,TBC,DB_Global.Out.CapDriveRun / CapDriveSpeedPct,CapDriveReady / CapDriveFault,Equipment code and motor data missing,NOT CONFIGURED
+5,M103,Vacuum pump,Contactor or VFD TBC,C-035,DB_Global.Out.VacuumPump,No dedicated motor feedback identified,Awaiting motor data,NOT CONFIGURED
+6,M104,Ventilation / hood fan,Contactor or VFD TBC,C-036,DB_Global.Out.AirFilterRelayCmd probable association,AirFilterPressureOK / AirFilterFault / HoodFilterAlarm,Awaiting motor data and command association confirmation,NOT CONFIGURED
