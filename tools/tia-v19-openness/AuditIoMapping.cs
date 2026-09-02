@@ -27,7 +27,7 @@ namespace Schlenker.TiaV19
             "AllDoorsClosed", "AllDoorsUnlocked", "SafetyCircuitClosed",
             "ZeroSpeedConfirmed", "ThreePhaseOffConfirmed", "DoorAccess",
             "REQ_ACCESS", "REQ_SAFETY_RESET", "DR01", "DR02", "DR03", "DR04",
-            "DR05", "DR06", "DR07", "DR08", "DR09", "DR10", "DR11", "DR12"
+            "DR05", "DR06", "DR07", "DR08", "DR09", "DR10", "DR11"
         };
 
         private static string ExportDirectory;

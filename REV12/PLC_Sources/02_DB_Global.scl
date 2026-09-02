@@ -105,7 +105,10 @@ BEGIN
     OpenPoints.AL101.Required := TRUE;
     OpenPoints.AL102.Required := TRUE;
     OpenPoints.AL103.Required := TRUE;
-    OpenPoints.AL104.Required := FALSE;
+    // REV20 freezes AL104 as the fifth required AL1403 function for the
+    // Customer CIP interface. Configured/DataValid remain FALSE until the
+    // physical master, ports and electrical interface are commissioned.
+    OpenPoints.AL104.Required := TRUE;
     OpenPoints.SMC.GatewayConfigured := FALSE;
     OpenPoints.SMC.MappingConfigured := FALSE;
     OpenPoints.PhysicalDoorMapConfigured := FALSE;

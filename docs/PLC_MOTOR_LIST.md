@@ -32,6 +32,12 @@ PROFINET telegrams, addresses or motor nameplate data.
 Planned G120C count: **4**. Configured G120C devices verified in the latest TIA
 hardware inventory: **0**.
 
+The offline PLC sources now explicitly pass `RunningFeedback := FALSE` and
+`RunningFeedbackValid := FALSE` to all four drive managers. This removes the
+previous command-as-feedback and circular-feedback behavior. Each drive remains
+`NOT COMMISSIONED / DATA INVALID` until real G120C status-word and actual-speed
+signals are mapped and validated.
+
 ## 3. PLC and HMI interface inventory
 
 | Equipment | PLC command/reference | PLC feedback/reference | HMI reference | Interface completeness |
