@@ -10,7 +10,16 @@ This hierarchy tracks the metadata and procedure used to version the Schlenker T
 
 `C:\TIA Projects\Schlenkers 36-10 190036-7-8v2.12-VersionControl`
 
-The external vault is a separate local Git repository. Large `.zip` folder snapshots and `.zap19` archives are stored through Git LFS. No remote is configured until a repository owner supplies or approves the destination.
+The external vault is a separate local Git repository. Large `.zip` folder snapshots and `.zap19` archives are stored through Git LFS. It is backed up in the private repository [feltrinbernardo/Schlenker-TIA-Portal](https://github.com/feltrinbernardo/Schlenker-TIA-Portal).
+
+For disaster recovery on another engineering computer:
+
+```powershell
+git clone https://github.com/feltrinbernardo/Schlenker-TIA-Portal.git
+git -C Schlenker-TIA-Portal lfs pull
+```
+
+The operator must have access to the private GitHub repository and Git LFS must be installed.
 
 ## Repository contents
 
@@ -32,4 +41,3 @@ The external vault is a separate local Git repository. Large `.zip` folder snaps
 ## Restoring
 
 An official `.zap19` archive is the preferred restoration method. A folder snapshot is a secondary offline recovery artifact and must be extracted to a new directory, opened offline in the matching TIA Portal version, compiled and validated before use.
-

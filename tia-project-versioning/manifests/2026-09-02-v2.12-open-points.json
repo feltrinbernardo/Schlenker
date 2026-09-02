@@ -13,8 +13,12 @@
   "externalVault": {
     "path": "C:\\TIA Projects\\Schlenkers 36-10 190036-7-8v2.12-VersionControl",
     "gitCommit": "25153bd61ebd1b5004ecdde9850c73d163e813d3",
-    "remoteConfigured": false,
-    "binaryStorage": "Git LFS"
+    "remoteConfigured": true,
+    "remoteUrl": "https://github.com/feltrinbernardo/Schlenker-TIA-Portal.git",
+    "remoteVisibility": "private",
+    "binaryStorage": "Git LFS",
+    "recoveryCloneVerifiedLocal": "2026-09-02T13:45:21.0181741+10:00",
+    "recoveryCloneVerifiedUtc": "2026-09-02T03:45:21.0227814Z"
   },
   "snapshot": {
     "type": "OFFLINE_FOLDER_COPY_NON_OFFICIAL",
