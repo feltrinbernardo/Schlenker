@@ -10,10 +10,18 @@
 
 **Uso del documento:** istruzione controllata per Rob e registro delle informazioni ancora necessarie.
 
-**Stato esecuzione 2026-09-03:** le correzioni verificabili delle sezioni
-2.1–2.5 sono state applicate alle fonti offline del repository. L'integrazione
-nel progetto nativo TIA, il rebuild e la verifica visiva restano separati e
-richiedono il gate di sicurezza dell'ambiente di sviluppo per questa esecuzione.
+**Stato esecuzione 2026-09-03:** il gate di sicurezza dell'ambiente di sviluppo
+è stato confermato. Le correzioni verificabili delle sezioni 2.1–2.5 sono state
+applicate al progetto nativo TIA esclusivamente offline. Sono state importate 30
+fonti SCL con 0 errori e 0 warning; la schermata `safety_pilz_diagnostics` è
+stata salvata e verificata tramite proprietà/oggetti TIA Openness. Nessuna API
+online, download, controllo CPU o scrittura hardware è stata utilizzata.
+
+Il rebuild completo conferma PLC 0/0. Il rilascio resta bloccato dagli stessi
+finding presenti nel checkpoint pre-correzione: password display CPU oltre il
+limite/protezione non approvata e `Parameter set type_1` senza versione UDT/tag.
+La verifica visiva raster non è disponibile tramite il canale di cattura di
+questa installazione; non è stata sostituita con click ciechi.
 
 ## 1. Risultato dell'analisi
 
@@ -44,7 +52,7 @@ Il repository pubblico contiene fonti PLC SCL, tag e specifiche HMI, strumenti T
 
 Questi punti non sono semplici `WAITING FOR INPUT`: sono contraddizioni da correggere o isolare.
 
-### 2.1 Porte Pilz: 11, non 12 — CORRETTO NELLE FONTI OFFLINE
+### 2.1 Porte Pilz: 11, non 12 — CORRETTO E IMPORTATO NEL TIA
 
 La baseline controllata della macchina conferma **11 porte**:
 
@@ -72,7 +80,7 @@ Non è approvata una suddivisione funzionale in tre zone `Z1/Z2/Z3` e non è app
 
 **Istruzione a Rob:** visualizzare solo diagnostica aggregata finché non arriva la mappa Pilz approvata. Non mostrare porte, zone, moduli o indirizzi individuali come se fossero reali.
 
-### 2.2 Infeed gate: DI-031 e DI-032 non sono i feedback gate — RICONCILIATO OFFLINE
+### 2.2 Infeed gate: DI-031 e DI-032 non sono i feedback gate — RICONCILIATO NEL TIA
 
 Il file originale associa erroneamente `DI-031` e `DI-032` ai feedback dell'infeed gate.
 
@@ -89,7 +97,7 @@ Gli indirizzi REV11 devono comunque essere point-to-point verificati contro il d
 Le fonti PLC utilizzano i riferimenti simbolici separati `GateOpenFB` e
 `GateClosedFB`; DI-031 e DI-032 restano esclusivamente Bottle Shortage 1 e 2.
 
-### 2.3 AL104 non è opzionale nell'architettura approvata — CORRETTO OFFLINE
+### 2.3 AL104 non è opzionale nell'architettura approvata — CORRETTO NEL TIA
 
 REV18 e REV20 congelano l'architettura a **5 IFM AL1403**:
 
@@ -106,7 +114,7 @@ opzionale. Le fonti offline ora inizializzano
 
 La comunicazione Customer CIP, i canali e l'interfaccia elettrica restano non commissionati. `Required := TRUE` non autorizza ad inventare indirizzi o a simulare comunicazione valida.
 
-### 2.4 Feedback G120C non reale — ISOLATO FAIL-SAFE OFFLINE
+### 2.4 Feedback G120C non reale — ISOLATO FAIL-SAFE NEL TIA
 
 Nel supervisore open-points, gli stati `RunningFeedback` dei drive non sono
 ancora collegati a feedback reali. Le associazioni precedenti erano:
@@ -120,7 +128,7 @@ Queste associazioni sono state rimosse. Tutti e quattro i manager ricevono ora
 `NOT COMMISSIONED / DATA INVALID` fino al mapping delle status word e della
 velocità reale dei G120C.
 
-### 2.5 Indirizzi Pilz mostrati nell'HMI — RIMOSSI DAL GENERATORE
+### 2.5 Indirizzi Pilz mostrati nell'HMI — RIMOSSI DAL TIA E DAL GENERATORE
 
 Le specifiche REV22/REV23 dicono esplicitamente di non inventare:
 
@@ -283,12 +291,12 @@ Ancora da chiudere:
 
 ## 8. Ordine di lavoro raccomandato per Rob
 
-1. **COMPLETATO:** creare checkpoint del progetto TIA attuale e registrare
-   hash/versione; resta richiesto il nuovo archive ufficiale post-correzione.
-2. **COMPLETATO NELLE FONTI OFFLINE:** correggere le contraddizioni
+1. **COMPLETATO:** checkpoint, archive ufficiale pre-correzione, archive
+   ufficiale post-correzione, snapshot e manifest sono registrati nel vault.
+2. **COMPLETATO NEL TIA:** correggere le contraddizioni
    documentali: 11 porte, 3 request stations, gate DI, AL104 required.
-3. **COMPLETATO NEL GENERATORE HMI:** eliminare qualsiasi indirizzo Pilz non
-   provato e mostrare `MAPPING NOT CONFIGURED`; resta l'applicazione nel `.ap19`.
+3. **COMPLETATO NEL TIA E NEL GENERATORE HMI:** eliminare qualsiasi indirizzo
+   Pilz non provato e mostrare `MAPPING NOT CONFIGURED`.
 4. Verificare cross-reference di `Parameter set type_1`; eliminare solo se realmente inutilizzato.
 5. Applicare la protezione CPU/display approvata senza registrare password.
 6. Configurare hardware TIA nell'ordine: Pilz, AL100–AL104, G120C, ABC3113-A, EX260, TM Count.
@@ -297,9 +305,11 @@ Ancora da chiudere:
    rimossi; il completamento richiede i dati reali dei telegrammi.
 9. Configurare homing, tracking, gate ed EV230 con parametri misurati.
 10. Chiudere utenti/ruoli, retention e acknowledgement degli allarmi.
-11. Eseguire PLC software rebuild, hardware compile e HMI full rebuild.
+11. **ESEGUITO CON HOLD POINT:** PLC rebuild 0/0; hardware e HMI confermano i
+    finding preesistenti descritti nelle sezioni 4.2 e 4.3.
 12. Eseguire PLCSIM/negative tests, poi FAT autorizzato e I/O point-to-point.
-13. Creare nuovo `.zap19` post-correzione e aggiornare manifest/change-log.
+13. **COMPLETATO:** nuovo `.zap19` post-correzione, manifest e report creati;
+    il rilascio resta bloccato finché i finding preesistenti non sono risolti.
 
 ## 9. Acceptance gate
 
