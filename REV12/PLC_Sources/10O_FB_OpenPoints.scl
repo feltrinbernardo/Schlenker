@@ -203,6 +203,7 @@ VAR_INPUT
     ReadyFeedback       : Bool;
     FaultFeedback       : Bool;
     RunningFeedback     : Bool;
+    RunningFeedbackValid : Bool;
     WarningFeedback     : Bool;
     Reset               : Bool;
 END_VAR
@@ -215,10 +216,14 @@ VAR
 END_VAR
 BEGIN
     D.Device.CommunicationOK := D.Device.Configured AND CommunicationOK;
-    D.Device.DataValid := D.Device.CommunicationOK AND D.ActualSpeedValid;
+    D.RunningFeedbackValid := RunningFeedbackValid;
+    D.Device.DataValid := D.Device.CommunicationOK AND D.ActualSpeedValid
+                          AND D.RunningFeedbackValid;
     D.Device.Fault := FaultFeedback OR (D.Device.Configured AND NOT CommunicationOK);
     D.Device.Ready := D.Device.DataValid AND ReadyFeedback AND NOT D.Device.Fault;
-    D.Device.NotCommissioned := NOT D.Device.Configured;
+    D.Device.NotCommissioned := NOT (D.Device.Configured
+                                     AND D.ActualSpeedValid
+                                     AND D.RunningFeedbackValid);
     D.Running := D.Device.DataValid AND RunningFeedback;
     D.Warning := D.Device.DataValid AND WarningFeedback;
     D.RunCommand := (D.RequestedRun OR D.ManualRequest) AND D.Device.Ready
@@ -232,9 +237,10 @@ BEGIN
     D.Device.RecoveryRequired := D.Device.Fault OR D.StartupTimeout OR D.StoppingTimeout;
     D.ResetCommand := Reset AND D.Device.CommunicationOK;
 
-    IF D.Device.NotCommissioned THEN D.Device.DiagnosticCode := UINT#1;
+    IF NOT D.Device.Configured THEN D.Device.DiagnosticCode := UINT#1;
     ELSIF NOT D.Device.CommunicationOK THEN D.Device.DiagnosticCode := UINT#2;
     ELSIF NOT D.ActualSpeedValid THEN D.Device.DiagnosticCode := UINT#3;
+    ELSIF NOT D.RunningFeedbackValid THEN D.Device.DiagnosticCode := UINT#8;
     ELSIF D.Device.Fault THEN D.Device.DiagnosticCode := UINT#4;
     ELSIF D.StartupTimeout THEN D.Device.DiagnosticCode := UINT#5;
     ELSIF D.StoppingTimeout THEN D.Device.DiagnosticCode := UINT#6;
@@ -343,17 +349,24 @@ BEGIN
     O.ConveyorDrive.RequestedRun := ProductionActive;
     O.CapDistributorDrive.RequestedRun := ProductionActive;
 
+    // No G120C running/status telegram is mapped yet. Command bits and retained
+    // manager states are not feedback. Keep all four drives DATA INVALID and
+    // NOT COMMISSIONED until real status-word/actual-speed signals are supplied.
     MainDrive(CommunicationOK := DriveNetworkOK, ReadyFeedback := MainReady,
-              FaultFeedback := MainFault, RunningFeedback := Out.MainRun,
+              FaultFeedback := MainFault, RunningFeedback := FALSE,
+              RunningFeedbackValid := FALSE,
               WarningFeedback := FALSE, Reset := Reset, D := O.MainDrive);
     ProductDrive(CommunicationOK := DriveNetworkOK, ReadyFeedback := ProductPumpReady,
-                 FaultFeedback := ProductPumpFault, RunningFeedback := Out.ProductPumpRun,
+                 FaultFeedback := ProductPumpFault, RunningFeedback := FALSE,
+                 RunningFeedbackValid := FALSE,
                  WarningFeedback := FALSE, Reset := Reset, D := O.ProductPumpDrive);
     ConveyorDrive(CommunicationOK := DriveNetworkOK, ReadyFeedback := ConveyorReady,
-                  FaultFeedback := ConveyorFault, RunningFeedback := O.ConveyorDrive.Running,
+                  FaultFeedback := ConveyorFault, RunningFeedback := FALSE,
+                  RunningFeedbackValid := FALSE,
                   WarningFeedback := FALSE, Reset := Reset, D := O.ConveyorDrive);
     CapDrive(CommunicationOK := DriveNetworkOK, ReadyFeedback := CapDriveReady,
-             FaultFeedback := CapDriveFault, RunningFeedback := O.CapDistributorDrive.Running,
+             FaultFeedback := CapDriveFault, RunningFeedback := FALSE,
+             RunningFeedbackValid := FALSE,
              WarningFeedback := FALSE, Reset := Reset, D := O.CapDistributorDrive);
 
     O.Pilz.CommunicationOK := O.Pilz.Configured AND PilzCommOK;

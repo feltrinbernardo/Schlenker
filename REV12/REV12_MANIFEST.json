@@ -12,7 +12,7 @@
   "retained_confirmed_hardware": [
     "Four SINAMICS G120C drives",
     "Pilz PNOZmulti 2 with PROFINET module 772138",
-    "Four IFM AL1403 IO-Link masters",
+    "Five IFM AL1403 IO-Link masters (AL100-AL104)",
     "IFM RO3101 HTL A/B/Z 2048 PPR encoder through TM Count",
     "HMS Anybus ABC3113-A PROFINET-to-EtherCAT gateway",
     "SMC EX260-SEC1 with 8x VQC1100N-51 and 2x VQC1200N-51",

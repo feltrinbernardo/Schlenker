@@ -5465,45 +5465,45 @@ namespace Schlenker.TiaV19
             AddPilzImplementationStatus(screen, "Standstill", "STANDSTILL", "PilzDiag_StandstillConfirmed", 415, 192);
             AddPilzImplementationStatus(screen, "Reset", "RESET REQUIRED", "PilzDiag_ResetRequired", 785, 192);
 
-            AddPilzDoorZonePanel(screen, "Z1", "ZONE 1 - DR01 TO DR04", 25, 240, new[]
-            {
-                "DR01  B0 I10 / I11 / I12",
-                "DR02  B0 I13 / I14 / I15",
-                "DR03  B0 I16 / I17 / I18",
-                "DR04  EF16DI I0 / I1 / I2"
-            }, "EF8DI4DO #1 O0 - UNLOCK ZONE 1");
-            AddPilzDoorZonePanel(screen, "Z2", "ZONE 2 - DR05 TO DR08", 415, 240, new[]
-            {
-                "DR05  EF16DI I3 / I4 / I5",
-                "DR06  EF16DI I6 / I7 / I8",
-                "DR07  EF16DI I9 / I10 / I11",
-                "DR08  EF16DI I12 / I13 / I14"
-            }, "EF8DI4DO #1 O1 - UNLOCK ZONE 2");
-            AddPilzDoorZonePanel(screen, "Z3", "ZONE 3 - DR09 TO DR12", 805, 240, new[]
-            {
-                "DR09  EF8DI4DO #1 I0 / I1 / I2",
-                "DR10  EF8DI4DO #1 I3 / I4 / I5",
-                "DR11  EF8DI4DO #2 I0 / I1 / I2",
-                "DR12  EF8DI4DO #2 I3 / I4 / I5"
-            }, "EF8DI4DO #1 O2 - UNLOCK ZONE 3");
+            ConfigureRectangle(GetOrCreate<HmiRectangle>(screen, "PILZ26_MappingPanel"),
+                25, 240, 1165, 298, Panel, Border, 1);
+            ConfigureText(GetOrCreate<HmiText>(screen, "PILZ26_MappingTitle"),
+                45, 255, 1125, 32, "PHYSICAL SAFETY MAPPING - NOT COMMISSIONED",
+                Navy, 18, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+            ConfigureText(GetOrCreate<HmiText>(screen, "PILZ26_MappingInventory"),
+                55, 310, 1105, 34,
+                "CONFIRMED MACHINE INVENTORY: 11 GUARDS | 3 ACCESS REQUEST STATIONS",
+                Dark, 14, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+            ConfigureText(GetOrCreate<HmiText>(screen, "PILZ26_MappingDoors"),
+                55, 370, 1105, 40,
+                "INDIVIDUAL DOOR / LOCK / PILZ CHANNEL MAP: MAPPING NOT CONFIGURED",
+                Amber, 14, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+            ConfigureText(GetOrCreate<HmiText>(screen, "PILZ26_MappingZones"),
+                55, 425, 1105, 40,
+                "SAFETY ZONES: NOT DEFINED IN THE APPROVED MACHINE BASELINE",
+                Amber, 14, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+            ConfigureText(GetOrCreate<HmiText>(screen, "PILZ26_MappingRule"),
+                55, 480, 1105, 36,
+                "AGGREGATE DIAGNOSTICS ONLY UNTIL THE APPROVED PILZ PROJECT AND ELECTRICAL MAP ARE AVAILABLE.",
+                Red, 12, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
 
             ConfigureRectangle(GetOrCreate<HmiRectangle>(screen, "PILZ26_EnergyPanel"),
                 25, 550, 1165, 92, Panel, Border, 1);
             ConfigureText(GetOrCreate<HmiText>(screen, "PILZ26_EnergyTitle"),
-                45, 559, 1125, 24, "SAFE ENERGY OUTPUTS / FEEDBACK - LOCAL PILZ ALLOCATION",
+                45, 559, 1125, 24, "SAFE ENERGY OUTPUTS / FEEDBACK - MAPPING NOT CONFIGURED",
                 Navy, 16, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
             ConfigureText(GetOrCreate<HmiText>(screen, "PILZ26_EnergyRow1"),
                 45, 588, 1125, 22,
-                "B0 O0/O1 STO CH1/CH2 | B0 O2 MOTOR K1+K2 | B0 O3 ACTUATOR K3+K4 | EF8DI4DO #1 O3 AIR DUMP",
+                "STO / MOTOR POWER / ACTUATOR POWER / AIR DUMP: PHYSICAL CHANNELS NOT CONFIGURED",
                 Dark, 11, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
             ConfigureText(GetOrCreate<HmiText>(screen, "PILZ26_EnergyRow2"),
                 45, 612, 1125, 20,
-                "EDM: B0 I0 MOTOR, B0 I1 ACTUATOR | DUMP PRESSURE: EF8DI4DO #1 I6 | STANDSTILL: 1MM CH1/CH2",
+                "EDM / PRESSURE / STANDSTILL FEEDBACK: PHYSICAL CHANNELS NOT CONFIGURED",
                 Dark, 11, HmiFontWeight.Normal, HmiHorizontalAlignment.Left);
 
             ConfigureText(GetOrCreate<HmiText>(screen, "PILZ26_TruthNote"),
                 25, 649, 845, 43,
-                "LOCAL PILZ CHANNELS VERIFIED FROM ENGINEERING SPEC. PROFINET BYTE/BIT MAP AND INDIVIDUAL DOOR TAGS ARE NOT COMMISSIONED. HMI IS DIAGNOSTIC ONLY.",
+                "11 GUARDS CONFIRMED. INDIVIDUAL PILZ CHANNELS ARE NOT COMMISSIONED. HMI IS DIAGNOSTIC ONLY.",
                 Red, 11, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
             ConfigureNavigateButton(GetOrCreate<HmiButton>(screen, "PILZ26_Back"),
                 900, 653, 250, 40, "BACK TO DIAGNOSTICS", Navy, "diagnostics", "DIAGNOSTICS");
@@ -5516,7 +5516,9 @@ namespace Schlenker.TiaV19
                     "safety_pilz_diagnostics", "DIAGNOSTICS");
             }
 
-            Console.WriteLine("PILZ26_LOCAL_CHANNEL_ALLOCATION=DOCUMENTED");
+            Console.WriteLine("PILZ26_CONFIRMED_GUARD_COUNT=11");
+            Console.WriteLine("PILZ26_ACCESS_REQUEST_STATIONS=3");
+            Console.WriteLine("PILZ26_UNVERIFIED_LOCAL_CHANNEL_ALLOCATION=REMOVED");
             Console.WriteLine("PILZ26_PROFINET_ABSOLUTE_MAP=MISSING");
             Console.WriteLine("PILZ26_INDIVIDUAL_DOOR_RUNTIME_TAGS=NOT_COMMISSIONED");
             Console.WriteLine("PILZ26_HMI_SAFETY_RESET_COMMAND=NOT_CREATED");
@@ -5537,11 +5539,10 @@ namespace Schlenker.TiaV19
             int itemCountBefore = screen.ScreenItems.Count;
             int uniqueCountBefore = screen.ScreenItems.Select(item => item.Name)
                 .Distinct(StringComparer.OrdinalIgnoreCase).Count();
-            if ((itemCountBefore != 143 && itemCountBefore != 159) ||
-                uniqueCountBefore != itemCountBefore)
+            if (itemCountBefore < 40 || uniqueCountBefore != itemCountBefore)
             {
                 throw new InvalidOperationException(
-                    "PILZ diagnostics refinement requires the verified 143/159-object screen.");
+                    "PILZ diagnostics refinement requires a valid screen with unique object names.");
             }
 
             Dictionary<string, string> bindingState = screen.ScreenItems.OfType<HmiIOField>()
@@ -5627,12 +5628,36 @@ namespace Schlenker.TiaV19
                 "PilzDiag_ResetRequired", 772, 196, 934, 5,
                 "REQUIRED", "CLEAR", Amber, Green, true, true, cardBorder);
 
-            RefinePilzZonePanel(screen, "Z1", "ZONE 1 - DOORS DR01 TO DR04",
-                18, 240, 380, panelSurface, cardBorder);
-            RefinePilzZonePanel(screen, "Z2", "ZONE 2 - DOORS DR05 TO DR08",
-                410, 240, 380, panelSurface, cardBorder);
-            RefinePilzZonePanel(screen, "Z3", "ZONE 3 - DOORS DR09 TO DR12",
-                802, 240, 388, panelSurface, cardBorder);
+            // Remove the unverified DR01-DR12/zone/channel visualization. The
+            // controlled baseline confirms 11 guards and three request stations,
+            // but does not approve individual Pilz channels or safety zones.
+            DeleteItemsWithPrefix(screen, "PILZ26_Z");
+            DeleteItemsWithPrefix(screen, "REV37_Pilz_ZoneStatusHeader_");
+            HmiRectangle mappingPanel = GetOrCreate<HmiRectangle>(screen,
+                "PILZ26_MappingPanel");
+            ConfigureRectangle(mappingPanel, 18, 240, 1172, 296,
+                panelSurface, cardBorder, 1);
+            mappingPanel.Enabled = false;
+            ConfigureText(GetOrCreate<HmiText>(screen, "PILZ26_MappingTitle"),
+                38, 253, 1132, 32,
+                "PHYSICAL SAFETY MAPPING - NOT COMMISSIONED", Navy, 18,
+                HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+            ConfigureText(GetOrCreate<HmiText>(screen, "PILZ26_MappingInventory"),
+                48, 310, 1112, 34,
+                "CONFIRMED MACHINE INVENTORY: 11 GUARDS | 3 ACCESS REQUEST STATIONS",
+                Dark, 14, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+            ConfigureText(GetOrCreate<HmiText>(screen, "PILZ26_MappingDoors"),
+                48, 370, 1112, 40,
+                "INDIVIDUAL DOOR / LOCK / PILZ CHANNEL MAP: MAPPING NOT CONFIGURED",
+                Amber, 14, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+            ConfigureText(GetOrCreate<HmiText>(screen, "PILZ26_MappingZones"),
+                48, 425, 1112, 40,
+                "SAFETY ZONES: NOT DEFINED IN THE APPROVED MACHINE BASELINE",
+                Amber, 14, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+            ConfigureText(GetOrCreate<HmiText>(screen, "PILZ26_MappingRule"),
+                48, 480, 1112, 36,
+                "AGGREGATE DIAGNOSTICS ONLY UNTIL THE APPROVED PILZ PROJECT AND ELECTRICAL MAP ARE AVAILABLE.",
+                Red, 12, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
 
             HmiRectangle energyPanel = screen.ScreenItems.Find(
                 "PILZ26_EnergyPanel") as HmiRectangle;
@@ -5656,16 +5681,16 @@ namespace Schlenker.TiaV19
                 panelSurface, cardBorder, 1);
             energyPanel.Enabled = false;
             ConfigureText(energyTitle, 38, 557, 1132, 24,
-                "SAFE ENERGY ALLOCATION - LOCAL PILZ CHANNELS", Navy, 16,
+                "SAFE ENERGY ALLOCATION - MAPPING NOT CONFIGURED", Navy, 16,
                 HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
             ConfigureText(energyRow1, 38, 585, 1132, 22,
-                "OUTPUTS: B0 O0/O1 STO CH1/CH2 | B0 O2 MOTOR K1+K2 | B0 O3 ACTUATOR K3+K4 | EF8DI4DO #1 O3 AIR DUMP",
+                "OUTPUTS: STO / MOTOR POWER / ACTUATOR POWER / AIR DUMP - PHYSICAL CHANNELS NOT CONFIGURED",
                 Dark, 10, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
             ConfigureText(energyRow2, 38, 610, 1132, 20,
-                "FEEDBACK: B0 I0 MOTOR | B0 I1 ACTUATOR | EF8DI4DO #1 I6 DUMP PRESSURE | 1MM CH1/CH2 STANDSTILL",
+                "FEEDBACK: EDM / PRESSURE / STANDSTILL - PHYSICAL CHANNELS NOT CONFIGURED",
                 Dark, 10, HmiFontWeight.Normal, HmiHorizontalAlignment.Left);
             ConfigureText(truthNote, 38, 650, 850, 42,
-                "HOLD POINT - PROFINET BYTE/BIT MAP AND INDIVIDUAL DOOR TAGS ARE NOT COMMISSIONED. DIAGNOSTIC VIEW ONLY.",
+                "HOLD POINT - 11 GUARDS CONFIRMED; INDIVIDUAL PILZ CHANNELS ARE NOT COMMISSIONED. DIAGNOSTIC VIEW ONLY.",
                 Amber, 10, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
             SetBounds(backButton, 920, 650, 250, 42);
             SetText(backButton.Text, "BACK TO DIAGNOSTICS");
@@ -5736,29 +5761,47 @@ namespace Schlenker.TiaV19
                 return back.Visible && colorDynamic != null &&
                     colorDynamic.ScriptCode.Contains("Network_HMI_OK");
             });
-            int missingConfigMarkers = screen.ScreenItems.OfType<HmiText>().Count(text =>
-                text.Name.StartsWith("PILZ26_Z", StringComparison.OrdinalIgnoreCase) &&
-                text.Name.Contains("_State_") &&
-                String.Join(" ", text.Text.Items.Select(item => item.Text))
-                    .Contains("MISSING CONFIG"));
-            int statusHeaders = screen.ScreenItems.OfType<HmiText>().Count(text =>
-                text.Name.StartsWith("REV37_Pilz_ZoneStatusHeader_",
-                    StringComparison.OrdinalIgnoreCase));
+            string[] prohibitedPhysicalText =
+            {
+                "DR12", "B0 I", "B0 O", "EF16DI", "EF8DI4DO",
+                "ZONE 1 -", "ZONE 2 -", "ZONE 3 -"
+            };
+            int unverifiedPhysicalMappings = screen.ScreenItems.OfType<HmiText>()
+                .Count(text =>
+                {
+                    string value = String.Join(" ",
+                        text.Text.Items.Select(item => item.Text));
+                    return prohibitedPhysicalText.Any(marker => value.IndexOf(
+                        marker, StringComparison.OrdinalIgnoreCase) >= 0);
+                });
+            int mappingNotConfiguredMarkers = screen.ScreenItems.OfType<HmiText>()
+                .Count(text => String.Join(" ", text.Text.Items.Select(item => item.Text))
+                    .IndexOf("MAPPING NOT CONFIGURED",
+                        StringComparison.OrdinalIgnoreCase) >= 0);
             int itemCountAfter = screen.ScreenItems.Count;
             int uniqueCountAfter = screen.ScreenItems.Select(item => item.Name)
                 .Distinct(StringComparer.OrdinalIgnoreCase).Count();
             bool layoutValid = summaryPanel.Left == 18 && summaryPanel.Top == 112 &&
                 summaryPanel.Width == 1172 && summaryPanel.Height == 116 &&
+                mappingPanel.Left == 18 && mappingPanel.Top == 240 &&
+                mappingPanel.Width == 1172 && mappingPanel.Height == 296 &&
                 energyPanel.Left == 18 && energyPanel.Top == 548 &&
                 energyPanel.Width == 1172 && energyPanel.Height == 92 &&
                 backButton.Left == 920 && backButton.Top == 650 &&
                 backButton.Left + backButton.Width <= 1190 &&
                 backButton.Top + backButton.Height == 692;
-            bool expectedObjects = itemCountAfter == 159 && uniqueCountAfter == 159 &&
-                itemCountAfter >= itemCountBefore && statusHeaders == 3;
+            bool expectedObjects = uniqueCountAfter == itemCountAfter &&
+                screen.ScreenItems.Find("PILZ26_MappingTitle") != null &&
+                screen.ScreenItems.Find("PILZ26_MappingInventory") != null &&
+                screen.ScreenItems.Find("PILZ26_MappingDoors") != null &&
+                screen.ScreenItems.Find("PILZ26_MappingZones") != null &&
+                screen.ScreenItems.Find("PILZ26_MappingRule") != null &&
+                !screen.ScreenItems.Any(item => item.Name.StartsWith(
+                    "PILZ26_Z", StringComparison.OrdinalIgnoreCase));
             if (!bindingsPreserved || !eventsPreserved || parkedSources != 6 ||
                 !badgeTextsValid || !badgeBacksValid ||
-                missingConfigMarkers != 12 || !layoutValid ||
+                unverifiedPhysicalMappings != 0 || mappingNotConfiguredMarkers < 2 ||
+                !layoutValid ||
                 !expectedObjects || screen.BackFillPattern != HmiFillPattern.Solid ||
                 screen.BackgroundFillMode != HmiBackgroundFillMode.Screen)
             {
@@ -5772,11 +5815,15 @@ namespace Schlenker.TiaV19
             Console.WriteLine("PILZ_DIAGNOSTICS_BUTTON_EVENTS_PRESERVED=" + preservedButtonEvents);
             Console.WriteLine("PILZ_DIAGNOSTICS_BOUND_SOURCES_PARKED=" + parkedSources);
             Console.WriteLine("PILZ_DIAGNOSTICS_SYMBOLIC_BADGES=" + summaryBadgeTexts.Length);
-            Console.WriteLine("PILZ_DIAGNOSTICS_MISSING_CONFIG_MARKERS=" + missingConfigMarkers);
+            Console.WriteLine("PILZ_DIAGNOSTICS_MAPPING_NOT_CONFIGURED_MARKERS=" +
+                mappingNotConfiguredMarkers);
+            Console.WriteLine("PILZ_DIAGNOSTICS_UNVERIFIED_PHYSICAL_MAPPINGS=" +
+                unverifiedPhysicalMappings);
             Console.WriteLine("PILZ_DIAGNOSTICS_VISIBLE_LEGACY_FIELDS=0");
             Console.WriteLine("PILZ_DIAGNOSTICS_FOOTER_CLEARANCE_PX=" +
                 (714 - (backButton.Top + backButton.Height)));
-            Console.WriteLine("PILZ_DIAGNOSTICS_SCREEN_OBJECTS_DELETED=0");
+            Console.WriteLine("PILZ_DIAGNOSTICS_SCREEN_OBJECTS_REMOVED=" +
+                Math.Max(0, itemCountBefore - itemCountAfter));
             Console.WriteLine("PILZ_DIAGNOSTICS_PLC_LOGIC_MODIFIED=0");
             Console.WriteLine("PILZ_DIAGNOSTICS_PROCESS_TAGS_MODIFIED=0");
         }
@@ -5852,89 +5899,6 @@ namespace Schlenker.TiaV19
                     falseColor.G + "," + falseColor.B + ");");
         }
 
-        private static void RefinePilzZonePanel(
-            HmiScreen screen, string suffix, string title, int left, int top,
-            int width, Color panelSurface, Color cardBorder)
-        {
-            HmiRectangle panel = screen.ScreenItems.Find(
-                "PILZ26_" + suffix + "_Panel") as HmiRectangle;
-            HmiText titleText = screen.ScreenItems.Find(
-                "PILZ26_" + suffix + "_Title") as HmiText;
-            HmiText columns = screen.ScreenItems.Find(
-                "PILZ26_" + suffix + "_Columns") as HmiText;
-            HmiText unlock = screen.ScreenItems.Find(
-                "PILZ26_" + suffix + "_Unlock") as HmiText;
-            HmiText truth = screen.ScreenItems.Find(
-                "PILZ26_" + suffix + "_Truth") as HmiText;
-            if (panel == null || titleText == null || columns == null ||
-                unlock == null || truth == null)
-            {
-                throw new InvalidOperationException(
-                    "PILZ zone content is incomplete: " + suffix + ".");
-            }
-
-            ConfigureRectangle(panel, left, top, (uint)width, 296,
-                panelSurface, cardBorder, 1);
-            panel.Enabled = false;
-            ConfigureText(titleText, left + 16, top + 10, (uint)(width - 32), 28,
-                title, Navy, 15, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
-            ConfigureText(columns, left + 16, top + 42, 226, 20,
-                "DOOR / LOCAL INPUT CHANNELS", Blue, 9,
-                HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
-            ConfigureText(GetOrCreate<HmiText>(screen,
-                    "REV37_Pilz_ZoneStatusHeader_" + suffix),
-                left + width - 132, top + 42, 116, 20,
-                "CONFIG STATUS", Blue, 9, HmiFontWeight.Bold,
-                HmiHorizontalAlignment.Center);
-
-            for (int index = 1; index <= 4; index++)
-            {
-                int rowTop = top + 68 + ((index - 1) * 43);
-                HmiRectangle row = screen.ScreenItems.Find(
-                    "PILZ26_" + suffix + "_Row_" + index) as HmiRectangle;
-                HmiText mapping = screen.ScreenItems.Find(
-                    "PILZ26_" + suffix + "_Mapping_" + index) as HmiText;
-                HmiText state = screen.ScreenItems.Find(
-                    "PILZ26_" + suffix + "_State_" + index) as HmiText;
-                if (row == null || mapping == null || state == null)
-                {
-                    throw new InvalidOperationException(
-                        "PILZ zone row is incomplete: " + suffix + "/" + index + ".");
-                }
-                ConfigureRectangle(row, left + 12, rowTop - 2,
-                    (uint)(width - 24), 36,
-                    index % 2 == 1 ? Color.White : Color.FromArgb(240, 245, 249),
-                    cardBorder, 1);
-                row.Enabled = false;
-                SetBounds(mapping, left + 20, rowTop + 3, 225, 28);
-                mapping.ForeColor = Dark;
-                mapping.Font.Name = HmiFontName.SiemensSans;
-                mapping.Font.Size = 9;
-                mapping.Font.Weight = HmiFontWeight.Bold;
-                mapping.HorizontalTextAlignment = HmiHorizontalAlignment.Left;
-                mapping.VerticalTextAlignment = HmiVerticalAlignment.Center;
-                mapping.Visible = true;
-                mapping.Enabled = false;
-                ConfigureText(state, left + width - 132, rowTop + 2, 116, 28,
-                    "MISSING CONFIG", Color.White, 9, HmiFontWeight.Bold,
-                    HmiHorizontalAlignment.Center);
-                state.Enabled = false;
-            }
-
-            SetBounds(unlock, left + 16, top + 246, (uint)(width - 32), 22);
-            unlock.ForeColor = Navy;
-            unlock.Font.Name = HmiFontName.SiemensSans;
-            unlock.Font.Size = 9;
-            unlock.Font.Weight = HmiFontWeight.Bold;
-            unlock.HorizontalTextAlignment = HmiHorizontalAlignment.Left;
-            unlock.VerticalTextAlignment = HmiVerticalAlignment.Center;
-            unlock.Visible = true;
-            unlock.Enabled = false;
-            ConfigureText(truth, left + 16, top + 270, (uint)(width - 32), 18,
-                "CONFIG STATUS: NOT COMMISSIONED", Amber, 9,
-                HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
-        }
-
         private static void AddPilzImplementationStatus(
             HmiScreen screen, string suffix, string label, string tag, int left, int top)
         {
@@ -5942,44 +5906,6 @@ namespace Schlenker.TiaV19
                 left, top, 165, 26, label, Dark, 11, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
             ConfigureIOField(GetOrCreate<HmiIOField>(screen, "PILZ26_SummaryValue_" + suffix),
                 left + 175, top - 3, 72, 30, tag, true, "");
-        }
-
-        private static void AddPilzDoorZonePanel(
-            HmiScreen screen, string suffix, string title, int left, int top,
-            string[] doorMappings, string unlockOutput)
-        {
-            ConfigureRectangle(GetOrCreate<HmiRectangle>(screen, "PILZ26_" + suffix + "_Panel"),
-                left, top, 375, 298, Panel, Border, 1);
-            ConfigureText(GetOrCreate<HmiText>(screen, "PILZ26_" + suffix + "_Title"),
-                left + 15, top + 12, 345, 28, title, Navy, 16, HmiFontWeight.Bold,
-                HmiHorizontalAlignment.Left);
-            ConfigureText(GetOrCreate<HmiText>(screen, "PILZ26_" + suffix + "_Columns"),
-                left + 15, top + 44, 345, 20, "DOOR / LOCAL INPUT CHANNELS                    RUNTIME",
-                Dark, 9, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
-
-            for (int index = 0; index < doorMappings.Length; index++)
-            {
-                int rowTop = top + 72 + index * 43;
-                ConfigureRectangle(GetOrCreate<HmiRectangle>(screen,
-                    "PILZ26_" + suffix + "_Row_" + (index + 1)),
-                    left + 12, rowTop - 4, 351, 36,
-                    index % 2 == 0 ? Color.White : Color.FromArgb(235, 242, 248), Border, 1);
-                ConfigureText(GetOrCreate<HmiText>(screen,
-                    "PILZ26_" + suffix + "_Mapping_" + (index + 1)),
-                    left + 20, rowTop, 225, 24, doorMappings[index], Dark, 10,
-                    HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
-                ConfigureText(GetOrCreate<HmiText>(screen,
-                    "PILZ26_" + suffix + "_State_" + (index + 1)),
-                    left + 245, rowTop, 110, 24, "MAP MISSING", Amber, 10,
-                    HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
-            }
-
-            ConfigureText(GetOrCreate<HmiText>(screen, "PILZ26_" + suffix + "_Unlock"),
-                left + 15, top + 248, 345, 22, unlockOutput, Navy, 10,
-                HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
-            ConfigureText(GetOrCreate<HmiText>(screen, "PILZ26_" + suffix + "_Truth"),
-                left + 15, top + 272, 345, 18, "STATUS: NOT COMMISSIONED", Red, 10,
-                HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
         }
 
         private static void AddPilzDirectState(
