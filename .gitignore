@@ -20,6 +20,10 @@ img-log/
 tmp/
 logs/judge/
 
+# Local TIA credentials and operator-only secrets
+.tia-secrets/
+*.tia-secret
+
 # Generated helper binaries and build output
 tools/**/*.dll
 tools/**/*.exe
