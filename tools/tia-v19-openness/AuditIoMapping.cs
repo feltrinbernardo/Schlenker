@@ -26,18 +26,21 @@ namespace Schlenker.TiaV19
             "PilzDiag", "SafetyOK", "SafetySystemFault", "EStopChain24VHealthy",
             "AllDoorsClosed", "AllDoorsUnlocked", "SafetyCircuitClosed",
             "ZeroSpeedConfirmed", "ThreePhaseOffConfirmed", "DoorAccess",
+            "DB_Global", "ManualTestEnable", "GateManualPageActive", "ManualSelect",
             "REQ_ACCESS", "REQ_SAFETY_RESET", "DR01", "DR02", "DR03", "DR04",
             "DR05", "DR06", "DR07", "DR08", "DR09", "DR10", "DR11"
         };
 
         private static string ExportDirectory;
         private static bool SkipCrossReferences;
+        private static bool HardwareOnly;
 
         private static int Main(string[] args)
         {
             string hint = args.Length > 0 ? args[0] : "schlenkers 36-10 190036-7-8v2.12.ap19";
             ExportDirectory = args.Length > 1 ? args[1] : null;
             SkipCrossReferences = args.Any(arg => arg.Equals("--no-xref", StringComparison.OrdinalIgnoreCase));
+            HardwareOnly = args.Any(arg => arg.Equals("--hardware-only", StringComparison.OrdinalIgnoreCase));
             try
             {
                 IList<TiaPortalProcess> processes = TiaPortal.GetProcesses();
@@ -57,7 +60,7 @@ namespace Schlenker.TiaV19
                     Console.WriteLine("PROJECT=" + project.Path.FullName);
                     Console.WriteLine("AUDIT_MODE=READ_ONLY; SAVE=NO; COMPILE=NO");
                     TryCrossReferences(project, "PROJECT", "");
-                    foreach (Device device in project.Devices)
+                    foreach (Device device in AllDevices(project))
                     {
                         Console.WriteLine("DEVICE name={0}", device.Name);
                         InspectItems(device.Name, device.DeviceItems, "  ");
@@ -74,6 +77,27 @@ namespace Schlenker.TiaV19
             }
         }
 
+        private static IEnumerable<Device> AllDevices(Project project)
+        {
+            HashSet<Device> seen = new HashSet<Device>();
+            foreach (Device device in project.Devices)
+                if (seen.Add(device)) yield return device;
+            foreach (Device device in project.UngroupedDevicesGroup.Devices)
+                if (seen.Add(device)) yield return device;
+            foreach (DeviceUserGroup group in project.DeviceGroups)
+                foreach (Device device in DevicesInGroup(group))
+                    if (seen.Add(device)) yield return device;
+        }
+
+        private static IEnumerable<Device> DevicesInGroup(DeviceUserGroup group)
+        {
+            foreach (Device device in group.Devices)
+                yield return device;
+            foreach (DeviceUserGroup child in group.Groups)
+                foreach (Device device in DevicesInGroup(child))
+                    yield return device;
+        }
+
         private static void InspectItems(string device, DeviceItemComposition items, string indent)
         {
             foreach (DeviceItem item in items)
@@ -86,9 +110,10 @@ namespace Schlenker.TiaV19
                 foreach (Address address in item.Addresses)
                     Console.WriteLine("{0}  ADDRESS io={1}; start={2}; length={3}", indent,
                         address.IoType, address.StartAddress, address.Length);
-                foreach (Channel channel in item.Channels)
-                    Console.WriteLine("{0}  CHANNEL number={1}; io={2}; type={3}", indent,
-                        channel.Number, channel.IoType, channel.Type);
+                if (!HardwareOnly)
+                    foreach (Channel channel in item.Channels)
+                        Console.WriteLine("{0}  CHANNEL number={1}; io={2}; type={3}", indent,
+                            channel.Number, channel.IoType, channel.Type);
 
                 NetworkInterface network = item.GetService<NetworkInterface>();
                 if (network != null)
@@ -101,11 +126,14 @@ namespace Schlenker.TiaV19
                             node.ConnectedSubnet == null ? "<none>" : node.ConnectedSubnet.Name);
                 }
 
-                SoftwareContainer container = item.GetService<SoftwareContainer>();
-                PlcSoftware plc = container == null ? null : container.Software as PlcSoftware;
-                if (plc != null) InspectPlc(plc, indent + "  ");
-                HmiSoftware hmi = container == null ? null : container.Software as HmiSoftware;
-                if (hmi != null) InspectHmi(hmi, indent + "  ");
+                if (!HardwareOnly)
+                {
+                    SoftwareContainer container = item.GetService<SoftwareContainer>();
+                    PlcSoftware plc = container == null ? null : container.Software as PlcSoftware;
+                    if (plc != null) InspectPlc(plc, indent + "  ");
+                    HmiSoftware hmi = container == null ? null : container.Software as HmiSoftware;
+                    if (hmi != null) InspectHmi(hmi, indent + "  ");
+                }
                 InspectItems(device, item.DeviceItems, indent + "  ");
             }
         }

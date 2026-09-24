@@ -1,5 +1,5 @@
 {
-  "description": "Schlenker LLM-as-a-Judge lifecycle hooks. Fires on every user prompt to score clarity, safety compliance, SCL/PLC specificity, and AGENTS.md adherence.",
+  "description": "Schlenker prompt-quality, deterministic tool-policy, evidence, telemetry, and completion lifecycle hooks.",
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -9,8 +9,73 @@
             "command": "/usr/bin/python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/user_prompt_submit.py\"",
             "commandWindows": "powershell.exe -NoProfile -NonInteractive -Command \"& (Join-Path $env:LOCALAPPDATA 'Programs/Python/Launcher/py.exe') -3 (Join-Path (git rev-parse --show-toplevel) '.codex/hooks/user_prompt_submit.py')\"",
             "statusMessage": "⚖️  Schlenker Judge scoring prompt…",
-            "additionalContextLimit": 4000,
+            "additionalContextLimit": 1200,
             "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "^(Bash|apply_patch|mcp__cua_repl__js)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/agent_lifecycle.py\"",
+            "commandWindows": "powershell.exe -NoProfile -NonInteractive -Command \"& (Join-Path $env:LOCALAPPDATA 'Programs/Python/Launcher/py.exe') -3 (Join-Path (git rev-parse --show-toplevel) '.codex/hooks/agent_lifecycle.py')\"",
+            "statusMessage": "Checking Schlenker tool policy",
+            "additionalContextLimit": 500,
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "^(Bash|apply_patch|mcp__cua_repl__js)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/agent_lifecycle.py\"",
+            "commandWindows": "powershell.exe -NoProfile -NonInteractive -Command \"& (Join-Path $env:LOCALAPPDATA 'Programs/Python/Launcher/py.exe') -3 (Join-Path (git rev-parse --show-toplevel) '.codex/hooks/agent_lifecycle.py')\"",
+            "statusMessage": "Checking Schlenker approval policy",
+            "additionalContextLimit": 500,
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^(Bash|apply_patch|mcp__cua_repl__js)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/agent_lifecycle.py\"",
+            "commandWindows": "powershell.exe -NoProfile -NonInteractive -Command \"& (Join-Path $env:LOCALAPPDATA 'Programs/Python/Launcher/py.exe') -3 (Join-Path (git rev-parse --show-toplevel) '.codex/hooks/agent_lifecycle.py')\"",
+            "statusMessage": "Validating Schlenker tool result",
+            "additionalContextLimit": 500,
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/agent_lifecycle.py\" --telemetry-only",
+            "commandWindows": "powershell.exe -NoProfile -NonInteractive -Command \"& (Join-Path $env:LOCALAPPDATA 'Programs/Python/Launcher/py.exe') -3 (Join-Path (git rev-parse --show-toplevel) '.codex/hooks/agent_lifecycle.py') --telemetry-only\"",
+            "async": true,
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/agent_lifecycle.py\"",
+            "commandWindows": "powershell.exe -NoProfile -NonInteractive -Command \"& (Join-Path $env:LOCALAPPDATA 'Programs/Python/Launcher/py.exe') -3 (Join-Path (git rev-parse --show-toplevel) '.codex/hooks/agent_lifecycle.py')\"",
+            "statusMessage": "Checking Schlenker completion evidence",
+            "timeout": 5
           }
         ]
       }

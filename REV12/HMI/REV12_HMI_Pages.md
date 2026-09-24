@@ -40,8 +40,12 @@
    - Machine lights ON / OFF and relay-command status
    - Air filter ON / OFF, pressure proof and replacement warning
 18. Manual Gate
-   - Gate Open (-125Y1) and Gate Close momentary commands
+   - EV001 Gate Open and Gate Close momentary commands
    - Controls are active only in Manual with engineer permission and this page visible
+   - `OPEN MANUAL VALVE TEST` opens the complete EV-based valve-test interface
+   - Valve-test commands are momentary and are cleared when leaving Manual
+   - Bottle External Washing is controllable through `%Q129.6`;
+     Filler External Washing is separately controllable through 125Y10-A / `%Q130.2`
 19. REV12.1 Home Process Commands
    - External bottle wash valve status
    - Gate OFF / Gate ON maintained automatic admission request

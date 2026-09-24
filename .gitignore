@@ -19,6 +19,8 @@ img-log/
 .tmp/
 tmp/
 logs/judge/
+logs/hooks/
+.codex-remote-attachments/
 
 # Local TIA credentials and operator-only secrets
 .tia-secrets/

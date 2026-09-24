@@ -8,6 +8,9 @@ evidence can be reviewed together.
 
 - [Automation development pipeline](automation-development-pipeline.md): the
   lifecycle and deliverables for the Siemens TIA Portal workstream.
+- [Agent prompt and lifecycle-hook architecture](agent-foundation/agent-prompt-and-hook-architecture.md):
+  active role hierarchy, Computer Use cadence, hook responsibilities, and
+  verification boundaries.
 
 ## Product documentation
 

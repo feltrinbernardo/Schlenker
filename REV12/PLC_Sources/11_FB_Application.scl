@@ -6,8 +6,10 @@ VAR
     FillerHeight        : "FB_HeightMode";
     CapperHeight        : "FB_HeightMode";
     JogPendant          : "FB_JogPendant";
+    ConveyorSync        : "FB_ConveyorSync";
     VacuumCIP           : "FB_VacuumCIP";
     ValveManager        : "FB_SMC_ValveManager";
+    SmcDiagnostics      : "FB_SMC_DeviceDiagnostics";
     Alarms              : "FB_AlarmManager";
     DoorAccess          : "FB_DoorAccess";
     ManualGate          : "FB_ManualValveOverride";
@@ -36,6 +38,18 @@ VAR
     PumpLevelFault      : Bool;
     PumpLowWarning      : Bool;
     SMCConflict         : Bool;
+    SMCProfinetOK       : Bool;
+    SMCDiagnosticRetVal : Int;
+    ManualSMCTestActive : Bool;
+    SMCProductInletCmd  : Bool;
+    SMCProductCloseCmd  : Bool;
+    SMCEV210Cmd         : Bool;
+    SMCEV211Cmd         : Bool;
+    SMCEV212Cmd         : Bool;
+    SMCCapDistributorCmd: Bool;
+    SMCCapChannelCmd    : Bool;
+    SMCBottleWashCmd    : Bool;
+    SMCFillerWashCmd    : Bool;
     DrivesReady         : Bool;
     MachineStopped      : Bool;
     JogSpeedPct         : Real;
@@ -53,9 +67,100 @@ VAR
     BottleShortage2Alarm : Bool;
     Accumulation1Alarm   : Bool;
     Accumulation2Alarm   : Bool;
+    ProductionDriveDemand : Bool;
+    AutomaticMainSpeedPct : Real;
+    ConveyorRunRequest    : Bool;
+    ConveyorSpeedRequestPct : Real;
+    ConveyorMainStartPermit : Bool;
+    ConveyorRunOnActive  : Bool;
+    ConveyorSyncActive   : Bool;
 END_VAR
 
 BEGIN
+    // TEMPORARY BENCH COMMISSIONING ONLY.  The machine and physical safety
+    // chain are not installed.  This flag is consumed only by the restricted
+    // manual SMC valve-test path below and must be removed before site use.
+    "DB_Global".SimulationMode := TRUE;
+    SmcDiagnostics(
+        ProfinetDeviceOK => SMCProfinetOK,
+        DiagnosticRetVal => SMCDiagnosticRetVal
+    );
+    "DB_Global".Inp.AnybusGatewayOK := SMCProfinetOK;
+    // The configured Anybus output module reports its device/module problem
+    // state through PROFINET diagnostics. Separate EtherCAT/manifold status
+    // remains unclaimed until a verified diagnostic source is mapped.
+    "DB_Global".Inp.SMCCommOK := SMCProfinetOK;
+
+    // Live startup-safe checklist. This is deliberately based on commanded
+    // outputs only. Physical de-energisation feedback remains a commissioning
+    // hold point and is exposed separately to the HMI.
+    "DB_Global".StartupSafeState.DrivesOff :=
+        NOT "DB_Global".Out.MainRun AND
+        NOT "DB_Global".Out.ConveyorRun AND
+        NOT "DB_Global".Out.ProductPumpRun AND
+        NOT "DB_Global".Out.CapDriveRun;
+    "DB_Global".StartupSafeState.PumpsOff :=
+        NOT "DB_Global".Out.ProductPumpRun AND
+        NOT "DB_Global".Out.VacuumPump;
+    "DB_Global".StartupSafeState.VentilationOff :=
+        NOT "DB_Global".Out.AirFilterRelayCmd;
+    "DB_Global".StartupSafeState.LightsOff :=
+        NOT "DB_Global".Out.MachineLightsRelayCmd AND
+        NOT "DB_Global".Out.RequestBlueLampCmd AND
+        NOT "DB_Global".Out.RequestPanelBlueLampCmd AND
+        NOT "DB_Global".Out.RequestFrontBlueLampCmd AND
+        NOT "DB_Global".Out.RequestRearBlueLampCmd;
+    "DB_Global".StartupSafeState.ProductInletOff :=
+        NOT "DB_Global".Out.ProductionReqProduct;
+    "DB_Global".StartupSafeState.BottleInletOff :=
+        NOT "DB_Global".Out.GateOpen AND
+        NOT "DB_Global".Out.GateClose;
+    "DB_Global".StartupSafeState.WashOff :=
+        NOT "DB_Global".Out.ExternalBottleWashValveCmd AND
+        NOT "DB_Global".Out.FillerExternalWashValveCmd AND
+        NOT "DB_Global".Out.InternalWashValveCmd;
+    "DB_Global".StartupSafeState.ProcessValvesOff :=
+        NOT "DB_Global".Out.EV210 AND
+        NOT "DB_Global".Out.EV211 AND
+        NOT "DB_Global".Out.EV212 AND
+        NOT "DB_Global".Out.EV220 AND
+        NOT "DB_Global".Out.EV221 AND
+        NOT "DB_Global".Out.EV230FastRelease AND
+        ("DB_Global".Out.ValveBits = DWORD#0) AND
+        NOT "DB_Global".Out.Valve210Cmd AND
+        NOT "DB_Global".Out.Valve217Cmd AND
+        NOT "DB_Global".Out.Valve213Cmd AND
+        NOT "DB_Global".Out.Valve212Cmd AND
+        NOT "DB_Global".Out.Valve247Cmd;
+    "DB_Global".StartupSafeState.CIPRequestsOff :=
+        NOT "DB_Global".Out.CIPReqColdWater AND
+        NOT "DB_Global".Out.CIPReqHotWater AND
+        NOT "DB_Global".Out.CIPReqAcid AND
+        NOT "DB_Global".Out.CIPReqCitra AND
+        NOT "DB_Global".Out.CIPReqDischarge;
+    "DB_Global".StartupSafeState.VerticalMotionOff :=
+        NOT "DB_Global".Out.FillerUp AND
+        NOT "DB_Global".Out.FillerDown AND
+        NOT "DB_Global".Out.CapperUp AND
+        NOT "DB_Global".Out.CapperDown;
+    "DB_Global".StartupSafeState.DoorAndSignalsOff :=
+        NOT "DB_Global".Out.UnlockAllDoorsRequest;
+    "DB_Global".StartupSafeState.AllCommandsOff :=
+        "DB_Global".StartupSafeState.DrivesOff AND
+        "DB_Global".StartupSafeState.PumpsOff AND
+        "DB_Global".StartupSafeState.VentilationOff AND
+        "DB_Global".StartupSafeState.LightsOff AND
+        "DB_Global".StartupSafeState.ProductInletOff AND
+        "DB_Global".StartupSafeState.BottleInletOff AND
+        "DB_Global".StartupSafeState.WashOff AND
+        "DB_Global".StartupSafeState.ProcessValvesOff AND
+        "DB_Global".StartupSafeState.CIPRequestsOff AND
+        "DB_Global".StartupSafeState.VerticalMotionOff AND
+        "DB_Global".StartupSafeState.DoorAndSignalsOff;
+    "DB_Global".StartupSafeState.StartPermitted :=
+        "DB_Global".StartupSafeState.AllCommandsOff;
+    "DB_Global".StartupSafeState.PhysicalFeedbackComplete := FALSE;
+
     // Validate all HMI-adjustable process timings in the PLC. These are
     // process limits only; safety-certified timing remains outside this list.
     "DB_Global".Par.CIPTankFullDelay := LIMIT(MN := T#1s, IN := "DB_Global".Par.CIPTankFullDelay, MX := T#10s);
@@ -66,6 +171,10 @@ BEGIN
     "DB_Global".Par.VacuumStartupDelay := LIMIT(MN := T#1s, IN := "DB_Global".Par.VacuumStartupDelay, MX := T#15s);
     "DB_Global".Par.RunOutLastBottleDelay := LIMIT(MN := T#5s, IN := "DB_Global".Par.RunOutLastBottleDelay, MX := T#60s);
     "DB_Global".Par.ExternalWashOffDelay := LIMIT(MN := T#0s, IN := "DB_Global".Par.ExternalWashOffDelay, MX := T#10s);
+    "DB_Global".Par.ConveyorBaseSpeedPct := LIMIT(MN := 0.0, IN := "DB_Global".Par.ConveyorBaseSpeedPct, MX := 100.0);
+    "DB_Global".Par.ConveyorSpeedOffsetPct := LIMIT(MN := 0.0, IN := "DB_Global".Par.ConveyorSpeedOffsetPct, MX := 50.0);
+    "DB_Global".Par.ConveyorPrestartTime := LIMIT(MN := T#0s, IN := "DB_Global".Par.ConveyorPrestartTime, MX := T#10s);
+    "DB_Global".Par.ConveyorRunOnTime := LIMIT(MN := T#0s, IN := "DB_Global".Par.ConveyorRunOnTime, MX := T#60s);
     "DB_Global".Par.CIPColdWashTime := LIMIT(MN := T#1s, IN := "DB_Global".Par.CIPColdWashTime, MX := T#4h);
     "DB_Global".Par.CIPHotWashTime := LIMIT(MN := T#1s, IN := "DB_Global".Par.CIPHotWashTime, MX := T#4h);
     "DB_Global".Par.CIPAcidWashTime := LIMIT(MN := T#1s, IN := "DB_Global".Par.CIPAcidWashTime, MX := T#4h);
@@ -103,7 +212,14 @@ BEGIN
 
     MachineStopped := NOT "DB_Global".Out.MainRun;
     SpeedParameterFault := ("DB_Global".Par.MaxSpeedBPH <= 0.0)
-                           OR ("DB_Global".Par.ProductionSpeedBPH < 0.0);
+                           OR ("DB_Global".Par.ProductionSpeedBPH < 0.0)
+                           OR ("DB_Global".Par.DriveBaseFrequencyHz <= 0.0)
+                           OR ("DB_Global".Par.MainJogMaxFrequencyHz < 0.0)
+                           OR ("DB_Global".Par.MainJogMaxFrequencyHz > 15.0)
+                           OR ("DB_Global".Par.ProductPumpManualMinHz < 15.0)
+                           OR ("DB_Global".Par.ProductPumpManualMaxHz > 40.0)
+                           OR ("DB_Global".Par.ProductPumpManualMinHz >
+                               "DB_Global".Par.ProductPumpManualMaxHz);
     ProductionMediaReady := "DB_Global".Inp.ProductPresentAtPump
                             OR ("DB_Global".Inp.TankLevelPct >= "DB_Global".Par.ProductPumpStartMinLevelPct);
     "DB_Global".ProductLevelNotReached := NOT ProductionMediaReady;
@@ -370,6 +486,7 @@ BEGIN
         AL104CommFault := "DB_Global".Inp.IOLinkMaster5Configured AND NOT "DB_Global".Inp.IOLinkMaster5OK,
         CIPRecipeInvalid := "DB_Global".Machine.CIPActive AND NOT "DB_Global".CIPSequence.RecipeValid,
         CIPNextRejected := "DB_Global".CIPSequence.NextRejected,
+        CapDistributorNoPulseFault := "DB_Global".OpenPoints.CapSystem.NoPulseFault,
         CriticalAlarm => "DB_Global".AlarmCritical,
         WarningAlarm => "DB_Global".AlarmWarning,
         AlarmWord1 => "DB_Global".AlarmWord1,
@@ -379,6 +496,7 @@ BEGIN
     StateManager(
         Cmd := EffectiveCmd,
         SafetyOK := "DB_Global".Inp.SafetyOK,
+        BenchCommissioningMode := "DB_Global".SimulationMode,
         AirPressureOK := "DB_Global".Inp.AirPressureOK,
         DrivesReady := DrivesReady,
         EncoderHealthy := "DB_Global".Inp.EncoderHealthy,
@@ -389,6 +507,7 @@ BEGIN
         DoorAccessFault := "DB_Global".DoorAccess.Fault,
         FillerHeightActive := FillerActive,
         CapperHeightActive := CapperActive,
+        StartupSafeStateOK := "DB_Global".StartupSafeState.StartPermitted,
         ProductionStartPermitted := NOT "DB_Global".ProductLevelNotReached,
         RunOutComplete := "DB_Global".RunOutProduct.Completed,
         M := "DB_Global".Machine
@@ -466,7 +585,12 @@ BEGIN
         JogPB := "DB_Global".Cmd.JogPB,
         HeightModeActive := FillerActive OR CapperActive,
         MainDriveReady := "DB_Global".Inp.MainDriveReady,
-        JogSpeedPct := "DB_Global".Par.JogSpeedPct,
+        JogSpeedPct := MIN(
+            IN1 := "DB_Global".Par.JogSpeedPct,
+            IN2 := SEL(G := "DB_Global".Par.DriveBaseFrequencyHz > 0.0,
+                       IN0 := 0.0,
+                       IN1 := ("DB_Global".Par.MainJogMaxFrequencyHz /
+                               "DB_Global".Par.DriveBaseFrequencyHz) * 100.0)),
         RecoveryComplete := "DB_Global".RecoveryDone,
         TrackingValid := "DB_Global".Machine.TrackingValid,
         JogForwardCmd => "DB_Global".Out.MainRun,
@@ -503,7 +627,7 @@ BEGIN
     ManualGate(
         ManualMode := "DB_Global".Machine.ManualActive,
         MenuActive := "DB_Global".Cmd.GateManualPageActive,
-        SafetyOK := "DB_Global".Inp.SafetyOK,
+        SafetyOK := "DB_Global".Inp.SafetyOK OR "DB_Global".SimulationMode,
         ManualTestEnable := "DB_Global".Cmd.ManualTestEnable,
         OpenPB := "DB_Global".Cmd.GateManualOpen,
         ClosePB := "DB_Global".Cmd.GateManualClose,
@@ -543,9 +667,14 @@ BEGIN
             AND "DB_Global".Inp.ProductPresentAtPump);
     ProductPumpEmptying := "DB_Global".Machine.EmptyingActive
                            OR "DB_Global".RunOutProduct.IgnoreLowLevelStop;
+    "DB_Global".Par.ProductPumpManualFrequencyHz :=
+        LIMIT(MN := "DB_Global".Par.ProductPumpManualMinHz,
+              IN := "DB_Global".Par.ProductPumpManualFrequencyHz,
+              MX := "DB_Global".Par.ProductPumpManualMaxHz);
 
     ProductPump(
         Enable := ProductPumpEnableCmd,
+        ManualMode := "DB_Global".Machine.ManualActive,
         EmptyingMode := ProductPumpEmptying,
         DriveReady := "DB_Global".Inp.ProductPumpReady,
         DriveFault := "DB_Global".Inp.ProductPumpFault,
@@ -555,8 +684,13 @@ BEGIN
         MinSpeedPct := "DB_Global".Par.PumpMinSpeedPct,
         MaxSpeedPct := "DB_Global".Par.PumpMaxSpeedPct,
         RampPctPerCycle := "DB_Global".Par.PumpRampPctPerCycle,
+        ManualFrequencyHz := "DB_Global".Par.ProductPumpManualFrequencyHz,
+        ManualMinHz := "DB_Global".Par.ProductPumpManualMinHz,
+        ManualMaxHz := "DB_Global".Par.ProductPumpManualMaxHz,
+        DriveBaseFrequencyHz := "DB_Global".Par.DriveBaseFrequencyHz,
         RunCmd => "DB_Global".Out.ProductPumpRun,
         SpeedRefPct => "DB_Global".Out.ProductPumpSpeedPct,
+        FrequencyRefHz => "DB_Global".Out.ProductPumpFrequencyHz,
         LevelSignalFault => PumpLevelFault,
         LowLevelWarning => PumpLowWarning
     );
@@ -597,21 +731,56 @@ BEGIN
     );
     "DB_Global".Out.EV210 := "DB_Global".Out.Valve210Cmd;
     "DB_Global".Out.EV212 := "DB_Global".Out.Valve212Cmd;
+    // Automatic cap-air requests. Manual SMC test requests are selected later
+    // in one place and never mixed into the automatic command variables.
+    "DB_Global".Out.EV220 := "DB_Global".Inp.CapChannelDemand;
+    "DB_Global".Out.EV221 := "DB_Global".Inp.CapChannelDemand;
     // EV211 is retained for compatibility; physical mapping for valves 217,
     // 213 and 247 requires the confirmed electrical/I/O schedule.
     "DB_Global".Out.EV211 := "DB_Global".Machine.ProductionActive
                              OR "DB_Global".Machine.RunOutActive;
 
+    // Conveyor coordination: selectable synchronised speed, conveyor-first
+    // start and an HMI-adjustable normal-stop run-on. Safety/critical events
+    // bypass the run-on inside FB_ConveyorSync.
+    ProductionDriveDemand :=
+        ("DB_Global".Machine.ProductionActive OR "DB_Global".Machine.RunOutActive)
+        AND NOT "DB_Global".RunOutProduct.StopRequest;
+    IF NOT SpeedParameterFault THEN
+        AutomaticMainSpeedPct :=
+            LIMIT(MN := 0.0,
+                  IN := ("DB_Global".Par.ProductionSpeedBPH / "DB_Global".Par.MaxSpeedBPH) * 100.0,
+                  MX := MIN(IN1 := SpeedLimitPct,
+                            IN2 := "DB_Global".AutoGateRequest.SpeedLimitPct));
+    ELSE
+        AutomaticMainSpeedPct := 0.0;
+    END_IF;
+
+    ConveyorSync(
+        ProductionRequest := ProductionDriveDemand,
+        SafetyOK := "DB_Global".Inp.SafetyOK,
+        CriticalAlarm := "DB_Global".AlarmCritical,
+        ConveyorReady := "DB_Global".Inp.ConveyorReady,
+        SyncEnable := "DB_Global".Cmd.ConveyorSyncEnable,
+        MainSpeedRequestPct := AutomaticMainSpeedPct,
+        BaseSpeedPct := "DB_Global".Par.ConveyorBaseSpeedPct,
+        PositiveOffsetPct := "DB_Global".Par.ConveyorSpeedOffsetPct,
+        PrestartTime := "DB_Global".Par.ConveyorPrestartTime,
+        RunOnTime := "DB_Global".Par.ConveyorRunOnTime,
+        ConveyorRunRequest => ConveyorRunRequest,
+        ConveyorSpeedRequestPct => ConveyorSpeedRequestPct,
+        MainStartPermit => ConveyorMainStartPermit,
+        SyncActive => ConveyorSyncActive,
+        RunOnActive => ConveyorRunOnActive
+    );
+    "DB_Global".Out.ConveyorSyncActive := ConveyorSyncActive;
+    "DB_Global".Out.ConveyorRunOnActive := ConveyorRunOnActive;
+
     // Automatic main-drive command. JOG has priority only in Manual.
-    IF ("DB_Global".Machine.ProductionActive OR "DB_Global".Machine.RunOutActive)
-       AND NOT "DB_Global".RunOutProduct.StopRequest THEN
+    IF ProductionDriveDemand AND ConveyorMainStartPermit THEN
         IF NOT SpeedParameterFault THEN
             "DB_Global".Out.MainRun := TRUE;
-            "DB_Global".Out.MainSpeedPct :=
-                LIMIT(MN := 0.0,
-                      IN := ("DB_Global".Par.ProductionSpeedBPH / "DB_Global".Par.MaxSpeedBPH) * 100.0,
-                      MX := MIN(IN1 := SpeedLimitPct,
-                                IN2 := "DB_Global".AutoGateRequest.SpeedLimitPct));
+            "DB_Global".Out.MainSpeedPct := AutomaticMainSpeedPct;
         ELSE
             "DB_Global".Out.MainRun := FALSE;
             "DB_Global".Out.MainSpeedPct := 0.0;
@@ -652,24 +821,75 @@ BEGIN
         ValveCmd => "DB_Global".Out.InternalWashValveCmd
     );
 
+    ManualSMCTestActive :=
+        "DB_Global".Machine.ManualActive
+        AND "DB_Global".Cmd.GateManualPageActive
+        AND "DB_Global".Cmd.ManualTestEnable
+        AND ("DB_Global".Inp.SafetyOK OR "DB_Global".SimulationMode)
+        AND "DB_Global".Inp.SMCCommOK
+        AND NOT "DB_Global".AlarmCritical
+        AND NOT "DB_Global".Machine.DoorAccessActive;
+
+    IF ManualSMCTestActive THEN
+        SMCProductInletCmd := "DB_Global".Cmd.SMCEV010Manual;
+        SMCProductCloseCmd := "DB_Global".Cmd.SMCEV011Manual;
+        SMCEV210Cmd := "DB_Global".Cmd.SMCEV210Manual;
+        SMCEV211Cmd := "DB_Global".Cmd.SMCEV211Manual;
+        SMCEV212Cmd := "DB_Global".Cmd.SMCEV212Manual;
+        SMCCapDistributorCmd := "DB_Global".Cmd.CapDistributorAirManual;
+        SMCCapChannelCmd := "DB_Global".Cmd.CapChannelAirManual;
+        SMCBottleWashCmd := "DB_Global".Cmd.SMCBottleExternalWashManual;
+        SMCFillerWashCmd := "DB_Global".Cmd.SMCFillerExternalWashManual;
+    ELSE
+        SMCProductInletCmd := "DB_Global".Out.ProductPumpRun;
+        SMCProductCloseCmd :=
+            ("DB_Global".Machine.ProductionActive
+             OR "DB_Global".Machine.RunOutActive
+             OR "DB_Global".Machine.CIPActive)
+            AND NOT "DB_Global".Out.ProductPumpRun;
+        SMCEV210Cmd := "DB_Global".Out.EV210;
+        SMCEV211Cmd := "DB_Global".Out.EV211;
+        SMCEV212Cmd := "DB_Global".Out.EV212;
+        SMCCapDistributorCmd := "DB_Global".Out.EV220;
+        SMCCapChannelCmd := "DB_Global".Out.EV221;
+        SMCBottleWashCmd := "DB_Global".Out.ExternalBottleWashValveCmd;
+        SMCFillerWashCmd := "DB_Global".Out.FillerExternalWashValveCmd;
+    END_IF;
+
     ValveManager(
-        SafetyOK := "DB_Global".Inp.SafetyOK,
+        // The bench exception is valid only while every manual SMC test
+        // condition is simultaneously true.  Automatic commands never use it.
+        SafetyOK := "DB_Global".Inp.SafetyOK OR
+                    ("DB_Global".SimulationMode AND ManualSMCTestActive),
         CommOK := "DB_Global".Inp.SMCCommOK,
         OutputsPermitted := NOT "DB_Global".Machine.AlarmStopActive
                             AND NOT "DB_Global".Machine.DoorAccessActive,
         GateOpenCmd := GateFinalOpenCmd,
         GateCloseCmd := GateFinalCloseCmd,
-        ProductInletCmd := "DB_Global".Out.ProductPumpRun,
-        ProductCloseCmd := NOT "DB_Global".Out.ProductPumpRun,
-        EV210Cmd := "DB_Global".Out.EV210,
-        EV211Cmd := "DB_Global".Out.EV211,
-        EV212Cmd := "DB_Global".Out.EV212,
-        CapDistributorAir := "DB_Global".Inp.CapChannelDemand,
-        CapChannelAir := "DB_Global".Inp.CapChannelDemand,
-        SpareCmd := "DB_Global".Out.ExternalBottleWashValveCmd,
+        ProductInletCmd := SMCProductInletCmd,
+        ProductCloseCmd := SMCProductCloseCmd,
+        EV210Cmd := SMCEV210Cmd,
+        EV211Cmd := SMCEV211Cmd,
+        EV212Cmd := SMCEV212Cmd,
+        CapDistributorAir := SMCCapDistributorCmd,
+        CapChannelAir := SMCCapChannelCmd,
+        // Bottle and filler external washing remain separate physical outputs.
+        ExternalBottleWashPneuEnable := SMCBottleWashCmd,
+        FillerExternalWashPneuEnable := SMCFillerWashCmd,
         ValveBits => "DB_Global".Out.ValveBits,
         ConflictAlarm => SMCConflict
     );
+    "DB_Global".Out.SMCEV010Active := "DB_Global".Out.ValveBits.%X0;
+    "DB_Global".Out.SMCEV011Active := "DB_Global".Out.ValveBits.%X2;
+    "DB_Global".Out.SMCEV210Active := "DB_Global".Out.ValveBits.%X4;
+    "DB_Global".Out.SMCEV211Active := "DB_Global".Out.ValveBits.%X6;
+    "DB_Global".Out.SMCEV212Active := "DB_Global".Out.ValveBits.%X8;
+    "DB_Global".Out.SMCEV220Active := "DB_Global".Out.ValveBits.%X10;
+    "DB_Global".Out.SMCEV221Active := "DB_Global".Out.ValveBits.%X12;
+    "DB_Global".Out.SMCBottleExternalWashActive := "DB_Global".Out.ValveBits.%X14;
+    "DB_Global".Out.SMCEV001OpenActive := "DB_Global".Out.ValveBits.%X16;
+    "DB_Global".Out.SMCEV001CloseActive := "DB_Global".Out.ValveBits.%X17;
+    "DB_Global".Out.SMCFillerExternalWashActive := "DB_Global".Out.ValveBits.%X18;
 
     // One-second machine efficiency counters. The state-machine and final
     // interlocked MainRun command remain the single authority for classification.
@@ -699,16 +919,36 @@ BEGIN
         HomeStart := EffectiveCmd.HomeStart,
         Reset := EffectiveCmd.Reset,
         ProductionActive := "DB_Global".Machine.ProductionActive,
+        ConveyorRunRequest := ConveyorRunRequest,
+        ConveyorSpeedRequestPct := ConveyorSpeedRequestPct,
         MachineState := "DB_Global".Machine.State,
         BottleInfeed := "DB_Global".Inp.BottleInfeed,
         MainReady := "DB_Global".Inp.MainDriveReady,
         MainFault := "DB_Global".Inp.MainDriveFault,
+        MainRunning := "DB_Global".Inp.MainDriveRunning,
+        MainActualHz := "DB_Global".Inp.MainDriveActualHz,
+        MainFeedbackValid := "DB_Global".Inp.MainDriveFeedbackValid,
         ProductPumpReady := "DB_Global".Inp.ProductPumpReady,
         ProductPumpFault := "DB_Global".Inp.ProductPumpFault,
+        ProductPumpRunning := "DB_Global".Inp.ProductPumpRunning,
+        ProductPumpActualHz := "DB_Global".Inp.ProductPumpActualHz,
+        ProductPumpFeedbackValid := "DB_Global".Inp.ProductPumpFeedbackValid,
         ConveyorReady := "DB_Global".Inp.ConveyorReady,
         ConveyorFault := "DB_Global".Inp.ConveyorFault,
+        ConveyorRunning := "DB_Global".Inp.ConveyorRunning,
+        ConveyorActualHz := "DB_Global".Inp.ConveyorActualHz,
+        ConveyorFeedbackValid := "DB_Global".Inp.ConveyorFeedbackValid,
         CapDriveReady := "DB_Global".Inp.CapDriveReady,
         CapDriveFault := "DB_Global".Inp.CapDriveFault,
+        CapDriveRunning := "DB_Global".Inp.CapDriveRunning,
+        CapDriveActualHz := "DB_Global".Inp.CapDriveActualHz,
+        CapDriveFeedbackValid := "DB_Global".Inp.CapDriveFeedbackValid,
+        DriveBaseFrequencyHz := "DB_Global".Par.DriveBaseFrequencyHz,
+        CapDistributorPulse := "DB_Global".Inp.CapDistributorPulse,
+        CapDistributorPulseValid := "DB_Global".Inp.CapDistributorPulseValid,
+        CapDistributorDelayToStart := "DB_Global".Par.CapDistributorDelayToStart,
+        CapDistributorDelayToStop := "DB_Global".Par.CapDistributorDelayToStop,
+        CapDistributorNoPulseTimeout := "DB_Global".Par.CapDistributorNoPulseTimeout,
         DriveNetworkOK := "DB_Global".Inp.DriveG120CNetworkOK,
         AnybusProfinetOK := "DB_Global".Inp.AnybusGatewayOK,
         AnybusEtherCATOK := "DB_Global".Inp.AnybusGatewayECATOK,
@@ -729,4 +969,27 @@ BEGIN
         M := "DB_Global".Machine,
         Out := "DB_Global".Out
     );
+
+    // The physical telegram/scaling remains TBC. These Hz values are the
+    // approved logical command layer used by HMI and future telegram mapping.
+    IF "DB_Global".Par.DriveBaseFrequencyHz > 0.0 THEN
+        "DB_Global".Out.MainFrequencyHz :=
+            ("DB_Global".Out.MainSpeedPct / 100.0) * "DB_Global".Par.DriveBaseFrequencyHz;
+        "DB_Global".Out.ConveyorFrequencyHz :=
+            ("DB_Global".Out.ConveyorSpeedPct / 100.0) * "DB_Global".Par.DriveBaseFrequencyHz;
+        "DB_Global".Out.ProductPumpFrequencyHz :=
+            ("DB_Global".Out.ProductPumpSpeedPct / 100.0) * "DB_Global".Par.DriveBaseFrequencyHz;
+        "DB_Global".Out.CapDriveFrequencyHz :=
+            ("DB_Global".Out.CapDriveSpeedPct / 100.0) * "DB_Global".Par.DriveBaseFrequencyHz;
+    ELSE
+        "DB_Global".Out.MainFrequencyHz := 0.0;
+        "DB_Global".Out.ConveyorFrequencyHz := 0.0;
+        "DB_Global".Out.ProductPumpFrequencyHz := 0.0;
+        "DB_Global".Out.CapDriveFrequencyHz := 0.0;
+    END_IF;
+
+    // Single physical write for the verified 4-byte Anybus output image.
+    // FB_SMC_ValveManager has already applied safety, communication, conflict
+    // and command interlocks; reserved bits are always zero.
+    "Y_SMC_EX260_OutputImage" := "DB_Global".Out.ValveBits;
 END_FUNCTION_BLOCK

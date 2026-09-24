@@ -10,7 +10,8 @@
 
 ## Safety gate
 
-- Physical PLC disconnected and verified by: `<person and time>`
+- Required current operator confirmation: `<not required | person/time/scope>`
+- Exact authorization grants used: `<grant reference, target, operation, or none>`
 - Original project path: `<path>`
 - Working-copy path: `<path>`
 - Original pre-run SHA-256: `<hash>`
@@ -27,6 +28,17 @@
 
 List material UI actions and every changed program, label, parameter, or other
 project artefact. State `none` for a baseline-only run.
+
+## Computer Use and hook telemetry
+
+- Accessibility observations: `<count | not applicable>`
+- Routine action batches / primitives: `<count / count | not applicable>`
+- Model-consumed screenshots: `<count | not applicable>`
+- Evidence-only screenshots: `<count | not applicable>`
+- Material/critical checkpoints: `<summary | not applicable>`
+- Pre-tool denials / permission decisions: `<summary | none>`
+- Post-tool integrity or output findings: `<summary | none>`
+- Hook overhead and UI-loop duration: `<values when available>`
 
 ## Build result
 
@@ -45,3 +57,10 @@ project artefact. State `none` for a baseline-only run.
 
 Record unresolved engineering questions, missing signals, and any reason the run
 could not be completed.
+
+## Claim classification
+
+- Verified facts: `<evidence-backed statements>`
+- Operator assertions: `<statements supplied by the operator>`
+- Inferences: `<derived statements and supporting evidence>`
+- Skipped or unsupported steps: `<items and reasons>`

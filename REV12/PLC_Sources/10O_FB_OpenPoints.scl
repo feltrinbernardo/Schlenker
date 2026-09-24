@@ -204,6 +204,9 @@ VAR_INPUT
     FaultFeedback       : Bool;
     RunningFeedback     : Bool;
     RunningFeedbackValid : Bool;
+    ActualFrequencyHz   : Real;
+    ActualFrequencyValid : Bool;
+    BaseFrequencyHz     : Real;
     WarningFeedback     : Bool;
     Reset               : Bool;
 END_VAR
@@ -216,6 +219,14 @@ VAR
 END_VAR
 BEGIN
     D.Device.CommunicationOK := D.Device.Configured AND CommunicationOK;
+    D.ActualFrequencyHz := ActualFrequencyHz;
+    D.ActualFrequencyValid := ActualFrequencyValid;
+    IF BaseFrequencyHz > 0.0 THEN
+        D.ActualSpeedPct := (ActualFrequencyHz / BaseFrequencyHz) * 100.0;
+    ELSE
+        D.ActualSpeedPct := 0.0;
+    END_IF;
+    D.ActualSpeedValid := ActualFrequencyValid AND (BaseFrequencyHz > 0.0);
     D.RunningFeedbackValid := RunningFeedbackValid;
     D.Device.DataValid := D.Device.CommunicationOK AND D.ActualSpeedValid
                           AND D.RunningFeedbackValid;
@@ -291,16 +302,31 @@ VAR_INPUT
     HomeStart           : Bool;
     Reset               : Bool;
     ProductionActive    : Bool;
+    ConveyorRunRequest  : Bool;
+    ConveyorSpeedRequestPct : Real;
     MachineState        : USInt;
     BottleInfeed        : Bool;
     MainReady           : Bool;
     MainFault           : Bool;
+    MainRunning         : Bool;
+    MainActualHz        : Real;
+    MainFeedbackValid   : Bool;
     ProductPumpReady    : Bool;
     ProductPumpFault    : Bool;
+    ProductPumpRunning  : Bool;
+    ProductPumpActualHz : Real;
+    ProductPumpFeedbackValid : Bool;
     ConveyorReady       : Bool;
     ConveyorFault       : Bool;
+    ConveyorRunning     : Bool;
+    ConveyorActualHz    : Real;
+    ConveyorFeedbackValid : Bool;
     CapDriveReady       : Bool;
     CapDriveFault       : Bool;
+    CapDriveRunning     : Bool;
+    CapDriveActualHz    : Real;
+    CapDriveFeedbackValid : Bool;
+    DriveBaseFrequencyHz : Real;
     DriveNetworkOK      : Bool;
     AnybusProfinetOK    : Bool;
     AnybusEtherCATOK    : Bool;
@@ -317,6 +343,11 @@ VAR_INPUT
     CapHopperLow        : Bool;
     CapChannelDemand    : Bool;
     CapsMissing         : Bool;
+    CapDistributorPulse : Bool;
+    CapDistributorPulseValid : Bool;
+    CapDistributorDelayToStart : Time;
+    CapDistributorDelayToStop : Time;
+    CapDistributorNoPulseTimeout : Time;
 END_VAR
 VAR_IN_OUT
     O                   : "UDT_OpenPoints";
@@ -330,6 +361,11 @@ VAR
     ProductDrive        : "FB_DriveManager";
     ConveyorDrive       : "FB_DriveManager";
     CapDrive            : "FB_DriveManager";
+    CapStartDelay       : TON;
+    CapStopDelay        : TOF;
+    CapNoPulseTimer     : TON;
+    CapPulseEdge        : R_TRIG;
+    CapRawDemand        : Bool;
     EV230               : "FB_EV230Manager";
     Index               : Int;
 END_VAR
@@ -344,29 +380,51 @@ BEGIN
              T := O.Tracking);
     M.TrackingValid := O.Tracking.Valid;
 
-    O.MainDrive.RequestedRun := ProductionActive;
-    O.ProductPumpDrive.RequestedRun := ProductionActive AND Out.ProductPumpRun;
-    O.ConveyorDrive.RequestedRun := ProductionActive;
-    O.CapDistributorDrive.RequestedRun := ProductionActive;
+    O.MainDrive.RequestedRun := Out.MainRun;
+    O.MainDrive.SpeedRequestPct := LIMIT(MN := 0.0, IN := Out.MainSpeedPct, MX := 100.0);
+    O.ProductPumpDrive.RequestedRun := Out.ProductPumpRun;
+    O.ProductPumpDrive.SpeedRequestPct := LIMIT(MN := 0.0, IN := Out.ProductPumpSpeedPct, MX := 100.0);
+    O.ConveyorDrive.RequestedRun := ConveyorRunRequest;
+    O.ConveyorDrive.SpeedRequestPct := LIMIT(MN := 0.0,
+                                              IN := ConveyorSpeedRequestPct,
+                                              MX := 100.0);
+    O.MainDrive.FrequencyRequestHz := Out.MainFrequencyHz;
+    O.ProductPumpDrive.FrequencyRequestHz := Out.ProductPumpFrequencyHz;
+    O.ConveyorDrive.FrequencyRequestHz := Out.ConveyorFrequencyHz;
+    O.CapDistributorDrive.FrequencyRequestHz := Out.CapDriveFrequencyHz;
+    O.CapDistributorDrive.RequestedRun := O.CapSystem.DistributorCommand;
+    O.CapDistributorDrive.SpeedRequestPct := LIMIT(MN := 0.0, IN := Out.CapDriveSpeedPct, MX := 100.0);
 
     // No G120C running/status telegram is mapped yet. Command bits and retained
     // manager states are not feedback. Keep all four drives DATA INVALID and
     // NOT COMMISSIONED until real status-word/actual-speed signals are supplied.
     MainDrive(CommunicationOK := DriveNetworkOK, ReadyFeedback := MainReady,
-              FaultFeedback := MainFault, RunningFeedback := FALSE,
-              RunningFeedbackValid := FALSE,
+              FaultFeedback := MainFault, RunningFeedback := MainRunning,
+              RunningFeedbackValid := MainFeedbackValid,
+              ActualFrequencyHz := MainActualHz,
+              ActualFrequencyValid := MainFeedbackValid,
+              BaseFrequencyHz := DriveBaseFrequencyHz,
               WarningFeedback := FALSE, Reset := Reset, D := O.MainDrive);
     ProductDrive(CommunicationOK := DriveNetworkOK, ReadyFeedback := ProductPumpReady,
-                 FaultFeedback := ProductPumpFault, RunningFeedback := FALSE,
-                 RunningFeedbackValid := FALSE,
+                 FaultFeedback := ProductPumpFault, RunningFeedback := ProductPumpRunning,
+                 RunningFeedbackValid := ProductPumpFeedbackValid,
+                 ActualFrequencyHz := ProductPumpActualHz,
+                 ActualFrequencyValid := ProductPumpFeedbackValid,
+                 BaseFrequencyHz := DriveBaseFrequencyHz,
                  WarningFeedback := FALSE, Reset := Reset, D := O.ProductPumpDrive);
     ConveyorDrive(CommunicationOK := DriveNetworkOK, ReadyFeedback := ConveyorReady,
-                  FaultFeedback := ConveyorFault, RunningFeedback := FALSE,
-                  RunningFeedbackValid := FALSE,
+                  FaultFeedback := ConveyorFault, RunningFeedback := ConveyorRunning,
+                  RunningFeedbackValid := ConveyorFeedbackValid,
+                  ActualFrequencyHz := ConveyorActualHz,
+                  ActualFrequencyValid := ConveyorFeedbackValid,
+                  BaseFrequencyHz := DriveBaseFrequencyHz,
                   WarningFeedback := FALSE, Reset := Reset, D := O.ConveyorDrive);
     CapDrive(CommunicationOK := DriveNetworkOK, ReadyFeedback := CapDriveReady,
-             FaultFeedback := CapDriveFault, RunningFeedback := FALSE,
-             RunningFeedbackValid := FALSE,
+             FaultFeedback := CapDriveFault, RunningFeedback := CapDriveRunning,
+             RunningFeedbackValid := CapDriveFeedbackValid,
+             ActualFrequencyHz := CapDriveActualHz,
+             ActualFrequencyValid := CapDriveFeedbackValid,
+             BaseFrequencyHz := DriveBaseFrequencyHz,
              WarningFeedback := FALSE, Reset := Reset, D := O.CapDistributorDrive);
 
     O.Pilz.CommunicationOK := O.Pilz.Configured AND PilzCommOK;
@@ -397,17 +455,17 @@ BEGIN
     O.AL104.NotCommissioned := NOT O.AL104.Configured;
 
     O.SMC.AnybusProfinetOK := O.SMC.GatewayConfigured AND AnybusProfinetOK;
-    O.SMC.SmcEtherCATOK := O.SMC.GatewayConfigured AND AnybusEtherCATOK;
-    O.SMC.ManifoldOK := O.SMC.GatewayConfigured AND SmcCommOK;
-    O.SMC.DiagnosticDataValid := O.SMC.GatewayConfigured AND O.SMC.AnybusProfinetOK
-                                 AND O.SMC.SmcEtherCATOK AND O.SMC.ManifoldOK;
+    // PROFINET device health is read from the CPU diagnostics. No independent
+    // EtherCAT/manifold feedback source is approved, so those two indications
+    // remain NOT CONFIGURED instead of being invented from the PROFINET state.
+    O.SMC.SmcEtherCATOK := FALSE;
+    O.SMC.ManifoldOK := FALSE;
+    O.SMC.DiagnosticDataValid := O.SMC.GatewayConfigured AND O.SMC.AnybusProfinetOK;
     O.SMC.OutputDataValid := O.SMC.DiagnosticDataValid AND O.SMC.MappingConfigured;
     O.SMC.AnybusCommFault := O.SMC.GatewayConfigured AND NOT O.SMC.AnybusProfinetOK;
-    O.SMC.SmcEtherCATFault := O.SMC.GatewayConfigured AND O.SMC.AnybusProfinetOK
-                              AND NOT O.SMC.SmcEtherCATOK;
-    O.SMC.SmcManifoldFault := O.SMC.GatewayConfigured AND O.SMC.SmcEtherCATOK
-                              AND NOT O.SMC.ManifoldOK;
-    IF O.SMC.AnybusCommFault OR O.SMC.SmcEtherCATFault OR O.SMC.SmcManifoldFault THEN
+    O.SMC.SmcEtherCATFault := FALSE;
+    O.SMC.SmcManifoldFault := FALSE;
+    IF O.SMC.AnybusCommFault THEN
         O.SMC.CommunicationLossLatched := TRUE;
         O.SMC.RecoveryRequired := TRUE;
     END_IF;
@@ -417,16 +475,9 @@ BEGIN
     END_IF;
     O.SMC.OutputsPermitted := O.SMC.OutputDataValid AND SafetyOK AND AirPressureOK
                               AND NOT O.SMC.RecoveryRequired;
-    O.SMC.GatewayOutputImage := WORD#0;
-    IF O.SMC.OutputsPermitted THEN
-        FOR Index := 1 TO 10 DO
-            IF O.SMC.FunctionAssigned[Index] AND O.SMC.GenericValveCommand[Index] THEN
-                O.SMC.GatewayOutputImage := O.SMC.GatewayOutputImage
-                    OR SHL(IN := WORD#1, N := INT_TO_UINT(Index - 1));
-            END_IF;
-        END_FOR;
-    ELSE
-        FOR Index := 1 TO 10 DO O.SMC.GenericValveCommand[Index] := FALSE; END_FOR;
+    O.SMC.GatewayOutputImage := Out.ValveBits;
+    IF NOT O.SMC.OutputsPermitted THEN
+        FOR Index := 1 TO 20 DO O.SMC.GenericValveCommand[Index] := FALSE; END_FOR;
     END_IF;
 
     O.Gate.OpenFeedbackValid := O.Gate.FeedbackMapConfigured AND GateOpenFeedback;
@@ -441,14 +492,31 @@ BEGIN
     O.CapSystem.HopperLow := CapHopperLow;
     O.CapSystem.ChannelDemand := CapChannelDemand;
     O.CapSystem.ChannelEmpty := CapsMissing;
+    O.CapSystem.RotationPulse := CapDistributorPulse;
+    O.CapSystem.RotationPulseValid := CapDistributorPulseValid;
     O.CapSystem.MissingCap := O.Tracking.Valid AND (O.Tracking.ExpectedCapBottleID <> UDINT#0)
                               AND NOT CapPresent;
-    O.CapSystem.NotCommissioned := NOT (O.CapSystem.Configured AND O.CapSystem.MappingConfigured);
-    O.CapSystem.DistributorCommand := ProductionActive AND O.CapSystem.AutoMode
-                                      AND NOT O.CapSystem.NotCommissioned AND NOT O.CapSystem.ChannelEmpty;
+    O.CapSystem.NotCommissioned := NOT (O.CapSystem.Configured AND O.CapSystem.MappingConfigured
+                                        AND O.CapSystem.RotationPulseValid);
+    CapRawDemand := ProductionActive AND O.CapSystem.AutoMode
+                    AND NOT O.CapSystem.NotCommissioned AND NOT O.CapSystem.ChannelEmpty;
+    CapStartDelay(IN := CapRawDemand, PT := CapDistributorDelayToStart);
+    CapStopDelay(IN := CapStartDelay.Q, PT := CapDistributorDelayToStop);
+    O.CapSystem.DelayToStartActive := CapRawDemand AND NOT CapStartDelay.Q;
+    O.CapSystem.DelayToStopActive := NOT CapRawDemand AND CapStopDelay.Q;
+    CapPulseEdge(CLK := CapDistributorPulse AND CapDistributorPulseValid);
+    CapNoPulseTimer(IN := CapStopDelay.Q AND CapDistributorPulseValid AND NOT CapPulseEdge.Q,
+                    PT := CapDistributorNoPulseTimeout);
+    IF Reset THEN
+        O.CapSystem.NoPulseFault := FALSE;
+    ELSIF CapNoPulseTimer.Q THEN
+        O.CapSystem.NoPulseFault := TRUE;
+    END_IF;
+    O.CapSystem.DistributorCommand := CapStopDelay.Q AND NOT O.CapSystem.NoPulseFault;
     O.CapSystem.VibratorCommand := O.CapSystem.DistributorCommand AND O.CapSystem.ChannelDemand;
-    O.CapSystem.ElevatorDemand := O.CapSystem.DistributorCommand AND O.CapSystem.HopperLow;
-    O.CapSystem.Fault := O.CapSystem.ChannelEmpty OR O.CapSystem.MissingCap OR O.CapSystem.CapperNotReady;
+    O.CapSystem.ElevatorDemand := O.CapDistributorDrive.Running AND O.CapSystem.HopperLow;
+    O.CapSystem.Fault := O.CapSystem.ChannelEmpty OR O.CapSystem.MissingCap
+                         OR O.CapSystem.CapperNotReady OR O.CapSystem.NoPulseFault;
 
     EV230(SafetyOK := SafetyOK, HomeValid := M.HomeValid, TrackingValid := M.TrackingValid,
           EncoderHealthy := EncoderHealthy,
@@ -502,7 +570,9 @@ BEGIN
     Out.CapDriveSpeedPct := SEL(G := Out.CapDriveRun, IN0 := 0.0,
                                 IN1 := LIMIT(MN := 0.0, IN := O.CapDistributorDrive.SpeedRequestPct, MX := 100.0));
     Out.EV230FastRelease := O.EV230.OutputCommand AND O.ReadyPermissives;
-    Out.ValveBits := DWORD#0; // physical mapping remains isolated in the dedicated gateway layer
+    // Keep the interlocked logical SMC word produced by FB_SMC_ValveManager.
+    // GatewayOutputImage remains separately inhibited until the installed
+    // VQC station order is verified; no physical Q128-Q131 assignment is made here.
     IF NOT O.Gate.AutomaticOpenPermitted THEN
         Out.GateOpen := FALSE;
         Out.GateClose := SafetyOK AND AirPressureOK;

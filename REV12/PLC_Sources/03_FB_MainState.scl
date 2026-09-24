@@ -2,6 +2,7 @@ FUNCTION_BLOCK "FB_MainState"
 VAR_INPUT
     Cmd                 : "UDT_Command";
     SafetyOK            : Bool;
+    BenchCommissioningMode : Bool;
     AirPressureOK       : Bool;
     DrivesReady         : Bool;
     EncoderHealthy      : Bool;
@@ -12,6 +13,7 @@ VAR_INPUT
     DoorAccessFault     : Bool;
     FillerHeightActive  : Bool;
     CapperHeightActive  : Bool;
+    StartupSafeStateOK  : Bool;
     ProductionStartPermitted : Bool;
     RunOutComplete      : Bool;
 END_VAR
@@ -22,7 +24,17 @@ END_VAR
 BEGIN
     M.SafetyOK := SafetyOK;
 
-    IF NOT SafetyOK THEN
+    // TEMPORARY BENCH COMMISSIONING PATH:
+    // the physical machine and its safety chain are not installed yet.  This
+    // exception can select MANUAL only; it never permits automatic, drive,
+    // production or CIP states.  Remove it before machine commissioning.
+    IF BenchCommissioningMode
+       AND Cmd.ManualSelect
+       AND NOT DoorAccessFault
+       AND NOT CriticalAlarm
+       AND NOT DoorAccessActive THEN
+        M.State := 50; // MANUAL — BENCH TEST ONLY
+    ELSIF NOT SafetyOK THEN
         M.State := 130; // EMERGENCY_STOP
     ELSIF DoorAccessFault OR CriticalAlarm THEN
         M.State := 120; // ALARM_STOP
@@ -32,7 +44,13 @@ BEGIN
         CASE M.State OF
             0: // POWER_UP
                 M.TrackingValid := FALSE;
-                IF SafetyOK AND AirPressureOK AND DrivesReady THEN
+                // Commissioning/manual pneumatic tests are permitted from POWER_UP
+                // without falsely declaring the machine READY. The outer safety,
+                // guarded-access and critical-alarm checks remain authoritative;
+                // individual outputs remain subject to their own PLC interlocks.
+                IF Cmd.ManualSelect THEN
+                    M.State := 50; // MANUAL
+                ELSIF SafetyOK AND AirPressureOK AND DrivesReady AND StartupSafeStateOK THEN
                     IF M.HomeValid AND EncoderHealthy THEN
                         M.State := 20; // READY
                     ELSE
@@ -82,7 +100,13 @@ BEGIN
 
             50: // MANUAL
                 IF NOT Cmd.ManualSelect THEN
-                    M.State := 20;
+                    // A manual session entered from POWER_UP must return to
+                    // POWER_UP unless the normal READY conditions are proven.
+                    IF M.HomeValid AND EncoderHealthy AND StartupSafeStateOK THEN
+                        M.State := 20;
+                    ELSE
+                        M.State := 0;
+                    END_IF;
                 ELSIF Cmd.FillerHeightEnable THEN
                     M.State := 60;
                 ELSIF Cmd.CapperHeightEnable THEN
