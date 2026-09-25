@@ -1,0 +1,28 @@
+TestID,Test,ExpectedResult,ExecutionStatus,Evidence
+FAT-001,DR01 individual open and close,Only Zone 1 access is permitted and automatic operation remains inhibited until reset,NOT EXECUTED,Requires commissioned PILZ project and test machine
+FAT-002,DR02 individual open and close,Same guarded access behaviour,NOT EXECUTED,Requires commissioned PILZ project and test machine
+FAT-003,DR03 individual open and close,Same guarded access behaviour,NOT EXECUTED,Requires commissioned PILZ project and test machine
+FAT-004,DR04 individual open and close,Same guarded access behaviour,NOT EXECUTED,Requires commissioned PILZ project and test machine
+FAT-005,DR05 individual open and close,Only Zone 2 access is permitted,NOT EXECUTED,Requires commissioned PILZ project and test machine
+FAT-006,DR06 individual open and close,Same guarded access behaviour,NOT EXECUTED,Requires commissioned PILZ project and test machine
+FAT-007,DR07 individual open and close,Same guarded access behaviour,NOT EXECUTED,Requires commissioned PILZ project and test machine
+FAT-008,DR08 individual open and close,Same guarded access behaviour,NOT EXECUTED,Requires commissioned PILZ project and test machine
+FAT-009,DR09 individual open and close,Only Zone 3 access is permitted,NOT EXECUTED,Requires commissioned PILZ project and test machine
+FAT-010,DR10 individual open and close,Same guarded access behaviour,NOT EXECUTED,Requires commissioned PILZ project and test machine
+FAT-011,DR11 individual open and close,Same guarded access behaviour,NOT EXECUTED,Requires commissioned PILZ project and test machine
+FAT-012,DR12 individual open and close,Same guarded access behaviour,NOT EXECUTED,Requires commissioned PILZ project and test machine
+FAT-013,Request Zone 1 while running,Controlled stop then only Zone 1 becomes eligible for release,NOT EXECUTED,Requires commissioned system
+FAT-014,Request Zone 2 while running,Controlled stop then only Zone 2 becomes eligible for release,NOT EXECUTED,Requires commissioned system
+FAT-015,Request Zone 3 while running,Controlled stop then only Zone 3 becomes eligible for release,NOT EXECUTED,Requires commissioned system
+FAT-016,Request all zones,Behaviour matches final approved PB-DR-REQ-ALL design,BLOCKED,Final behaviour not frozen
+FAT-017,Failed standstill,No zone unlock and standstill fault diagnostic,NOT EXECUTED,Requires commissioned system
+FAT-018,Single standstill sensor fault,No unsafe release and discrepancy/fault diagnostic,NOT EXECUTED,Requires commissioned system
+FAT-019,Failed dump confirmation,No zone unlock and dump-not-confirmed diagnostic,NOT EXECUTED,Requires commissioned system
+FAT-020,Each E-stop,All safety outputs reach validated safe state and E-stop diagnostic identifies active chain,NOT EXECUTED,Requires commissioned system
+FAT-021,Motor EDM fault,Safety restoration is inhibited and EDM fault is reported,NOT EXECUTED,Requires commissioned system
+FAT-022,Actuator EDM fault,Safety restoration is inhibited and EDM fault is reported,NOT EXECUTED,Requires commissioned system
+FAT-023,Reset with door open or unlocked,Reset is rejected,NOT EXECUTED,Requires commissioned system
+FAT-024,Valid recovery,Physical reset restores safety ready then separate Start is required,NOT EXECUTED,Requires commissioned system
+FAT-025,Power cycle,System returns to a non-starting safe state,NOT EXECUTED,Requires commissioned system
+FAT-026,PROFINET loss,Safety remains PILZ-controlled; Siemens diagnostics show communications/data invalid,NOT EXECUTED,Requires commissioned system
+FAT-027,No automatic restart proof,Closing guards or restoring power never restarts machine,NOT EXECUTED,Requires commissioned system

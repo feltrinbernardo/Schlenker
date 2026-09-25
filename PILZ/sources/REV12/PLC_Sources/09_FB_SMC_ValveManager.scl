@@ -1,0 +1,44 @@
+FUNCTION_BLOCK "FB_SMC_ValveManager"
+VAR_INPUT
+    SafetyOK            : Bool;
+    CommOK              : Bool;
+    OutputsPermitted    : Bool;
+    GateOpenCmd         : Bool;
+    GateCloseCmd        : Bool;
+    ProductInletCmd     : Bool;
+    ProductCloseCmd     : Bool;
+    EV210Cmd            : Bool;
+    EV211Cmd            : Bool;
+    EV212Cmd            : Bool;
+    CapDistributorAir   : Bool;
+    CapChannelAir       : Bool;
+    ExternalBottleWashPneuEnable : Bool;
+    FillerExternalWashPneuEnable : Bool;
+END_VAR
+VAR_OUTPUT
+    ValveBits           : DWORD;
+    ConflictAlarm       : Bool;
+END_VAR
+
+BEGIN
+    ValveBits := DWORD#0;
+    ConflictAlarm := (GateOpenCmd AND GateCloseCmd) OR (ProductInletCmd AND ProductCloseCmd);
+
+    IF SafetyOK AND CommOK AND OutputsPermitted AND NOT ConflictAlarm THEN
+        // Final EX260 4-byte output map (REV02). PLC/HMI names stay aligned
+        // with the existing functional EV structure; manifold station labels
+        // are commissioning references only and are not software tag names.
+        ValveBits.%X0  := ProductInletCmd;               // %Q128.0 EV010
+        ValveBits.%X2  := ProductCloseCmd;               // %Q128.2 EV011
+        ValveBits.%X4  := EV210Cmd;                      // %Q128.4 EV210
+        ValveBits.%X6  := EV211Cmd;                      // %Q128.6 EV211
+        ValveBits.%X8  := EV212Cmd;                      // %Q129.0 EV212
+        ValveBits.%X10 := CapDistributorAir;             // %Q129.2 EV220
+        ValveBits.%X12 := CapChannelAir;                 // %Q129.4 EV221
+        ValveBits.%X14 := ExternalBottleWashPneuEnable;  // %Q129.6 pneumatic enable
+        ValveBits.%X16 := GateOpenCmd;                   // %Q130.0 EV001 OPEN
+        ValveBits.%X17 := GateCloseCmd;                  // %Q130.1 EV001 CLOSE
+        ValveBits.%X18 := FillerExternalWashPneuEnable;  // %Q130.2 / 125Y10-A
+        // %Q130.3 and bits 20..31 remain reserved and forced FALSE.
+    END_IF;
+END_FUNCTION_BLOCK
