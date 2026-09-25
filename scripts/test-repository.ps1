@@ -15,7 +15,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $forbiddenPathPattern =
-    '^(outputs|programmer_progetv19|img-log|\.modification_logic|\.tmp|tmp|logs/judge|logs/hooks)/'
+    '^(outputs|programmer_progetv19|img-log|\.modification_logic|\.tmp|tmp|logs/judge|logs/hooks|logs/context-archive)/'
 $forbiddenExtensionPattern = '\.(ap\d+|gx3|gxw|zap\d+|dll|exe|pdb)$'
 
 foreach ($file in $repositoryFiles) {

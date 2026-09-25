@@ -11,6 +11,12 @@ evidence can be reviewed together.
 - [Agent prompt and lifecycle-hook architecture](agent-foundation/agent-prompt-and-hook-architecture.md):
   active role hierarchy, Computer Use cadence, hook responsibilities, and
   verification boundaries.
+- [Pre-compaction context archive](agent-foundation/context-archive.md): exact
+  transcript retention, local database, remote ingestion contract, and recovery
+  receipts.
+- [Railway context-archive deployment](agent-foundation/railway-context-archive-deployment.md):
+  reviewed production topology, risk controls, service boundaries, secrets,
+  and deployment gate.
 
 ## Product documentation
 

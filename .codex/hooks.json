@@ -1,6 +1,35 @@
 {
-  "description": "Schlenker prompt-quality, deterministic tool-policy, evidence, telemetry, and completion lifecycle hooks.",
+  "description": "Schlenker prompt-quality, deterministic tool-policy, context archival, evidence, telemetry, and completion lifecycle hooks.",
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "^compact$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/context_archive.py\" --resume-context",
+            "commandWindows": "powershell.exe -NoProfile -NonInteractive -Command \"& (Join-Path $env:LOCALAPPDATA 'Programs/Python/Launcher/py.exe') -3 (Join-Path (git rev-parse --show-toplevel) '.codex/hooks/context_archive.py') --resume-context\"",
+            "statusMessage": "Loading context archive receipt",
+            "additionalContextLimit": 300,
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "^(manual|auto)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/context_archive.py\"",
+            "commandWindows": "powershell.exe -NoProfile -NonInteractive -Command \"& (Join-Path $env:LOCALAPPDATA 'Programs/Python/Launcher/py.exe') -3 (Join-Path (git rev-parse --show-toplevel) '.codex/hooks/context_archive.py')\"",
+            "statusMessage": "Archiving context before compaction",
+            "timeout": 45
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "hooks": [

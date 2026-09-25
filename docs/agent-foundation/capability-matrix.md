@@ -29,6 +29,8 @@ process, not what a vendor engineering product could theoretically do.
 | Codex prompt/role hierarchy | IMPLEMENTED | Root `AGENTS.md`, `agent/system-prompt.md`, task/profile/tool contracts |
 | Risk-classified Computer Use cadence | IMPLEMENTED | Root policy and `agent/tools.md`; live performance proof remains a separate eval |
 | Codex lifecycle guardrail hooks | IMPLEMENTED | `.codex/hooks/agent_lifecycle.py`; deterministic offline tests; not the runtime policy engine |
+| Pre-compaction transcript archive | IMPLEMENTED | `.codex/hooks/context_archive.py`; local SQLite is mandatory; remote HTTPS sink is configuration-dependent |
+| Encrypted Railway archive ingestion | READY FOR DEPLOYMENT | `services/context-archive-api/`; AES-256-GCM objects in Evidence, PostgreSQL metadata, deterministic offline tests; external permission/secrets gate pending |
 | Kiro requirements/design/tasks | IMPLEMENTED | `specs/agent-foundation/` with validated traceability |
 | Executable Python agent package | PLANNED | Task 1.1; `pyproject.toml` is not present |
 | Typed schemas and generated JSON Schema | PLANNED | Phase 2 |

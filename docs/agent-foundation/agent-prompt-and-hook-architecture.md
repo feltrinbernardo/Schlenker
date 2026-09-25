@@ -52,6 +52,9 @@ PostToolUse -> output/integrity check -> session ledger
        +-> async sanitized telemetry
 
 Stop -> change-log + policy-surface validation checks -> completion
+
+PreCompact -> exact transcript bytes -> local SQLite -> optional HTTPS archive
+SessionStart(compact) -> bounded archive receipt -> continued model context
 ```
 
 ### Hook responsibilities
@@ -64,6 +67,8 @@ Stop -> change-log + policy-surface validation checks -> completion
 | `PostToolUse` | Validate results, update the session ledger, surface reconciliation needs | Claim to undo a completed side effect |
 | asynchronous post hook | Digest-only local telemetry | Influence the current decision |
 | `Stop` | Require change logging and policy tests for hook-observed changes | Replace independent review or compile evidence |
+| `PreCompact` | Atomically archive the transcript exposed by Codex before manual or automatic compaction | Parse an unstable transcript schema or claim access to hidden reasoning |
+| compact `SessionStart` | Add a bounded snapshot receipt after compaction | Reinject the archived transcript and defeat compaction |
 
 The wired matchers are deliberately narrow: `Bash`, `apply_patch`, and the
 verified local Computer Use MCP entry point `mcp__cua_repl__js`. Future adapter
