@@ -30,7 +30,7 @@ process, not what a vendor engineering product could theoretically do.
 | Risk-classified Computer Use cadence | IMPLEMENTED | Root policy and `agent/tools.md`; live performance proof remains a separate eval |
 | Codex lifecycle guardrail hooks | IMPLEMENTED | `.codex/hooks/agent_lifecycle.py`; deterministic offline tests; not the runtime policy engine |
 | Pre-compaction transcript archive | IMPLEMENTED | `.codex/hooks/context_archive.py`; local SQLite is mandatory; remote HTTPS sink is configuration-dependent |
-| Encrypted Railway archive ingestion | READY FOR DEPLOYMENT | `services/context-archive-api/`; AES-256-GCM objects in Evidence, PostgreSQL metadata, deterministic offline tests; external permission/secrets gate pending |
+| Encrypted Railway archive ingestion | IMPLEMENTED | `services/context-archive-api/`; active Railway deployment with `/readyz` passing, authenticated ingestion, AES-256-GCM Evidence objects, and PostgreSQL metadata; authenticated synthetic replay remains required before enabling the Codex remote sink |
 | Kiro requirements/design/tasks | IMPLEMENTED | `specs/agent-foundation/` with validated traceability |
 | Executable Python agent package | PLANNED | Task 1.1; `pyproject.toml` is not present |
 | Typed schemas and generated JSON Schema | PLANNED | Phase 2 |

@@ -1,7 +1,8 @@
 # Railway Context-Archive Deployment
 
 Date: 2026-09-25  
-Status: implementation validated; external deployment gate pending
+Status: service deployed and externally ready; Codex client activation and
+managed backups pending
 
 ## Reviewed live topology
 
@@ -37,7 +38,38 @@ search, list, delete, or key-management endpoint. Recovery therefore requires
 an explicitly authorized offline process with the database receipt, bucket
 object, and matching encryption key.
 
-## Deployment gate
+## Live deployment receipt
+
+The authorized deployment was completed on 2026-09-25 with these non-secret
+settings:
+
+- Railway project/environment: `soothing-purpose` / `production`;
+- service: `context-archive-api` (`497e0387-4bfe-4efc-a55a-9f7a8f2d6066`);
+- source: `feltrinbernardo/Schlenker`, branch
+  `codex/revised-open-points`, root `/services/context-archive-api`;
+- GitHub App scope: only `feltrinbernardo/Schlenker`;
+- public endpoint:
+  `https://context-archive-api-production.up.railway.app` on port `8080`;
+- healthcheck: `/readyz`;
+- scale: one replica in US West;
+- database and object storage: Railway references to the existing production
+  PostgreSQL service and private `Evidence` bucket;
+- runtime credentials: independently generated 96-character bearer secret and
+  32-byte AES-256-GCM key, stored only as Railway service variables.
+
+Measured external checks returned `200 {"status":"ok"}` from `/healthz`,
+`200 {"status":"ready"}` from `/readyz`, and `401` for an unauthenticated
+`POST /v1/snapshots`. Railway reported the deployment as `Active` and
+`Deployment successful`.
+
+The Pro subscription remains incomplete because Railway requires a payment
+card and charges USD 20 upfront. Card entry is an operator-only action. Until
+that is completed, managed backups and PITR remain unavailable. The Codex
+process also remains in local archive mode until the runtime endpoint and the
+matching bearer secret are installed outside the repository and a synthetic
+authenticated archive/replay is validated.
+
+## Deployment procedure
 
 Before deploying:
 
@@ -55,7 +87,10 @@ Before deploying:
 
 Connecting the GitHub App changes account permissions, creating secrets creates
 persistent credentials, and upgrading Railway can create a financial
-commitment. Those steps require an action-time operator checkpoint.
+commitment. Those steps require an action-time operator checkpoint. The GitHub
+and deployment checkpoints were satisfied for the live receipt above; the Pro
+payment checkpoint is authorized but cannot complete until the operator enters
+payment-card details directly in Railway.
 
 ## Priority risks and controls
 
