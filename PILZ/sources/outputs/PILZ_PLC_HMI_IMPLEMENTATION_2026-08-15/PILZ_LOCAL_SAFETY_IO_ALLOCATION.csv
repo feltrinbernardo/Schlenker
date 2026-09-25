@@ -1,0 +1,51 @@
+Module,PartNumber,Channel,AllocatedFunction,DeviceOrZone,EngineeringStatus
+PNOZ m B0,772100,I0,EDM motor contactors K1+K2,Motor safety chain,Specified - safety validation required
+PNOZ m B0,772100,I1,EDM actuator power K3+K4,SMC and UA actuator safety power,Specified - safety validation required
+PNOZ m B0,772100,I2,Emergency stop channel 1,ES01,Specified - safety validation required
+PNOZ m B0,772100,I3,Emergency stop channel 2,ES01,Specified - safety validation required
+PNOZ m B0,772100,I4,Emergency stop channel 1,ES02,Specified - safety validation required
+PNOZ m B0,772100,I5,Emergency stop channel 2,ES02,Specified - safety validation required
+PNOZ m B0,772100,I6,Emergency stop channel 1,ES03,Specified - safety validation required
+PNOZ m B0,772100,I7,Emergency stop channel 2,ES03,Specified - safety validation required
+PNOZ m B0,772100,I8,Emergency stop channel 1,ES04,Specified - safety validation required
+PNOZ m B0,772100,I9,Emergency stop channel 2,ES04,Specified - safety validation required
+PNOZ m B0,772100,I10,Guard lock channel 1,DR01 Zone 1,Specified - safety validation required
+PNOZ m B0,772100,I11,Guard lock channel 2,DR01 Zone 1,Specified - safety validation required
+PNOZ m B0,772100,I12,Door closed,DR01 Zone 1,Specified - safety validation required
+PNOZ m B0,772100,I13,Guard lock channel 1,DR02 Zone 1,Specified - safety validation required
+PNOZ m B0,772100,I14,Guard lock channel 2,DR02 Zone 1,Specified - safety validation required
+PNOZ m B0,772100,I15,Door closed,DR02 Zone 1,Specified - safety validation required
+PNOZ m B0,772100,I16,Guard lock channel 1,DR03 Zone 1,Specified - safety validation required
+PNOZ m B0,772100,I17,Guard lock channel 2,DR03 Zone 1,Specified - safety validation required
+PNOZ m B0,772100,I18,Door closed,DR03 Zone 1,Specified - safety validation required
+PNOZ m B0,772100,I19,Spare,Unallocated,Reserved
+PNOZ m B0,772100,O0,STO channel 1,Four G120C drives,Specified - safety validation required
+PNOZ m B0,772100,O1,STO channel 2,Four G120C drives,Specified - safety validation required
+PNOZ m B0,772100,O2,Motor safety contactors K1+K2,Motor power safety chain,Specified - safety validation required
+PNOZ m B0,772100,O3,Actuator safety contactors K3+K4,SMC and UA 24 V safety power,Specified - safety validation required
+PNOZ m B0,772100,T0,Test supply,Door lock channel 1,Specified - safety validation required
+PNOZ m B0,772100,T1,Test supply,Door lock channel 2,Specified - safety validation required
+PNOZ m B0,772100,T2,Test supply,Door closed and E-stop channel 1,Specified - safety validation required
+PNOZ m B0,772100,T3,Test supply,E-stop channel 2 plus EDM plus dump pressure,Specified - safety validation required
+PNOZ m EF 1MM,772170,CH1,Standstill sensor,SS01,Specified - safety validation required
+PNOZ m EF 1MM,772170,CH2,Standstill sensor,SS02,Specified - safety validation required
+PNOZ m EF 16DI,772140,I0/I1/I2,Lock ch1 / lock ch2 / door closed,DR04 Zone 1,Specified - safety validation required
+PNOZ m EF 16DI,772140,I3/I4/I5,Lock ch1 / lock ch2 / door closed,DR05 Zone 2,Specified - safety validation required
+PNOZ m EF 16DI,772140,I6/I7/I8,Lock ch1 / lock ch2 / door closed,DR06 Zone 2,Specified - safety validation required
+PNOZ m EF 16DI,772140,I9/I10/I11,Lock ch1 / lock ch2 / door closed,DR07 Zone 2,Specified - safety validation required
+PNOZ m EF 16DI,772140,I12/I13/I14,Lock ch1 / lock ch2 / door closed,DR08 Zone 2,Specified - safety validation required
+PNOZ m EF 16DI,772140,I15,Spare,Unallocated,Reserved
+PNOZ m EF 8DI4DO #1,772142,I0/I1/I2,Lock ch1 / lock ch2 / door closed,DR09 Zone 3,Specified - safety validation required
+PNOZ m EF 8DI4DO #1,772142,I3/I4/I5,Lock ch1 / lock ch2 / door closed,DR10 Zone 3,Specified - safety validation required
+PNOZ m EF 8DI4DO #1,772142,I6,Safety dump pressure switch,Pneumatic safe-state feedback,Specified - safety validation required
+PNOZ m EF 8DI4DO #1,772142,I7,Spare,Unallocated,Reserved
+PNOZ m EF 8DI4DO #1,772142,O0,Unlock Zone 1,DR01-DR04,Specified - safety validation required
+PNOZ m EF 8DI4DO #1,772142,O1,Unlock Zone 2,DR05-DR08,Specified - safety validation required
+PNOZ m EF 8DI4DO #1,772142,O2,Unlock Zone 3,DR09-DR12,Specified - safety validation required
+PNOZ m EF 8DI4DO #1,772142,O3,Safety pneumatic dump valve,Pneumatic safe state,Specified - safety validation required
+PNOZ m EF 8DI4DO #2,772142,I0/I1/I2,Lock ch1 / lock ch2 / door closed,DR11 Zone 3,Specified - safety validation required
+PNOZ m EF 8DI4DO #2,772142,I3/I4/I5,Lock ch1 / lock ch2 / door closed,DR12 Zone 3,Specified - safety validation required
+PNOZ m EF 8DI4DO #2,772142,I6/I7,Spare,Unallocated,Reserved
+PNOZ m EF 8DI4DO #2,772142,O0-O3,Spare,Unallocated,Reserved
+PNOZ m EF 8DI4DO #3,772142,All I/O,Reserve module,Unallocated,Reserved
+PNOZ m ES PROFINET,772138,Process image,Siemens/PILZ non-safety diagnostic telegram,Station name IP byte lengths and offsets missing

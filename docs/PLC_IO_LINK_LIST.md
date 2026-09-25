@@ -11,10 +11,11 @@ Therefore:
 - physically configured IO-Link masters in the current TIA hardware: **0**;
 - logical master references in the PLC: **5**;
 - logical port allocations: **40**;
-- confirmed intended IFM AL1403 scope: **4 masters**, represented by `AL100`–`AL103`;
-- `AL104`: fifth logical interface reserved provisionally for Customer CIP;
+- confirmed intended IFM AL1403 scope: **5 masters**, represented by `AL100`–`AL104`;
+- `AL104`: fifth required master dedicated to the Customer CIP interface;
 - `AL100`–`AL103` are currently marked `Required := TRUE`;
-- `AL104` is currently marked `Required := FALSE`;
+- `AL104` is marked `Required := TRUE`, while its physical configuration and
+  communication remain false until commissioning;
 - all physical addresses and port assignments remain `NOT CONFIGURED`.
 
 No entry in this document should be interpreted as proof that a physical sensor, master, address, GSDML module, or IO-Link port has been commissioned.
@@ -49,7 +50,7 @@ The current symbolic communication inputs are:
 | AL101 | `DB_Global.Inp.IOLinkMaster2OK` | TRUE | NOT CONFIGURED |
 | AL102 | `DB_Global.Inp.IOLinkMaster3OK` | TRUE | NOT CONFIGURED |
 | AL103 | `DB_Global.Inp.IOLinkMaster4OK` | TRUE | NOT CONFIGURED |
-| AL104 | `DB_Global.Inp.IOLinkMaster5Configured` / `IOLinkMaster5OK` | FALSE | PROVISIONAL / NOT CONFIGURED |
+| AL104 | `DB_Global.Inp.IOLinkMaster5Configured` / `IOLinkMaster5OK` | TRUE | REQUIRED / NOT CONFIGURED |
 
 ## 3. Master summary
 
@@ -59,7 +60,7 @@ The current symbolic communication inputs are:
 | AL101 | Cap system and air pressure | 5 | 3 | Required; hardware missing |
 | AL102 | Process instrumentation | 6 candidates | 2 | Required; devices and scaling unconfirmed |
 | AL103 | Additional machine sensors | 4 reserved/not installed | 4 | Required flag needs confirmation |
-| AL104 | Customer CIP digital interface | 8 provisional | 0 | Optional; physical architecture unconfirmed |
+| AL104 | Customer CIP digital interface | 8 allocated | 0 | Required architecture; physical interface unconfirmed |
 
 ## 4. Complete port allocation
 
@@ -123,7 +124,7 @@ The IFM PN7094, LR2050, and TA2405 references are candidates only. Installed mod
 
 No installed devices are identified for AL103. The current `Required := TRUE` setting must be confirmed because this master is described as reserved.
 
-### AL104 — Provisional Customer CIP interface
+### AL104 — Required Customer CIP interface
 
 | Port | Device ID | Function | PLC logical tag | HMI tag | Mode | Project status |
 |---|---|---|---|---|---|---|
@@ -136,7 +137,10 @@ No installed devices are identified for AL103. The current `Required := TRUE` se
 | P7 | CIP-DI-01 | Customer CIP Ready/Accepted | `CIP_REMOTE_READY` | `CIP_Remote_Ready` | Digital input | RESERVED FEEDBACK / NOT CONFIGURED |
 | P8 | CIP-DI-02 | Customer CIP Fault/Busy | `CIP_REMOTE_FAULT` | `CIP_Remote_Fault` | Digital input | RESERVED FEEDBACK / NOT CONFIGURED |
 
-AL104 is a logical fifth master/interface and is currently optional. The physical implementation, AL1403 requirement, port/channel/address mapping, and final Customer CIP handshake are not confirmed.
+AL104 is the required fifth logical master/interface. Its functional allocation
+is controlled, but the physical device, port/channel/address mapping, electrical
+interface, and final Customer CIP handshake are not commissioned. Required status
+must not be interpreted as valid communication or permission to invent addresses.
 
 The PLC also preserves the following Customer CIP feedback functions, but they are not allocated to a confirmed physical AL104 port in the current mapping:
 
