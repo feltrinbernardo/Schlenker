@@ -11,7 +11,7 @@ Push-Location $repositoryRoot
 try {
     & $pythonCommand.Source -m unittest discover -s judge -p 'test_*.py' -v
     if ($LASTEXITCODE -ne 0) {
-        throw 'Offline prompt-judge tests failed.'
+        throw 'Offline prompt-judge and lifecycle-hook tests failed.'
     }
 
     if ($Live) {
@@ -33,6 +33,7 @@ try {
     [PSCustomObject]@{
         Status = 'PASS'
         OfflineTests = 'passed'
+        LifecycleHookTests = 'passed'
         LiveApiTest = if ($Live) { 'passed' } else { 'not requested' }
     }
 }

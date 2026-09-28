@@ -1,0 +1,4 @@
+interface:
+  display_name: "Context Archive"
+  short_description: "Archive context safely before Codex compaction"
+  default_prompt: "Use $context-archive to inspect or validate the current compaction archive policy."

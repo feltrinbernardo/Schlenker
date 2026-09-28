@@ -101,6 +101,17 @@ if (-not [string]::IsNullOrWhiteSpace($OfficialArchive)) {
     $archiveHash = (Get-FileHash -LiteralPath $archiveCopy -Algorithm SHA256).Hash
 }
 
+$limitations = @(
+    'Folder snapshot is not an official TIA Portal archive.',
+    'Review the recorded offline compile report before relying on restoration or release.'
+)
+if ($null -eq $archiveCopy) {
+    $limitations += 'A new post-correction .zap19 archive is still required for formal release.'
+}
+else {
+    $limitations += 'The referenced official archive contains this version; unresolved compile findings remain release hold points.'
+}
+
 $snapshotItem = Get-Item -LiteralPath $snapshotPath
 $manifest = [ordered]@{
     schemaVersion = 1
@@ -121,11 +132,7 @@ $manifest = [ordered]@{
     officialArchiveCopy = $archiveCopy
     officialArchiveSha256 = $archiveHash
     onlineApisUsed = $false
-    limitations = @(
-        'Folder snapshot is not an official TIA Portal archive.',
-        'Open and compile offline in TIA Portal V19 before relying on restoration.',
-        'A new post-correction .zap19 archive is still required for formal release.'
-    )
+    limitations = $limitations
 }
 
 $manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $manifestPath -Encoding utf8

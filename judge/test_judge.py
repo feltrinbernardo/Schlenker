@@ -87,6 +87,19 @@ class JudgeTests(unittest.TestCase):
             )
         )
 
+    def test_injected_judge_context_is_compact(self):
+        hook = load_hook_module()
+        result = {
+            "overall_score": 2.5,
+            "label": "POOR",
+            "top_issue": "Name the exact target.",
+            "suggestion": "Add the target profile and acceptance check.",
+        }
+        context = hook._format_additional_context(result)
+        self.assertLess(len(context), 500)
+        self.assertNotIn("╔", context)
+        self.assertIn("Top issue", context)
+
 
 if __name__ == "__main__":
     unittest.main()

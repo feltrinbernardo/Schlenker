@@ -5,6 +5,7 @@ VAR
     Inp             : "UDT_Input";
     Out             : "UDT_Output";
     Machine         : "UDT_Machine";
+    StartupSafeState: "UDT_StartupSafeState";
     DoorAccess      : "UDT_DoorAccess";
     Auxiliaries     : "UDT_Auxiliaries";
     Efficiency      : "UDT_Efficiency";
@@ -28,10 +29,15 @@ VAR
     PilzDiag        : "UDT_PilzDiagnostic";
     // REV20 frozen functional allocations. These diagnostic structures do not
     // assign PROFINET process-image addresses; commissioning remains a hold point.
+    // REV02 G120C star topology. All network, telegram, address and motor data
+    // remain TBC; this structure does not command or map any physical drive.
+    G120CStar       : "UDT_G120CStarTopology";
     AL100           : "UDT_IOLinkMasterMapping";
     AL101           : "UDT_IOLinkMasterMapping";
     AL102           : "UDT_IOLinkMasterMapping";
     AL103           : "UDT_IOLinkMasterMapping";
+    // 2026-09-23 AL103 functional baseline. No member below is bound to P1..P8.
+    AL103BottleHandling : "UDT_AL103BottleHandling";
     AL104           : "UDT_IOLinkMasterMapping";
     OpenPoints      : "UDT_OpenPoints";
     Par             : "UDT_Parameters";
@@ -50,6 +56,19 @@ BEGIN
     Par.ProductionSpeedBPH := 12000.0;
     Par.MaxSpeedBPH := 12000.0;
     Par.JogSpeedPct := 5.0;
+    Par.DriveBaseFrequencyHz := 50.0;
+    Par.MainJogMaxFrequencyHz := 15.0;
+    Par.MainJogAccelerationTime := T#3s;
+    Par.ProductPumpManualFrequencyHz := 15.0;
+    Par.ProductPumpManualMinHz := 15.0;
+    Par.ProductPumpManualMaxHz := 40.0;
+    Par.CapDistributorDelayToStart := T#1s;
+    Par.CapDistributorDelayToStop := T#1s;
+    Par.CapDistributorNoPulseTimeout := T#3s;
+    Par.ConveyorBaseSpeedPct := 50.0;
+    Par.ConveyorSpeedOffsetPct := 5.0;
+    Par.ConveyorPrestartTime := T#1s;
+    Par.ConveyorRunOnTime := T#10s;
     Par.ShortageSlowPct := 75.0;
     Par.AccumulationSlowPct := 55.0;
     Par.TankSetpointPct := 50.0;
@@ -100,16 +119,113 @@ BEGIN
     OpenPoints.ProductPumpDrive.Device.Required := TRUE;
     OpenPoints.ConveyorDrive.Device.Required := TRUE;
     OpenPoints.CapDistributorDrive.Device.Required := TRUE;
+    G120CStar.BaselineRevision := '2026-09-23';
+    G120CStar.SoftwareStructureConfigured := TRUE;
+    G120CStar.IndependentStarRequired := TRUE;
+    G120CStar.DaisyChainPermitted := FALSE;
+    G120CStar.PhysicalSwitchPortsReleased := FALSE;
+
+    G120CStar.MainMachine.DriveModel := 'SINAMICS G120C';
+    G120CStar.MainMachine.EquipmentCode := 'M100';
+    G120CStar.MainMachine.FunctionalDuty := 'Main machine';
+    G120CStar.MainMachine.DirectScalanceConnection := TRUE;
+    G120CStar.MainMachine.ScalancePhysicalPort := USINT#0;
+    G120CStar.MainMachine.ProfinetDeviceName := 'vsd-main-machine';
+    G120CStar.MainMachine.IpAddress := '192.168.10.40';
+    G120CStar.MainMachine.SubnetMask := '255.255.255.0';
+    G120CStar.MainMachine.OrderNumber := '6SL3210-1KE21-3AF1';
+    G120CStar.MainMachine.FirmwareVersion := 'TBC';
+    G120CStar.MainMachine.Telegram := 'TBC';
+    G120CStar.MainMachine.LogicalInterfacePresent := TRUE;
+    G120CStar.MainMachine.NetworkParametersApproved := TRUE;
+
+    G120CStar.BottleConveyor.DriveModel := 'SINAMICS G120C';
+    G120CStar.BottleConveyor.EquipmentCode := 'M101';
+    G120CStar.BottleConveyor.FunctionalDuty := 'Bottle conveyor';
+    G120CStar.BottleConveyor.DirectScalanceConnection := TRUE;
+    G120CStar.BottleConveyor.ScalancePhysicalPort := USINT#0;
+    G120CStar.BottleConveyor.ProfinetDeviceName := 'vsd-bottle-conveyor';
+    G120CStar.BottleConveyor.IpAddress := '192.168.10.41';
+    G120CStar.BottleConveyor.SubnetMask := '255.255.255.0';
+    G120CStar.BottleConveyor.OrderNumber := '6SL3210-1KE12-3AF2';
+    G120CStar.BottleConveyor.FirmwareVersion := 'TBC';
+    G120CStar.BottleConveyor.Telegram := 'TBC';
+    G120CStar.BottleConveyor.LogicalInterfacePresent := TRUE;
+    G120CStar.BottleConveyor.NetworkParametersApproved := TRUE;
+
+    G120CStar.ProductPump.DriveModel := 'SINAMICS G120C';
+    G120CStar.ProductPump.EquipmentCode := 'M102';
+    G120CStar.ProductPump.FunctionalDuty := 'Product pump';
+    G120CStar.ProductPump.DirectScalanceConnection := TRUE;
+    G120CStar.ProductPump.ScalancePhysicalPort := USINT#0;
+    G120CStar.ProductPump.ProfinetDeviceName := 'vsd-product-pump';
+    G120CStar.ProductPump.IpAddress := '192.168.10.42';
+    G120CStar.ProductPump.SubnetMask := '255.255.255.0';
+    G120CStar.ProductPump.OrderNumber := '6SL3210-1KE15-8AF2';
+    G120CStar.ProductPump.FirmwareVersion := 'TBC';
+    G120CStar.ProductPump.Telegram := 'TBC';
+    G120CStar.ProductPump.LogicalInterfacePresent := TRUE;
+    G120CStar.ProductPump.NetworkParametersApproved := TRUE;
+
+    G120CStar.CapDistributorVibrator.DriveModel := 'SINAMICS G120C';
+    G120CStar.CapDistributorVibrator.EquipmentCode := 'TBC';
+    G120CStar.CapDistributorVibrator.FunctionalDuty := 'Cap distributor and vibrator';
+    G120CStar.CapDistributorVibrator.DirectScalanceConnection := TRUE;
+    G120CStar.CapDistributorVibrator.ScalancePhysicalPort := USINT#0;
+    G120CStar.CapDistributorVibrator.ProfinetDeviceName := 'vsd-cap-distributor';
+    G120CStar.CapDistributorVibrator.IpAddress := '192.168.10.43';
+    G120CStar.CapDistributorVibrator.SubnetMask := '255.255.255.0';
+    G120CStar.CapDistributorVibrator.OrderNumber := '6SL3210-1KE11-8AF2';
+    G120CStar.CapDistributorVibrator.FirmwareVersion := 'TBC';
+    G120CStar.CapDistributorVibrator.Telegram := 'TBC';
+    G120CStar.CapDistributorVibrator.LogicalInterfacePresent := TRUE;
+    G120CStar.CapDistributorVibrator.NetworkParametersApproved := TRUE;
     OpenPoints.Pilz.Required := TRUE;
     OpenPoints.AL100.Required := TRUE;
     OpenPoints.AL101.Required := TRUE;
     OpenPoints.AL102.Required := TRUE;
     OpenPoints.AL103.Required := TRUE;
-    OpenPoints.AL104.Required := FALSE;
-    OpenPoints.SMC.GatewayConfigured := FALSE;
-    OpenPoints.SMC.MappingConfigured := FALSE;
+    AL103BottleHandling.BaselineRevision := '2026-09-23';
+    AL103BottleHandling.SoftwareStructureConfigured := TRUE;
+    AL103BottleHandling.PhysicalPortMappingReleased := FALSE;
+    AL103BottleHandling.BottleInfeedTracking.DeviceModel := 'O5D100';
+    AL103BottleHandling.BottleInfeedTracking.FunctionalDuty := 'Bottle infeed presence for tracking encoder and cap timing';
+    AL103BottleHandling.BottleInfeedTracking.PhysicalPort := USINT#0;
+    AL103BottleHandling.BottleInfeedTracking.MappingConfigured := FALSE;
+    AL103BottleHandling.InfeedShortageStop.DeviceModel := 'O5D100';
+    AL103BottleHandling.InfeedShortageStop.FunctionalDuty := 'Infeed shortage stop';
+    AL103BottleHandling.InfeedShortageStop.PhysicalPort := USINT#0;
+    AL103BottleHandling.InfeedShortageStop.MappingConfigured := FALSE;
+    AL103BottleHandling.InfeedShortageSlowdown.DeviceModel := 'O5D100';
+    AL103BottleHandling.InfeedShortageSlowdown.FunctionalDuty := 'Infeed shortage slowdown';
+    AL103BottleHandling.InfeedShortageSlowdown.PhysicalPort := USINT#0;
+    AL103BottleHandling.InfeedShortageSlowdown.MappingConfigured := FALSE;
+    AL103BottleHandling.OutfeedAccumulationSlowdown.DeviceModel := 'O5D100';
+    AL103BottleHandling.OutfeedAccumulationSlowdown.FunctionalDuty := 'Outfeed accumulation slowdown minimum speed';
+    AL103BottleHandling.OutfeedAccumulationSlowdown.PhysicalPort := USINT#0;
+    AL103BottleHandling.OutfeedAccumulationSlowdown.MappingConfigured := FALSE;
+    AL103BottleHandling.OutfeedAccumulationStop.DeviceModel := 'O5D100';
+    AL103BottleHandling.OutfeedAccumulationStop.FunctionalDuty := 'Outfeed accumulation stop';
+    AL103BottleHandling.OutfeedAccumulationStop.PhysicalPort := USINT#0;
+    AL103BottleHandling.OutfeedAccumulationStop.MappingConfigured := FALSE;
+    AL103BottleHandling.BottleOutfeedCountStuck.DeviceModel := 'O5D100';
+    AL103BottleHandling.BottleOutfeedCountStuck.FunctionalDuty := 'Bottle outfeed passage count and stuck detection';
+    AL103BottleHandling.BottleOutfeedCountStuck.PhysicalPort := USINT#0;
+    AL103BottleHandling.BottleOutfeedCountStuck.MappingConfigured := FALSE;
+    AL103BottleHandling.FalseBottleWashPresence.DeviceModel := 'IFS240';
+    AL103BottleHandling.FalseBottleWashPresence.FunctionalDuty := 'False bottle presence for wash';
+    AL103BottleHandling.FalseBottleWashPresence.PhysicalPort := USINT#0;
+    AL103BottleHandling.FalseBottleWashPresence.MappingConfigured := FALSE;
+    AL103BottleHandling.WashValveConfigured := FALSE;
+    // REV20 freezes AL104 as the fifth required AL1403 function for the
+    // Customer CIP interface. Configured/DataValid remain FALSE until the
+    // physical master, ports and electrical interface are commissioned.
+    OpenPoints.AL104.Required := TRUE;
+    OpenPoints.SMC.GatewayConfigured := TRUE;
+    OpenPoints.SMC.MappingConfigured := TRUE;
     OpenPoints.PhysicalDoorMapConfigured := FALSE;
-    Cmd.ProductPumpEnable := TRUE;
+    Cmd.ProductPumpEnable := FALSE;
+    Cmd.ConveyorSyncEnable := TRUE;
     CIPRecipe.RecipeName := 'DEFAULT 10 STEP';
     CIPRecipe.Revision := UINT#1;
     CIPRecipe.StepCount := USINT#10;

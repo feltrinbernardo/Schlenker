@@ -31,7 +31,8 @@ complete until it is generated and compiled in TIA Portal V19.
 - HMI: MTP1500 Unified Comfort, 6AV2128-3QB06-0AXX, WinCC Unified V19.
 - Drives: four SINAMICS G120C units remain required.
 - Safety: Pilz PNOZmulti 2 with PROFINET module 772138 remains required.
-- IO-Link: four IFM AL1403 masters remain required.
+- IO-Link: five IFM AL1403 masters, AL100 through AL104, remain required;
+  AL104 is dedicated to the Customer CIP interface.
 - Encoder: IFM RO3101 HTL A/B/Z 2048 PPR through TM Count remains required.
 - Pneumatics: HMS Anybus ABC3113-A to SMC EX260-SEC1 with eight VQC1100N-51
   and two VQC1200N-51 valves remains the confirmed gateway/manifold basis.

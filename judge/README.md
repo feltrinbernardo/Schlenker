@@ -1,8 +1,8 @@
 # LLM-AS-A-JUDGE
 
-Real-time prompt quality scorer for the Schlenker industrial automation project.
-Hooks into Codex's `UserPromptSubmit` lifecycle event and injects a score banner
-into the model's context before every prompt is processed.
+Prompt-quality scoring and deterministic lifecycle guardrails for the Schlenker
+industrial automation project. The judge uses `UserPromptSubmit`; separate local
+hooks protect supported tool calls and completion claims.
 
 ---
 
@@ -15,8 +15,9 @@ Every time you type a message in the Codex IDE, this judge:
    read-only constraints.
 2. Calls the **judge model** (`gpt-5.6-terra` by default) to score your prompt
    on four rubric dimensions.
-3. Injects a **score banner** as `additionalContext` — Codex sees it before
-   answering you, so it can ask clarifying questions if your prompt is weak.
+3. Injects a compact score summary as `additionalContext` — the complete
+   judgment remains in the ignored local JSONL log rather than consuming model
+   context on every turn.
 4. Writes a **JSONL log entry** for every evaluated turn.
 
 ---
@@ -44,27 +45,12 @@ Every time you type a message in the Codex IDE, this judge:
 
 ---
 
-## What the banner looks like in Codex
+## What the injected summary looks like
 
 When you submit a prompt you will see (as injected context before the agent responds):
 
 ```
-╔══════════════════════════════════════════════════════════╗
-║  SCHLENKER PROMPT JUDGE   🟢 GOOD       4.10/5.00  ║
-║  [████████████████████████████████░░░░░░]  ║
-╠══════════════════════════════════════════════════════════╣
-║  Clarity          4/5  │  Safety Compliance  5/5  ║
-║  SCL/PLC Specific 4/5  │  AGENTS.md Policy   3/5  ║
-╠══════════════════════════════════════════════════════════╣
-║  [4/5] Clarity    Good: target FB named, outcome clear   ║
-║  [5/5] Safety     Compliant: offline fixture only        ║
-║  [4/5] SCL/PLC    Uses correct UDT and FB names          ║
-║  [3/5] AGENTS.md  Missing: change-log mention            ║
-╠══════════════════════════════════════════════════════════╣
-║  ⚠ TOP ISSUE: Add a change-log note to the request      ║
-║  💡 SUGGEST:  Append 'and record the change-log entry   ║
-║               via write-change-log.ps1' to the prompt   ║
-╚══════════════════════════════════════════════════════════╝
+[SCHLENKER JUDGE] 4.10/5.00 — GOOD
 ```
 
 ---
@@ -74,18 +60,21 @@ When you submit a prompt you will see (as injected context before the agent resp
 ```
 LLM-AS-A-JUDGE/
 ├── .codex/
-│   ├── hooks.json                      ← Codex hook wiring (UserPromptSubmit)
+│   ├── hooks.json                      ← Prompt, tool, telemetry, completion hooks
 │   └── hooks/
-│       └── user_prompt_submit.py       ← Hook entry point called by Codex
+│       ├── user_prompt_submit.py       ← Prompt-quality hook
+│       └── agent_lifecycle.py          ← Deterministic tool/completion guardrails
 ├── judge/
 │   ├── judge.py                        ← Core judge engine + formatter
 │   ├── config.json                     ← Versioned non-secret runtime settings
 │   ├── requirements.txt                ← Python dependency range
-│   ├── test_judge.py                   ← Offline unit tests
+│   ├── test_judge.py                   ← Prompt-judge unit tests
+│   ├── test_agent_lifecycle.py         ← Lifecycle-policy unit tests
 │   └── rubrics.json                    ← Rubric definitions + score anchors
 ├── logs/
 │   └── judge/
 │       └── judge-YYYY-MM-DD.jsonl      ← Ignored local evaluation logs
+│   └── hooks/                          ← Ignored telemetry and session ledgers
 ├── AGENTS.md                           ← Agent policy for this repo
 └── README.md                           ← This file
 ```
@@ -130,8 +119,9 @@ trusted project.
 
 ### 4. Trust the hook in Codex
 
-In Codex, run `/hooks` and trust the `user_prompt_submit.py` hook.
-Codex requires a one-time trust step for project-local command hooks.
+In Codex, run `/hooks` and review/trust both project-local hook commands. Codex
+records trust against the hook definition hash, so this implementation change
+requires renewed trust.
 
 ### 5. Verify
 
@@ -207,9 +197,30 @@ controls; normal references such as “do not write to PLC” are not blocked.
    Bonus (+0.1 each, max +0.3) for prompts that explicitly reference policy
    clauses, safety-gate confirmations, or merge-register open items.
 
-4. **additionalContext injection** — the banner is injected into the model's
-   context window via the `hookSpecificOutput.additionalContext` field.
-   Codex sees it as developer context before generating its response.
+4. **additionalContext injection** — a compact result is injected through
+   `hookSpecificOutput.additionalContext`. Full scores and feedback stay in the
+   ignored local log.
+
+## Deterministic lifecycle hooks
+
+- `PreToolUse` denies supported calls that target paths outside the repository,
+  protected/native engineering artifacts, direct change-log edits, broad
+  destructive commands, shell launches of engineering applications, or invalid
+  Computer Use batches.
+- `PermissionRequest` denies approvals that would override immutable-source or
+  approved-tool boundaries and allows only the two exact offline validation
+  commands. It never auto-approves hardware operations.
+- `PostToolUse` records changed files and validation state, warns on failed
+  results, and stops on a detected post-write integrity violation. It cannot
+  undo a completed side effect.
+- An asynchronous `PostToolUse` handler writes sanitized, digest-only telemetry
+  under `logs/hooks/`.
+- `Stop` checks the per-session ledger for repository change logging and, when
+  policy surfaces changed, both local validation commands.
+
+These hooks are defense in depth. `AGENTS.md`, Codex permissions, typed tool
+contracts, exact target identity, and current authorization remain the primary
+enforcement boundaries.
 
 ---
 
@@ -270,6 +281,8 @@ Each JSONL line:
 - Score-based blocks only fire when `JUDGE_THRESHOLD > 0` — disabled by default.
 - The hook logs prompt length, score, timing, and bounded errors, but never the
   prompt text, API key, credentials, or PLC addresses.
+- Lifecycle telemetry stores tool-input digests rather than raw commands or
+  prompts. Project-local telemetry is ignored by Git.
 
 ---
 

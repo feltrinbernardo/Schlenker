@@ -26,6 +26,11 @@ process, not what a vendor engineering product could theoretically do.
 | GX development profile | IMPLEMENTED | `profiles/schlenker-gxworks2-development.yaml`; stored confirmation is historical only |
 | Disposable GX project fixture | IMPLEMENTED | Ignored fixture exists and matches the protected source hash at Phase 0 start |
 | Hybrid GX window capture helper | IMPLEMENTED | Evidence-only helper governed by current root policy |
+| Codex prompt/role hierarchy | IMPLEMENTED | Root `AGENTS.md`, `agent/system-prompt.md`, task/profile/tool contracts |
+| Risk-classified Computer Use cadence | IMPLEMENTED | Root policy and `agent/tools.md`; live performance proof remains a separate eval |
+| Codex lifecycle guardrail hooks | IMPLEMENTED | `.codex/hooks/agent_lifecycle.py`; deterministic offline tests; not the runtime policy engine |
+| Pre-compaction transcript archive | IMPLEMENTED | `.codex/hooks/context_archive.py`; local SQLite is mandatory; remote HTTPS sink is configuration-dependent |
+| Encrypted Railway archive ingestion | IMPLEMENTED | `services/context-archive-api/`; active Railway deployment with `/readyz` passing, authenticated ingestion, AES-256-GCM Evidence objects, and PostgreSQL metadata; authenticated synthetic replay remains required before enabling the Codex remote sink |
 | Kiro requirements/design/tasks | IMPLEMENTED | `specs/agent-foundation/` with validated traceability |
 | Executable Python agent package | PLANNED | Task 1.1; `pyproject.toml` is not present |
 | Typed schemas and generated JSON Schema | PLANNED | Phase 2 |
@@ -36,7 +41,8 @@ process, not what a vendor engineering product could theoretically do.
 | Agent CLI | PLANNED | Phase 7 |
 | Deterministic fake model adapter | SIMULATED | Design accepted; implementation is Task 8.2 |
 | Real model provider adapter | PLANNED | Gate 8.5 |
-| Advisory LLM-as-judge | PLANNED | Existing judge work requires separate ownership/review before runtime integration |
+| Advisory LLM-as-judge | IMPLEMENTED | `UserPromptSubmit` hook and local tests; advisory score threshold remains disabled by default |
+| Live UI latency/token benchmark | PLANNED | Requires a separately authorized UI run and comparable baseline/candidate evidence |
 
 ## Platform capability matrix
 

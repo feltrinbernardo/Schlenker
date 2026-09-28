@@ -16,6 +16,71 @@ STRUCT
 END_STRUCT;
 END_TYPE
 
+TYPE "UDT_AL103SensorDefinition" :
+STRUCT
+    DeviceModel         : String[16]; // O5D100 or IFS240 from the 2026-09-23 baseline
+    FunctionalDuty      : String[64]; // Logical duty only; not a physical port assignment
+    PhysicalPort        : USInt;      // 0 = TBC; ports P1..P8 are intentionally unreleased
+    MappingConfigured   : Bool;       // Must remain FALSE until the physical port is approved
+    QualityOK           : Bool;       // Runtime quality, invalid while MappingConfigured = FALSE
+    Signal              : Bool;       // Symbolic process state; no process-image binding yet
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_AL103BottleHandling" :
+STRUCT
+    BaselineRevision              : String[10];
+    SoftwareStructureConfigured   : Bool;
+    PhysicalPortMappingReleased   : Bool;
+    BottleInfeedTracking          : "UDT_AL103SensorDefinition";
+    InfeedShortageStop            : "UDT_AL103SensorDefinition";
+    InfeedShortageSlowdown        : "UDT_AL103SensorDefinition";
+    OutfeedAccumulationSlowdown   : "UDT_AL103SensorDefinition";
+    OutfeedAccumulationStop       : "UDT_AL103SensorDefinition";
+    BottleOutfeedCountStuck       : "UDT_AL103SensorDefinition";
+    FalseBottleWashPresence       : "UDT_AL103SensorDefinition";
+    WashValveConfigured           : Bool; // Explicit hold: valve output is outside this release
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_G120CDriveDefinition" :
+STRUCT
+    DriveModel                   : String[24];
+    EquipmentCode               : String[8];
+    FunctionalDuty              : String[48];
+    DirectScalanceConnection    : Bool;       // One independent SCALANCE link per REV02
+    ScalancePhysicalPort        : USInt;      // 0 = TBC; final XB116 port schedule not released
+    ProfinetDeviceName          : String[32]; // TBC until formally approved
+    IpAddress                   : String[15]; // TBC until formally approved
+    SubnetMask                  : String[15]; // TBC until formally approved
+    OrderNumber                 : String[32]; // TBC until verified from the installed drive
+    FirmwareVersion             : String[16]; // TBC until verified from the installed drive
+    Telegram                    : String[16]; // TBC; no telegram or process image is assumed
+    LogicalInterfacePresent     : Bool;
+    NetworkParametersApproved   : Bool;
+    TelegramApproved            : Bool;
+    ProcessImageMappingApproved : Bool;
+    SpeedScalingApproved        : Bool;
+    MotorDataApproved           : Bool;
+    HardwareConfigured          : Bool;
+    Commissioned               : Bool;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_G120CStarTopology" :
+STRUCT
+    BaselineRevision            : String[10];
+    SoftwareStructureConfigured : Bool;
+    IndependentStarRequired     : Bool;
+    DaisyChainPermitted         : Bool;
+    PhysicalSwitchPortsReleased : Bool;
+    MainMachine                 : "UDT_G120CDriveDefinition";
+    BottleConveyor              : "UDT_G120CDriveDefinition";
+    ProductPump                 : "UDT_G120CDriveDefinition";
+    CapDistributorVibrator      : "UDT_G120CDriveDefinition";
+END_STRUCT;
+END_TYPE
+
 TYPE "UDT_PilzDiagnostic" :
 STRUCT
     // REV23 non-safety diagnostic interface only. The Pilz controller remains
@@ -60,6 +125,25 @@ STRUCT
 END_STRUCT;
 END_TYPE
 
+TYPE "UDT_StartupSafeState" :
+STRUCT
+    DrivesOff               : Bool;
+    PumpsOff                : Bool;
+    VentilationOff          : Bool;
+    LightsOff               : Bool;
+    ProductInletOff         : Bool;
+    BottleInletOff          : Bool;
+    WashOff                 : Bool;
+    ProcessValvesOff        : Bool;
+    CIPRequestsOff          : Bool;
+    VerticalMotionOff       : Bool;
+    DoorAndSignalsOff       : Bool;
+    AllCommandsOff          : Bool;
+    StartPermitted          : Bool;
+    PhysicalFeedbackComplete : Bool; // FALSE until all field feedback mappings are commissioned
+END_STRUCT;
+END_TYPE
+
 TYPE "UDT_Command" :
 STRUCT
     AutoStart           : Bool;
@@ -79,6 +163,15 @@ STRUCT
     GateManualClose     : Bool;
     GateManualPageActive: Bool;
     ManualTestEnable    : Bool;
+    CapDistributorAirManual : Bool;
+    CapChannelAirManual : Bool;
+    SMCEV010Manual      : Bool;
+    SMCEV011Manual      : Bool;
+    SMCEV210Manual      : Bool;
+    SMCEV211Manual      : Bool;
+    SMCEV212Manual      : Bool;
+    SMCBottleExternalWashManual : Bool;
+    SMCFillerExternalWashManual : Bool;
     LightsOn            : Bool;
     LightsOff           : Bool;
     AirFilterOn         : Bool;
@@ -87,6 +180,7 @@ STRUCT
     RunOutProductStart  : Bool;
     ProductPumpEnable   : Bool;
     ProductPumpManualEnable : Bool;
+    ConveyorSyncEnable  : Bool;
     ProductionOn        : Bool;
     ProductionOff       : Bool;
     CIPMedium           : USInt;
@@ -113,12 +207,26 @@ STRUCT
     AirPressureOK       : Bool;
     MainDriveReady      : Bool;
     MainDriveFault      : Bool;
+    MainDriveRunning    : Bool;
+    MainDriveActualHz   : Real;
+    MainDriveFeedbackValid : Bool;
     ConveyorReady       : Bool;
     ConveyorFault       : Bool;
+    ConveyorRunning     : Bool;
+    ConveyorActualHz    : Real;
+    ConveyorFeedbackValid : Bool;
     ProductPumpReady    : Bool;
     ProductPumpFault    : Bool;
+    ProductPumpRunning  : Bool;
+    ProductPumpActualHz : Real;
+    ProductPumpFeedbackValid : Bool;
     CapDriveReady       : Bool;
     CapDriveFault       : Bool;
+    CapDriveRunning     : Bool;
+    CapDriveActualHz    : Real;
+    CapDriveFeedbackValid : Bool;
+    CapDistributorPulse : Bool;
+    CapDistributorPulseValid : Bool;
     CapperOutfeedCrash  : Bool;
     EncoderHealthy      : Bool;
     MachineZero         : Bool;
@@ -198,12 +306,18 @@ TYPE "UDT_Output" :
 STRUCT
     MainRun             : Bool;
     MainSpeedPct        : Real;
+    MainFrequencyHz     : Real;
     ConveyorRun         : Bool;
     ConveyorSpeedPct    : Real;
+    ConveyorFrequencyHz : Real;
+    ConveyorSyncActive  : Bool;
+    ConveyorRunOnActive : Bool;
     ProductPumpRun      : Bool;
     ProductPumpSpeedPct : Real;
+    ProductPumpFrequencyHz : Real;
     CapDriveRun         : Bool;
     CapDriveSpeedPct    : Real;
+    CapDriveFrequencyHz : Real;
     GateOpen            : Bool;
     GateClose           : Bool;
     FillerUp            : Bool;
@@ -214,8 +328,21 @@ STRUCT
     EV210               : Bool;
     EV211               : Bool;
     EV212               : Bool;
+    EV220               : Bool;
+    EV221               : Bool;
     EV230FastRelease    : Bool;
     ValveBits           : DWORD;
+    SMCEV001OpenActive  : Bool;
+    SMCEV001CloseActive : Bool;
+    SMCEV010Active      : Bool;
+    SMCEV011Active      : Bool;
+    SMCEV210Active      : Bool;
+    SMCEV211Active      : Bool;
+    SMCEV212Active      : Bool;
+    SMCEV220Active      : Bool;
+    SMCEV221Active      : Bool;
+    SMCBottleExternalWashActive : Bool;
+    SMCFillerExternalWashActive : Bool;
     UnlockAllDoorsRequest : Bool;
     RequestBlueLampCmd    : Bool;
     RequestPanelBlueLampCmd : Bool;
@@ -224,6 +351,9 @@ STRUCT
     MachineLightsRelayCmd : Bool;
     AirFilterRelayCmd     : Bool;
     ExternalBottleWashValveCmd : Bool;
+    // Separate command: never alias this filler wash function to the external
+    // bottle-wash pneumatic enable. Assigned to 125Y10-A / %Q130.2.
+    FillerExternalWashValveCmd : Bool;
     Valve210Cmd         : Bool;
     Valve217Cmd         : Bool;
     Valve213Cmd         : Bool;
@@ -244,6 +374,19 @@ STRUCT
     ProductionSpeedBPH      : Real;
     MaxSpeedBPH             : Real;
     JogSpeedPct             : Real;
+    DriveBaseFrequencyHz    : Real;
+    MainJogMaxFrequencyHz   : Real;
+    MainJogAccelerationTime : Time;
+    ProductPumpManualFrequencyHz : Real;
+    ProductPumpManualMinHz  : Real;
+    ProductPumpManualMaxHz  : Real;
+    CapDistributorDelayToStart : Time;
+    CapDistributorDelayToStop  : Time;
+    CapDistributorNoPulseTimeout : Time;
+    ConveyorBaseSpeedPct    : Real;
+    ConveyorSpeedOffsetPct  : Real;
+    ConveyorPrestartTime    : Time;
+    ConveyorRunOnTime       : Time;
     ShortageSlowPct         : Real;
     AccumulationSlowPct     : Real;
     TankSetpointPct         : Real;

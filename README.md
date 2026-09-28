@@ -114,6 +114,28 @@ After a fresh disconnection confirmation, pass
 are evidence only and never authorize blind coordinate clicks. See
 `logs/2026-08-03-windows-desktop-setup.md` for the rationale and safeguards.
 
+The same Windows 10 screenshot limitation affects TIA Portal V19. For an
+explicit disposable `DeployWorking` `.ap19` project, the read-only helper below
+captures only the exact foreground Siemens process and writes the image plus a
+hash manifest under `runs/`:
+
+```powershell
+.\scripts\capture-tia-portal-window.ps1 `
+  -ExpectedProjectPath 'C:\TIA Projects\...-DeployWorking-...\Project.ap19'
+```
+
+The helper has no input capability. Continue to use official Computer Use for
+TIA keyboard and pointer actions, refresh the external capture after every UI
+state change, and never reuse coordinates from an older image. The helper
+rejects the protected original Schlenker project and any project that is not an
+explicit `DeployWorking` copy.
+
+For a WinCC Unified HMI transfer, select the `HMI_RT_1` row in the Device
+overview before pressing `Ctrl+L`. Selecting only the enclosing HMI device
+leaves **Online > Download to device** disabled and makes the shortcut appear
+to do nothing. In **Load preview**, require `HMI_1 — Ready for loading` and
+review the transfer mode before the operator confirms **Load**.
+
 Prepare a unique second disposable copy for that proof with:
 
 ```powershell

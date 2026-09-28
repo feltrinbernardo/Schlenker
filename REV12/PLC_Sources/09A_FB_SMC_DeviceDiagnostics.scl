@@ -1,0 +1,18 @@
+FUNCTION_BLOCK "FB_SMC_DeviceDiagnostics"
+VAR_OUTPUT
+    ProfinetDeviceOK : Bool;
+    DiagnosticRetVal : Int;
+END_VAR
+VAR
+    DeviceProblem    : Bool;
+END_VAR
+BEGIN
+    // MODE 5 returns the group indication for any problem in the configured
+    // Anybus IO device, including inaccessible/not-available module states.
+    DiagnosticRetVal := ModuleStates(
+        LADDR := "anybus-smc~IODevice",
+        MODE := UINT#5,
+        STATE := DeviceProblem
+    );
+    ProfinetDeviceOK := (DiagnosticRetVal = 0) AND NOT DeviceProblem;
+END_FUNCTION_BLOCK

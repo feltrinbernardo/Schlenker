@@ -19,6 +19,13 @@ img-log/
 .tmp/
 tmp/
 logs/judge/
+logs/hooks/
+logs/context-archive/
+.codex-remote-attachments/
+
+# Local TIA credentials and operator-only secrets
+.tia-secrets/
+*.tia-secret
 
 # Generated helper binaries and build output
 tools/**/*.dll
