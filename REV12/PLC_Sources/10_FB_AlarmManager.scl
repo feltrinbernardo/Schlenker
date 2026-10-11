@@ -45,6 +45,12 @@ VAR_INPUT
     AL104CommFault         : Bool;
     CIPRecipeInvalid       : Bool;
     CIPNextRejected        : Bool;
+    CapDistributorNoPulseFault : Bool;
+    MainDriveMechanicalJam : Bool;
+    MainDriveCommFault     : Bool;
+    ConveyorDriveCommFault : Bool;
+    ProductPumpCommFault   : Bool;
+    CapDriveCommFault      : Bool;
 END_VAR
 VAR_OUTPUT
     CriticalAlarm       : Bool;
@@ -104,6 +110,12 @@ BEGIN
     AlarmWord2.%X15 := AL104CommFault;          // CIP-008
     AlarmWord2.%X16 := CIPRecipeInvalid;         // CIP-010
     AlarmWord2.%X17 := CIPNextRejected;          // CIP-011 warning
+    AlarmWord2.%X18 := CapDistributorNoPulseFault; // DRV-004 cap distributor no pulse
+    AlarmWord2.%X19 := MainDriveMechanicalJam; // DRV-005 filler mechanical jam / speed collapse
+    AlarmWord2.%X20 := MainDriveCommFault;      // 1606 main-machine VSD communication
+    AlarmWord2.%X21 := ConveyorDriveCommFault;  // 1607 bottle-conveyor VSD communication
+    AlarmWord2.%X22 := ProductPumpCommFault;    // 1608 product-pump VSD communication
+    AlarmWord2.%X23 := CapDriveCommFault;        // 1609 cap-distributor VSD communication
 
     CriticalAlarm :=
         NOT SafetyOK OR NOT EStopChain24VHealthy OR NOT AirPressureOK OR NOT EncoderHealthy OR
@@ -115,6 +127,9 @@ BEGIN
         CapsMissing OR CapperNotReady OR BottleShortage2Active OR Accumulation2Active OR
         DriveNotReady OR SafetySystemFault OR CIPRemoteTimeout OR CIPRemoteFault OR
         CIPInvalidState OR AL104CommFault OR CIPRecipeInvalid;
+    CriticalAlarm := CriticalAlarm OR CapDistributorNoPulseFault OR MainDriveMechanicalJam
+                     OR MainDriveCommFault OR ConveyorDriveCommFault
+                     OR ProductPumpCommFault OR CapDriveCommFault;
 
     WarningAlarm := HoodFilterAlarm OR AirFilterFault OR AirFilterChangeWarning OR PumpLowWarning
                     OR ProductLevelNotReached OR CIPStartBlocked OR

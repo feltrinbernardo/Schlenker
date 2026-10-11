@@ -15,7 +15,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $forbiddenPathPattern =
-    '^(outputs|programmer_progetv19|img-log|\.modification_logic|\.tmp|tmp|logs/judge)/'
+    '^(outputs|programmer_progetv19|img-log|\.modification_logic|\.tmp|tmp|logs/judge|logs/hooks|logs/context-archive)/'
 $forbiddenExtensionPattern = '\.(ap\d+|gx3|gxw|zap\d+|dll|exe|pdb)$'
 
 foreach ($file in $repositoryFiles) {
@@ -71,6 +71,13 @@ if ($pythonFiles.Count -gt 0) {
             $failures.Add('One or more tracked Python files failed syntax validation.')
         }
     }
+}
+
+try {
+    & (Join-Path $PSScriptRoot 'validate-door-inventory-lock.ps1') -Quiet
+}
+catch {
+    $failures.Add("Door-inventory lock validation failed: $($_.Exception.Message)")
 }
 
 if ($failures.Count -gt 0) {

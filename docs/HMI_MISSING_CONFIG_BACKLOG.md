@@ -12,7 +12,7 @@ engineering information.
 
 - Screen: `io_link_al102`
 - Master: `AL102 | IFM AL1403 MASTER 3`
-- Status: Open
+- Status: Software mapping approved in REV03; physical commissioning open
 - HMI presentation: `NO DATA` for the live value and `MISSING CONFIG` for the
   engineering integration state
 - Runtime expectation: Going online alone will not resolve these entries. The
@@ -126,16 +126,18 @@ This entry may be closed only after:
   but it does not prove that the physical SMC manifold bit/channel actuates the
   intended valve or gate.
 
-| Engineering code | Function | Existing HMI tag | Pending confirmation |
+| Station / bit | Function | Existing HMI indication | Pending confirmation |
 | --- | --- | --- | --- |
-| `EV200-O` | Bottle gate open | `DO_Gate_Open` | Device/cable, SMC manifold bit/channel and end-to-end actuation |
-| `EV200-C` | Bottle gate close | `DO_Gate_Close` | Device/cable, SMC manifold bit/channel and end-to-end actuation |
-| `EV210` | Product valve 210 | `DO_Valve_210` | Device/cable, SMC manifold bit/channel and end-to-end actuation |
-| `EV217` | Product valve 217 | `DO_Valve_217` | Device/cable, SMC manifold bit/channel and end-to-end actuation |
-| `EV213` | Product valve 213 | `DO_Valve_213` | Device/cable, SMC manifold bit/channel and end-to-end actuation |
-| `EV212` | Vacuum valve 212 | `DO_Valve_212` | Device/cable, SMC manifold bit/channel and end-to-end actuation |
-| `EV247` | Discharge valve 247 | `DO_Valve_247` | Device/cable, SMC manifold bit/channel and end-to-end actuation |
-| `WASH-TBC` | External bottle wash | `DO_External_Wash` | Device/cable, SMC manifold bit/channel and end-to-end actuation |
+| `125Y1 / %Q128.0` | `EV010` product inlet | `SMC_EV010_Active` | Cable, coil and end-to-end actuation |
+| `125Y2 / %Q128.2` | `EV011` product shutoff | `SMC_EV011_Active` | Cable, coil and end-to-end actuation |
+| `125Y3 / %Q128.4` | `EV210` vacuum after pump | `SMC_EV210_Active` | Cable, coil and end-to-end actuation |
+| `125Y4 / %Q128.6` | `EV211` vacuum in pump | `SMC_EV211_Active` | Cable, coil and end-to-end actuation |
+| `125Y5 / %Q129.0` | `EV212` vacuum before pump | `SMC_EV212_Active` | Cable, coil and end-to-end actuation |
+| `125Y6 / %Q129.2` | `EV220` cap distributor air | `SMC_EV220_Active` | Cable, coil and end-to-end actuation |
+| `125Y7 / %Q129.4` | `EV221` cap channel air | `SMC_EV221_Active` | Cable, coil and end-to-end actuation |
+| `125Y8 / %Q129.6` | Bottle-wash pneumatic enable | `SMC_Bottle_External_Wash_Active` | Cable, coil and end-to-end actuation |
+| `125Y9 / %Q130.0-.1` | `EV001` gate open/close | `SMC_EV001_Open_Active`, `SMC_EV001_Close_Active` | Both coils, interlock and `%I0.5/%I0.6` feedback |
+| `125Y10 / %Q130.2-.3` | Spare double-solenoid | Spare indication only | Confirm both bits remain `FALSE` |
 
 ### Completion criteria
 

@@ -18,8 +18,12 @@ STRUCT
     RequestedRun        : Bool;
     ManualRequest       : Bool;
     SpeedRequestPct     : Real;
+    FrequencyRequestHz  : Real;
     ActualSpeedPct      : Real;
+    ActualFrequencyHz   : Real;
+    ActualFrequencyValid : Bool;
     ActualSpeedValid    : Bool;
+    RunningFeedbackValid : Bool;
     RunCommand          : Bool;
     ResetCommand        : Bool;
     Running             : Bool;
@@ -125,10 +129,10 @@ STRUCT
     OutputsPermitted    : Bool;
     GatewayFaultCode    : UInt;
     GatewayStatusWord   : Word;
-    GenericValveCommand : Array[1..10] of Bool;
-    GenericValveStatus  : Array[1..10] of Bool;
-    FunctionAssigned    : Array[1..10] of Bool;
-    GatewayOutputImage  : Word;
+    GenericValveCommand : Array[1..20] of Bool;
+    GenericValveStatus  : Array[1..20] of Bool;
+    FunctionAssigned    : Array[1..20] of Bool;
+    GatewayOutputImage  : DWord;
     GatewayInputStatus  : Word;
 END_STRUCT;
 END_TYPE
@@ -145,6 +149,11 @@ STRUCT
     HopperLow           : Bool;
     ChannelDemand       : Bool;
     ChannelEmpty        : Bool;
+    RotationPulse       : Bool;
+    RotationPulseValid  : Bool;
+    DelayToStartActive  : Bool;
+    DelayToStopActive   : Bool;
+    NoPulseFault        : Bool;
     MissingCap          : Bool;
     CapperNotReady      : Bool;
     Fault               : Bool;
@@ -202,8 +211,9 @@ STRUCT
     SMC                 : "UDT_SMCGateway";
     CapSystem           : "UDT_CapSystemManager";
     Gate                : "UDT_GateCommissioning";
-    Door                : Array[1..12] of "UDT_DoorDiagnostic";
-    ZoneRequest         : Array[1..3] of Bool;
+    // The controlled machine inventory contains eleven guards. Individual
+    // Pilz channels remain unbound until the approved safety map is supplied.
+    Door                : Array[1..11] of "UDT_DoorDiagnostic";
     PhysicalDoorMapConfigured : Bool;
 END_STRUCT;
 END_TYPE

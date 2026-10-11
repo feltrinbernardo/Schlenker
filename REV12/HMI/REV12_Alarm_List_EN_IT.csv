@@ -42,3 +42,8 @@
 2244,CIP sequence aborted by operator.,Sequenza CIP interrotta dall'operatore.,Information,Controlled abort status; acknowledge after sequence is safe
 2245,CIP complete awaiting operator acknowledgement.,CIP completato in attesa di conferma operatore.,Information,Acknowledge completion and select the next permitted mode
 2246,AL104 customer CIP interface communication fault.,Guasto comunicazione interfaccia CIP cliente AL104.,Critical,Prevent new CIP requests and open AL104 diagnostics
+1605,Filler main drive mechanical jam.,Blocco meccanico azionamento principale riempitrice.,Critical,Stop main drive; inspect obstruction or bearing and reset manually
+1606,Main motor VSD communication fault.,Guasto comunicazione VSD motore principale.,Critical,Check VSD main motor power and PROFINET connection
+1607,Bottle conveyor VSD communication fault.,Guasto comunicazione VSD nastro bottiglie.,Critical,Check bottle conveyor VSD power and PROFINET connection
+1608,Product pump VSD communication fault.,Guasto comunicazione VSD pompa prodotto.,Critical,Check product pump VSD power and PROFINET connection
+1609,Cap distributor VSD communication fault.,Guasto comunicazione VSD distributore tappi.,Critical,Check cap distributor VSD power and PROFINET connection

@@ -1,0 +1,65 @@
+Direction,Address,PLC_Signal,Function,Status
+Input,%I10.0,DB_Global.Inp.SafetyOK,Safety chain healthy,DEFINITIVE BASELINE
+Input,%I10.1,DB_Global.Inp.AirPressureOK,Machine air pressure healthy,DEFINITIVE BASELINE
+Input,%I10.2,DB_Global.Inp.EncoderHealthy,Main encoder healthy,DEFINITIVE BASELINE
+Input,%I10.3,DB_Global.Inp.MachineZero,Machine zero reference,DEFINITIVE BASELINE
+Input,%I10.4,DB_Global.Inp.BottleInfeed,Bottle detected at infeed,DEFINITIVE BASELINE
+Input,%I10.5,DB_Global.Inp.TankFull100,Tank full 100 percent,DEFINITIVE BASELINE
+Input,%I10.6,DB_Global.Inp.BottleShortage1,Bottle shortage stage 1,DEFINITIVE BASELINE
+Input,%I10.7,DB_Global.Inp.BottleShortage2,Bottle shortage stage 2,DEFINITIVE BASELINE
+Input,%I11.0,DB_Global.Inp.Accumulation1,Bottle accumulation stage 1,DEFINITIVE BASELINE
+Input,%I11.1,DB_Global.Inp.Accumulation2,Bottle accumulation stage 2,DEFINITIVE BASELINE
+Input,%I11.2,DB_Global.Inp.GateOpenFB,Infeed gate open feedback,DEFINITIVE BASELINE
+Input,%I11.3,DB_Global.Inp.GateClosedFB,Infeed gate closed feedback,DEFINITIVE BASELINE
+Input,%I11.4,DB_Global.Inp.FillerLowLimit,Filler low limit,DEFINITIVE BASELINE
+Input,%I11.5,DB_Global.Inp.FillerHighLimit,Filler high limit,DEFINITIVE BASELINE
+Input,%I11.6,DB_Global.Inp.CapperLowLimit,Capper low limit,DEFINITIVE BASELINE
+Input,%I11.7,DB_Global.Inp.CapperHighLimit,Capper high limit,DEFINITIVE BASELINE
+Input,%I12.0,DB_Global.Inp.CapPresent,Cap present,DEFINITIVE BASELINE
+Input,%I12.1,DB_Global.Inp.CapHopperLow,Cap hopper low,DEFINITIVE BASELINE
+Input,%I12.2,DB_Global.Inp.CapChannelDemand,Cap channel demand,DEFINITIVE BASELINE
+Input,%I12.3,DB_Global.Inp.CapsMissing,Caps missing,DEFINITIVE BASELINE
+Input,%I12.4,DB_Global.Inp.HoodFilterAlarm,Hood filter alarm,DEFINITIVE BASELINE
+Input,%I12.5,DB_Global.Inp.ControlPowerOK,Control power healthy,DEFINITIVE BASELINE
+Input,%I12.6,DB_Global.Inp.AirFilterPressureOK,Air filter pressure proof,DEFINITIVE BASELINE
+Input,%I12.7,DB_Global.Inp.AirFilterChangeRequired24V,Air filter change request,DEFINITIVE BASELINE
+Input,%I13.0,DB_Global.Inp.RequestOpenDoorPanelPB,Panel door access request,DEFINITIVE BASELINE
+Input,%I13.1,DB_Global.Inp.RequestOpenDoorFrontPB,Front door access request,DEFINITIVE BASELINE
+Input,%I13.2,DB_Global.Inp.RequestOpenDoorRearPB,Rear door access request,DEFINITIVE BASELINE
+Input,%I13.3,DB_Global.Inp.ControlledStopComplete,Controlled stop complete,DEFINITIVE BASELINE
+Input,%I13.4,DB_Global.Inp.ZeroSpeedConfirmed,Zero speed confirmed,DEFINITIVE BASELINE
+Input,%I13.5,DB_Global.Inp.ThreePhaseOffConfirmed,Three phase power isolated,DEFINITIVE BASELINE
+Input,%I13.6,DB_Global.Inp.AllDoorsClosed,All guards closed,DEFINITIVE BASELINE
+Input,%I13.7,DB_Global.Inp.ResetAlarmPanelPB,Panel alarm reset pushbutton,DEFINITIVE BASELINE
+Output,%Q4.0,DB_Global.Out.VacuumPump,Vacuum pump contactor,DEFINITIVE BASELINE
+Output,%Q4.1,DB_Global.Out.MachineLightsRelayCmd,Machine lights relay,DEFINITIVE BASELINE
+Output,%Q4.2,DB_Global.Out.AirFilterRelayCmd,Air filter or ventilation relay,DEFINITIVE BASELINE
+Output,%Q4.3,DB_Global.Out.GateOpen,Infeed gate open solenoid,DEFINITIVE BASELINE
+Output,%Q4.4,DB_Global.Out.GateClose,Infeed gate close solenoid,DEFINITIVE BASELINE
+Output,%Q4.5,DB_Global.Out.FillerUp,Filler lift up,DEFINITIVE BASELINE
+Output,%Q4.6,DB_Global.Out.FillerDown,Filler lift down,DEFINITIVE BASELINE
+Output,%Q4.7,DB_Global.Out.CapperUp,Capper lift up,DEFINITIVE BASELINE
+Output,%Q5.0,DB_Global.Out.CapperDown,Capper lift down,DEFINITIVE BASELINE
+Output,%Q5.1,DB_Global.Out.EV210,Vacuum valve EV210,DEFINITIVE BASELINE
+Output,%Q5.2,DB_Global.Out.EV211,Vacuum valve EV211,DEFINITIVE BASELINE
+Output,%Q5.3,DB_Global.Out.EV212,Vacuum valve EV212,DEFINITIVE BASELINE
+Output,%Q5.4,DB_Global.Out.EV220,Cap distributor air EV220,DEFINITIVE BASELINE
+Output,%Q5.5,DB_Global.Out.EV221,Cap channel air EV221,DEFINITIVE BASELINE
+Output,%Q5.6,DB_Global.Out.EV230FastRelease,Fast cap release EV230,DEFINITIVE BASELINE
+Output,%Q5.7,DB_Global.Out.ExternalBottleWashValveCmd,External bottle wash enable,DEFINITIVE BASELINE
+Output,%Q6.0,DB_Global.Out.UnlockAllDoorsRequest,Unlock all doors request,DEFINITIVE BASELINE
+Output,%Q6.1,DB_Global.Out.RequestPanelBlueLampCmd,Panel blue request lamp,DEFINITIVE BASELINE
+Output,%Q6.2,DB_Global.Out.RequestFrontBlueLampCmd,Front blue request lamp,DEFINITIVE BASELINE
+Output,%Q6.3,DB_Global.Out.RequestRearBlueLampCmd,Rear blue request lamp,DEFINITIVE BASELINE
+Output,%Q6.4,DB_Global.Out.Valve217Cmd,CIP valve 217,DEFINITIVE BASELINE
+Output,%Q6.5,DB_Global.Out.Valve213Cmd,CIP valve 213,DEFINITIVE BASELINE
+Output,%Q6.6,DB_Global.Out.Valve212Cmd,CIP valve 212,DEFINITIVE BASELINE
+Output,%Q6.7,DB_Global.Out.Valve247Cmd,CIP discharge valve 247,DEFINITIVE BASELINE
+Output,%Q7.0,DB_Global.Out.InternalWashValveCmd,Internal wash valve,DEFINITIVE BASELINE
+Output,%Q7.1,DB_Global.Out.CIPReqColdWater,Customer CIP cold water request,DEFINITIVE BASELINE
+Output,%Q7.2,DB_Global.Out.CIPReqHotWater,Customer CIP hot water request,DEFINITIVE BASELINE
+Output,%Q7.3,DB_Global.Out.CIPReqAcid,Customer CIP acid request,DEFINITIVE BASELINE
+Output,%Q7.4,DB_Global.Out.CIPReqCitra,Customer CIP citra request,DEFINITIVE BASELINE
+Output,%Q7.5,DB_Global.Out.CIPReqDischarge,Customer CIP discharge request,DEFINITIVE BASELINE
+Output,%Q7.6,DB_Global.Out.ProductionReqProduct,Customer product request,DEFINITIVE BASELINE
+Output,%Q7.7,FALSE,Reserved and forced off,DEFINITIVE RESERVED

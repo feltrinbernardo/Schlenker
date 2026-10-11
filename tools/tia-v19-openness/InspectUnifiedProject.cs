@@ -22,8 +22,10 @@ namespace Schlenker.TiaV19
         {
             "Name", "Left", "Top", "Width", "Height", "Text",
             "ProcessValue", "ResourceList", "IOFieldType", "BackColor",
+            "AlternateBackColor", "BackFillPattern", "OutputFormat",
             "ForeColor", "BorderColor", "BorderWidth", "Enabled", "Visible",
             "CustomID", "Graphic", "ToolTipText", "Authorization",
+            "CenterX", "CenterY", "RadiusX", "RadiusY",
             "X1", "Y1", "X2", "Y2", "LineColor", "LineWidth"
         };
 

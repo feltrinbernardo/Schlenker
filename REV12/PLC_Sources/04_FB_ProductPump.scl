@@ -1,6 +1,7 @@
 FUNCTION_BLOCK "FB_ProductPump"
 VAR_INPUT
     Enable              : Bool;
+    ManualMode          : Bool;
     EmptyingMode        : Bool;
     DriveReady          : Bool;
     DriveFault          : Bool;
@@ -10,10 +11,15 @@ VAR_INPUT
     MinSpeedPct         : Real;
     MaxSpeedPct         : Real;
     RampPctPerCycle     : Real;
+    ManualFrequencyHz   : Real;
+    ManualMinHz         : Real;
+    ManualMaxHz         : Real;
+    DriveBaseFrequencyHz: Real;
 END_VAR
 VAR_OUTPUT
     RunCmd              : Bool;
     SpeedRefPct         : Real := 0.0;
+    FrequencyRefHz      : Real := 0.0;
     LevelSignalFault    : Bool;
     LowLevelWarning     : Bool;
 END_VAR
@@ -31,6 +37,16 @@ BEGIN
 
     IF NOT RunCmd THEN
         TargetSpeed := 0.0;
+    ELSIF ManualMode THEN
+        // REV01 manual product-pump baseline: 15..40 Hz, still subject to
+        // product-presence/dry-run protection in the caller.
+        IF DriveBaseFrequencyHz > 0.0 THEN
+            TargetSpeed := (LIMIT(MN := ManualMinHz,
+                                  IN := ManualFrequencyHz,
+                                  MX := ManualMaxHz) / DriveBaseFrequencyHz) * 100.0;
+        ELSE
+            TargetSpeed := 0.0;
+        END_IF;
     ELSE
         ErrorPct := SetpointPct - LevelPct;
 
@@ -64,4 +80,9 @@ BEGIN
 
     // Drive the output every scan; the retained ramp state is held internally.
     SpeedRefPct := SpeedMemory;
+    IF DriveBaseFrequencyHz > 0.0 THEN
+        FrequencyRefHz := (SpeedMemory / 100.0) * DriveBaseFrequencyHz;
+    ELSE
+        FrequencyRefHz := 0.0;
+    END_IF;
 END_FUNCTION_BLOCK
