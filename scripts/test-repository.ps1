@@ -73,6 +73,13 @@ if ($pythonFiles.Count -gt 0) {
     }
 }
 
+try {
+    & (Join-Path $PSScriptRoot 'validate-door-inventory-lock.ps1') -Quiet
+}
+catch {
+    $failures.Add("Door-inventory lock validation failed: $($_.Exception.Message)")
+}
+
 if ($failures.Count -gt 0) {
     $failures | ForEach-Object { Write-Error $_ -ErrorAction Continue }
     throw "Repository validation failed with $($failures.Count) issue(s)."

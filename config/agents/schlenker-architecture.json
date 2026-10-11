@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "architecture": "schlenker-multi-agent",
+  "implementationStatus": "pilot-partial",
+  "runtime": {
+    "mechanism": "codex-collaboration-subagents",
+    "dispatchModel": "coordinator-spawns-bounded-specialists-per-task",
+    "markdownCreatesExecutableAgents": false,
+    "persistentAgentRegistrationAvailable": false,
+    "sharedWorkspace": true,
+    "interfaceControl": {
+      "mode": "exclusive-specialist-lease",
+      "coordinatorOperatesEngineeringInterface": false,
+      "reobserveOnAcquire": true,
+      "handoffReportRequired": true,
+      "sameSessionParallelControlAllowed": false
+    }
+  },
+  "roles": [
+    {
+      "id": "coordinator",
+      "definition": "documentos/schlenker/agente-coordenador.md",
+      "runtimeState": "tested-in-pilot",
+      "responsibility": "dispatch-and-consolidation"
+    },
+    {
+      "id": "plc-process",
+      "definition": "documentos/schlenker/agente-plc-processo.md",
+      "runtimeState": "tested-read-only",
+      "responsibility": "plc-and-process-specialist"
+    },
+    {
+      "id": "hmi-alarms",
+      "definition": "documentos/schlenker/agente-hmi-alarmes.md",
+      "runtimeState": "defined-not-tested",
+      "responsibility": "hmi-and-alarm-specialist"
+    },
+    {
+      "id": "networks-devices",
+      "definition": "documentos/schlenker/agente-redes-dispositivos.md",
+      "runtimeState": "defined-not-tested",
+      "responsibility": "network-and-device-specialist"
+    },
+    {
+      "id": "safety-interfaces",
+      "definition": "documentos/schlenker/agente-seguranca-interfaces.md",
+      "runtimeState": "defined-not-tested",
+      "responsibility": "safety-and-interface-specialist"
+    },
+    {
+      "id": "verification-integration",
+      "definition": "documentos/schlenker/agente-verificacao-integracao.md",
+      "runtimeState": "defined-not-tested",
+      "responsibility": "cross-area-verification-specialist"
+    }
+  ],
+  "pilot": {
+    "date": "2026-09-28",
+    "branch": "codex/revised-open-points",
+    "revision": "4451f95a790c73cb9f00bf8c52939a65933c032b",
+    "task": "read-only inspection of FB_DoorAccess, variables and related HMI interface",
+    "specialist": "plc-process",
+    "delegationProven": true,
+    "repositoryToolAccessProven": true,
+    "computerUseApiAccessProven": true,
+    "engineeringDesktopWindowAccessProven": false,
+    "reason": "Computer Use returned an empty application inventory; no TIA Portal or GX Works2 window was available.",
+    "projectModified": false,
+    "equipmentAccessed": false,
+    "report": "runs/2026-09-28-agent-architecture-pilot/report.md"
+  },
+  "visualMonitor": {
+    "implementation": "tools/schlenker-agent-monitor",
+    "status": "implemented-authentication-blocked",
+    "bind": "127.0.0.1:8765",
+    "source": "openai-agents-api-event-stream",
+    "environment": "none",
+    "liveStreamValidated": false,
+    "localHttpValidated": true,
+    "unitTestsValidated": true,
+    "blocker": "The currently configured OPENAI_API_KEY was rejected by the Agents API. A valid application key with Agents API and Responses permissions is required."
+  },
+  "deferred": {
+    "persistentMemory": true,
+    "railwayEvaluation": true,
+    "nativePilzProject": true,
+    "pilzToolVersion": true,
+    "physicalDoorMapping": true,
+    "safetyValidation": true,
+    "currentBenchStateConfirmationBeforeFutureTests": true
+  }
+}
