@@ -13,7 +13,6 @@ VAR_INPUT
     CapDistributorAir   : Bool;
     CapChannelAir       : Bool;
     ExternalBottleWashPneuEnable : Bool;
-    FillerExternalWashPneuEnable : Bool;
 END_VAR
 VAR_OUTPUT
     ValveBits           : DWORD;
@@ -38,7 +37,7 @@ BEGIN
         ValveBits.%X14 := ExternalBottleWashPneuEnable;  // %Q129.6 pneumatic enable
         ValveBits.%X16 := GateOpenCmd;                   // %Q130.0 EV001 OPEN
         ValveBits.%X17 := GateCloseCmd;                  // %Q130.1 EV001 CLOSE
-        ValveBits.%X18 := FillerExternalWashPneuEnable;  // %Q130.2 / 125Y10-A
-        // %Q130.3 and bits 20..31 remain reserved and forced FALSE.
+        // Bits 18..31 remain reserved and forced FALSE.  In particular,
+        // 125Y10-A/B (%Q130.2/%Q130.3) is the spare double-solenoid station.
     END_IF;
 END_FUNCTION_BLOCK

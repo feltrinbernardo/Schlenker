@@ -52,7 +52,7 @@ the approved electrical and I/O schedule before download:
 
 | Symbolic interface | Required commissioning evidence |
 |---|---|
-| `Inp.ProductPresentAtPump` | Sensor address, polarity and wet/dry tests |
+| `Inp.ProductPresentAtPump` | Address fixed at AL103/P1 `%IW324`. Download plus wet/dry polarity test remain required. |
 | `Inp.VacuumActualMbar` / `VacuumSignalValid` | Analog channel, scaling and fault limits |
 | `Inp.BottleCountInMachine` | Validated bottle-tracker count |
 | `Inp.BottleAdmissionComplete` | Admission-controller handshake |

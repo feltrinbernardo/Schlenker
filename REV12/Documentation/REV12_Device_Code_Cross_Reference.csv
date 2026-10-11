@@ -1,4 +1,8 @@
 DeviceCode,Meaning,Application,Sequence,ImplementationStatus
+NETSW100,Industrial Ethernet Switch,Siemens SCALANCE XB116 central PROFINET/Ethernet distribution switch,"NETSW101, NETSW102...",Confirmed by supplied photograph; use any available RJ45 port until final cabinet port schedule is issued
 SPC100,Sensor Presence Cylinder,Cylinder presence sensor / first device in family,"SPC101, SPC102...",Reserved example; no physical mapping assigned
 E100,Encoder,Main machine encoder / first encoder,"E101, E102...",Existing symbolic encoder/HSC signals retained; terminal details TBC
+TL100,Tower Light,Leuze A7-V1-MP1-BZ2-S-DS-ROG-T-100 part 50138251 green/orange/red/buzzer,"TL101, TL102...",Approved via IFM AL2330 IO-Link output hub on AL102/P8
+XTM100,S7-1500 Front Connector,Siemens 6ES7592-1BM00-0XB0 40-pole push-in connector for 35 mm modules,"XTM101, XTM102...",Confirmed accessory for TM Count 2x24V installation
+MEMSAFE100,PNOZmulti Chipcard,Pilz 779211 chipcard 32 kB,"MEMSAFE101, MEMSAFE102...",Confirmed accessory for PNOZ m B0 safety project storage
 TLS100,Tank Level Sensor,Filler tank level sensor / first tank-level sensor,"TLS101, TLS102...",HMI/PLC process value retained; IO-Link versus 4-20mA TBC

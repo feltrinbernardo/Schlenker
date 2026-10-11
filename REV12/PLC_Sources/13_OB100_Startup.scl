@@ -11,6 +11,75 @@ BEGIN
     "DB_Global".Machine.State := 0;
     "DB_Global".Machine.HomeValid := FALSE;
     "DB_Global".Machine.TrackingValid := FALSE;
+    "DB_Global".Machine.MainDriveMechanicalJam := FALSE;
+
+    // Every PLC restart begins from the approved minimum production speed.
+    // The operator may raise it afterwards within the validated 3000..12000
+    // BPH range, but the previous setpoint is never restored automatically.
+    "DB_Global".Par.ProductionSpeedBPH := 3000.0;
+
+    // A restart must never restore an HMI command or maintained selection.
+    // Clear the complete command interface before any sequence or output can
+    // be evaluated. The operator must deliberately request every function
+    // again after the PLC/HMI communication has recovered.
+    "DB_Global".Cmd.AutoStart := FALSE;
+    "DB_Global".Cmd.ManualSelect := FALSE;
+    "DB_Global".Cmd.Stop := FALSE;
+    "DB_Global".Cmd.Reset := FALSE;
+    "DB_Global".Cmd.HomeStart := FALSE;
+    "DB_Global".Cmd.CIPStart := FALSE;
+    "DB_Global".Cmd.CIPStop := FALSE;
+    "DB_Global".Cmd.EmptyingStart := FALSE;
+    "DB_Global".Cmd.FillerHeightEnable := FALSE;
+    "DB_Global".Cmd.CapperHeightEnable := FALSE;
+    "DB_Global".Cmd.JogPB := FALSE;
+    "DB_Global".Cmd.PendantUp := FALSE;
+    "DB_Global".Cmd.PendantDown := FALSE;
+    "DB_Global".Cmd.GateManualOpen := FALSE;
+    "DB_Global".Cmd.GateManualClose := FALSE;
+    "DB_Global".Cmd.GateManualPageActive := FALSE;
+    "DB_Global".Cmd.ManualTestEnable := FALSE;
+    "DB_Global".Cmd.CapDistributorAirManual := FALSE;
+    "DB_Global".Cmd.CapChannelAirManual := FALSE;
+    "DB_Global".Cmd.SMCEV010Manual := FALSE;
+    "DB_Global".Cmd.SMCEV011Manual := FALSE;
+    "DB_Global".Cmd.SMCEV210Manual := FALSE;
+    "DB_Global".Cmd.SMCEV211Manual := FALSE;
+    "DB_Global".Cmd.SMCEV212Manual := FALSE;
+    "DB_Global".Cmd.SMCBottleExternalWashManual := FALSE;
+    "DB_Global".Cmd.SMCFillerExternalWashManual := FALSE;
+    "DB_Global".Cmd.LightsOn := FALSE;
+    "DB_Global".Cmd.LightsOff := FALSE;
+    "DB_Global".Cmd.AirFilterOn := FALSE;
+    "DB_Global".Cmd.AirFilterOff := FALSE;
+    "DB_Global".Cmd.GateAutoRequestEnable := FALSE;
+    "DB_Global".Cmd.RunOutProductStart := FALSE;
+    "DB_Global".Cmd.ProductPumpEnable := FALSE;
+    "DB_Global".Cmd.ProductPumpManualEnable := FALSE;
+    "DB_Global".Cmd.VacuumPumpManualEnable := FALSE;
+    "DB_Global".Cmd.ConveyorManualEnable := FALSE;
+    "DB_Global".OpenPoints.ConveyorDrive.Device.Configured := TRUE;
+    "DB_Global".Cmd.CapDriveManualEnable := FALSE;
+    "DB_Global".OpenPoints.CapDistributorDrive.Device.Configured := TRUE;
+    "DB_Global".Cmd.ConveyorSyncEnable := FALSE;
+    "DB_Global".Cmd.ProductionOn := FALSE;
+    "DB_Global".Cmd.ProductionOff := FALSE;
+    "DB_Global".Cmd.CIPMedium := USINT#0;
+    "DB_Global".Cmd.CIPPause := FALSE;
+    "DB_Global".Cmd.CIPResume := FALSE;
+    "DB_Global".Cmd.CIPAbort := FALSE;
+    "DB_Global".Cmd.CIPNext := FALSE;
+    "DB_Global".Cmd.CIPAcknowledgeComplete := FALSE;
+    "DB_Global".Cmd.CIPRecipeSaveDraft := FALSE;
+    "DB_Global".Cmd.CIPRecipeSaveAs := FALSE;
+    "DB_Global".Cmd.CIPRecipeApprove := FALSE;
+    "DB_Global".Cmd.CIPRecipeLock := FALSE;
+    "DB_Global".Cmd.CIPRecipeSupersede := FALSE;
+    "DB_Global".Cmd.InternalWashOn := FALSE;
+    "DB_Global".Cmd.InternalWashOff := FALSE;
+    "DB_Global".Cmd.FillerLiftConfirm := FALSE;
+    "DB_Global".Cmd.CapperLiftConfirm := FALSE;
+
     "DB_Global".OpenPoints.ReadyPermissives := FALSE;
     "DB_Global".OpenPoints.ControlledStopRequest := FALSE;
     "DB_Global".OpenPoints.WaitingForInput := TRUE;
@@ -53,43 +122,15 @@ BEGIN
     "DB_Global".InternalWash.Requested := FALSE;
     "DB_Global".ProductionVacuum.AttemptNumber := 0;
     "DB_Global".ProductionVacuum.LowVacuumAlarm := FALSE;
-    "DB_Global".Cmd.GateAutoRequestEnable := FALSE;
-    "DB_Global".Cmd.RunOutProductStart := FALSE;
-    "DB_Global".Cmd.ProductPumpEnable := FALSE;
-    "DB_Global".Cmd.ProductPumpManualEnable := FALSE;
     "DB_Global".Par.ProductPumpManualFrequencyHz := 15.0;
-    "DB_Global".Cmd.ProductionOn := FALSE;
-    "DB_Global".Cmd.ProductionOff := FALSE;
-    "DB_Global".Cmd.CIPStop := FALSE;
-    "DB_Global".Cmd.CIPPause := FALSE;
-    "DB_Global".Cmd.CIPResume := FALSE;
-    "DB_Global".Cmd.CIPAbort := FALSE;
-    "DB_Global".Cmd.CIPNext := FALSE;
-    "DB_Global".Cmd.CIPAcknowledgeComplete := FALSE;
-    "DB_Global".Cmd.CIPRecipeSaveDraft := FALSE;
-    "DB_Global".Cmd.CIPRecipeSaveAs := FALSE;
-    "DB_Global".Cmd.CIPRecipeApprove := FALSE;
-    "DB_Global".Cmd.CIPRecipeLock := FALSE;
-    "DB_Global".Cmd.CIPRecipeSupersede := FALSE;
+    "DB_Global".Par.ConveyorManualFrequencyHz := 5.0;
+    "DB_Global".Par.CapDriveManualFrequencyHz := 0.0;
     "DB_Global".CIPRecipeControl.EngineeringAuthorized := FALSE;
     "DB_Global".CIPRecipeControl.ActiveSnapshotReady := FALSE;
     "DB_Global".CIPRecipeControl.StartRejectedInvalid := FALSE;
     "DB_Global".CIPRecipeControl.StartRejectedUnapproved := FALSE;
     "DB_Global".CIPRecipeControl.StartRejectedUnlocked := FALSE;
     "DB_Global".CIPRecipeControl.EditRejected := FALSE;
-    "DB_Global".Cmd.InternalWashOn := FALSE;
-    "DB_Global".Cmd.InternalWashOff := FALSE;
-    "DB_Global".Cmd.FillerLiftConfirm := FALSE;
-    "DB_Global".Cmd.CapperLiftConfirm := FALSE;
-    "DB_Global".Cmd.CapDistributorAirManual := FALSE;
-    "DB_Global".Cmd.CapChannelAirManual := FALSE;
-    "DB_Global".Cmd.SMCEV010Manual := FALSE;
-    "DB_Global".Cmd.SMCEV011Manual := FALSE;
-    "DB_Global".Cmd.SMCEV210Manual := FALSE;
-    "DB_Global".Cmd.SMCEV211Manual := FALSE;
-    "DB_Global".Cmd.SMCEV212Manual := FALSE;
-    "DB_Global".Cmd.SMCBottleExternalWashManual := FALSE;
-    "DB_Global".Cmd.SMCFillerExternalWashManual := FALSE;
     "DB_Global".LiftConfirmation.FillerConfirmed := FALSE;
     "DB_Global".LiftConfirmation.CapperConfirmed := FALSE;
     "DB_Global".LiftConfirmation.MovementAreaClear := FALSE;
@@ -114,6 +155,7 @@ BEGIN
     "DB_Global".Out.CapperUp := FALSE;
     "DB_Global".Out.CapperDown := FALSE;
     "DB_Global".Out.VacuumPump := FALSE;
+    %QD4 := DWORD#0; // All 32 integrated DQ safe at startup.
     "DB_Global".Out.EV210 := FALSE;
     "DB_Global".Out.EV211 := FALSE;
     "DB_Global".Out.EV212 := FALSE;

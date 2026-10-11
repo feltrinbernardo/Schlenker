@@ -121,6 +121,7 @@ STRUCT
     DoorAccessActive    : Bool;
     DoorRestartPermitted: Bool;
     DoorAccessFault     : Bool;
+    MainDriveMechanicalJam : Bool; // Latched process protection; reset required
     ActiveMode          : USInt;
 END_STRUCT;
 END_TYPE
@@ -171,7 +172,7 @@ STRUCT
     SMCEV211Manual      : Bool;
     SMCEV212Manual      : Bool;
     SMCBottleExternalWashManual : Bool;
-    SMCFillerExternalWashManual : Bool;
+    SMCFillerExternalWashManual : Bool; // Legacy compatibility; forced FALSE, 125Y10 is spare
     LightsOn            : Bool;
     LightsOff           : Bool;
     AirFilterOn         : Bool;
@@ -180,6 +181,9 @@ STRUCT
     RunOutProductStart  : Bool;
     ProductPumpEnable   : Bool;
     ProductPumpManualEnable : Bool;
+    VacuumPumpManualEnable  : Bool;
+    ConveyorManualEnable    : Bool;
+    CapDriveManualEnable    : Bool;
     ConveyorSyncEnable  : Bool;
     ProductionOn        : Bool;
     ProductionOff       : Bool;
@@ -259,6 +263,7 @@ STRUCT
     IOLinkMaster5Configured : Bool; // AL104 dedicated Customer CIP Interface configured
     IOLinkMaster5OK     : Bool; // AL104 communication state
     DriveG120CNetworkOK : Bool;
+    HMIHeartbeat        : DInt; // Incremented cyclically by the Unified HMI runtime
     HMILinkOK           : Bool;
     AnybusGatewayOK     : Bool;
     AnybusGatewayECATOK : Bool;
@@ -342,7 +347,7 @@ STRUCT
     SMCEV220Active      : Bool;
     SMCEV221Active      : Bool;
     SMCBottleExternalWashActive : Bool;
-    SMCFillerExternalWashActive : Bool;
+    SMCFillerExternalWashActive : Bool; // Legacy compatibility; forced FALSE
     UnlockAllDoorsRequest : Bool;
     RequestBlueLampCmd    : Bool;
     RequestPanelBlueLampCmd : Bool;
@@ -351,8 +356,8 @@ STRUCT
     MachineLightsRelayCmd : Bool;
     AirFilterRelayCmd     : Bool;
     ExternalBottleWashValveCmd : Bool;
-    // Separate command: never alias this filler wash function to the external
-    // bottle-wash pneumatic enable. Assigned to 125Y10-A / %Q130.2.
+    // Legacy compatibility only. 125Y10-A/B is spare and this command is
+    // forced FALSE before the Anybus output image is built.
     FillerExternalWashValveCmd : Bool;
     Valve210Cmd         : Bool;
     Valve217Cmd         : Bool;
@@ -372,14 +377,23 @@ END_TYPE
 TYPE "UDT_Parameters" :
 STRUCT
     ProductionSpeedBPH      : Real;
+    MinSpeedBPH             : Real;
     MaxSpeedBPH             : Real;
     JogSpeedPct             : Real;
     DriveBaseFrequencyHz    : Real;
+    MainDriveMaxFrequencyHz : Real;
     MainJogMaxFrequencyHz   : Real;
     MainJogAccelerationTime : Time;
+    MainDriveJamArmDelay     : Time;
+    MainDriveJamTripDelay    : Time;
+    MainDriveJamMinCommandHz : Real;
+    MainDriveJamArmSpeedPct  : Real;
+    MainDriveJamTripSpeedPct : Real;
     ProductPumpManualFrequencyHz : Real;
     ProductPumpManualMinHz  : Real;
     ProductPumpManualMaxHz  : Real;
+    ConveyorManualFrequencyHz : Real;
+    CapDriveManualFrequencyHz : Real;
     CapDistributorDelayToStart : Time;
     CapDistributorDelayToStop  : Time;
     CapDistributorNoPulseTimeout : Time;

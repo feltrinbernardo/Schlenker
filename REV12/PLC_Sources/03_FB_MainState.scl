@@ -29,9 +29,7 @@ BEGIN
     // exception can select MANUAL only; it never permits automatic, drive,
     // production or CIP states.  Remove it before machine commissioning.
     IF BenchCommissioningMode
-       AND Cmd.ManualSelect
-       AND NOT DoorAccessFault
-       AND NOT CriticalAlarm
+       AND (Cmd.ManualSelect OR Cmd.ManualTestEnable)
        AND NOT DoorAccessActive THEN
         M.State := 50; // MANUAL — BENCH TEST ONLY
     ELSIF NOT SafetyOK THEN

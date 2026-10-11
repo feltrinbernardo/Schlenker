@@ -26,11 +26,11 @@ VSD_Pump_Ready,DB_Global.Inp.ProductPumpReady,Bool,Read,VSD,Product-pump ready f
 VSD_Pump_Running,DB_Global.Inp.ProductPumpRunning,Bool,Read,VSD,Product-pump running feedback; telegram mapping TBC
 VSD_Pump_Fault,DB_Global.Inp.ProductPumpFault,Bool,Read,VSD,Product-pump fault feedback; telegram mapping TBC
 VSD_Pump_Feedback_Valid,DB_Global.Inp.ProductPumpFeedbackValid,Bool,Read,VSD,Product-pump status/actual-frequency data valid
-VSD_Cap_Command_Hz,DB_Global.Out.CapDriveFrequencyHz,Real,Read,VSD,Cap-distributor logical frequency command; telegram mapping TBC
-VSD_Cap_Actual_Hz,DB_Global.Inp.CapDriveActualHz,Real,Read,VSD,Cap-distributor actual frequency; telegram mapping TBC
-VSD_Cap_Ready,DB_Global.Inp.CapDriveReady,Bool,Read,VSD,Cap-distributor ready feedback; telegram mapping TBC
-VSD_Cap_Running,DB_Global.Inp.CapDriveRunning,Bool,Read,VSD,Cap-distributor running feedback; telegram mapping TBC
-VSD_Cap_Fault,DB_Global.Inp.CapDriveFault,Bool,Read,VSD,Cap-distributor fault feedback; telegram mapping TBC
+VSD_Cap_Command_Hz,DB_Global.Out.CapDriveFrequencyHz,Real,Read,VSD,Cap-distributor logical frequency command mapped to Telegram 1 %QW154
+VSD_Cap_Actual_Hz,DB_Global.Inp.CapDriveActualHz,Real,Read,VSD,Cap-distributor actual frequency from Telegram 1 %IW322
+VSD_Cap_Ready,DB_Global.Inp.CapDriveReady,Bool,Read,VSD,Cap-distributor ready feedback from Telegram 1 status word %IW320
+VSD_Cap_Running,DB_Global.Inp.CapDriveRunning,Bool,Read,VSD,Cap-distributor running feedback from Telegram 1 status word %IW320
+VSD_Cap_Fault,DB_Global.Inp.CapDriveFault,Bool,Read,VSD,Cap-distributor fault feedback from Telegram 1 status word %IW320
 VSD_Cap_Feedback_Valid,DB_Global.Inp.CapDriveFeedbackValid,Bool,Read,VSD,Cap-distributor status/actual-frequency data valid
 Conveyor_Sync_Enable,DB_Global.Cmd.ConveyorSyncEnable,Bool,ReadWrite,Production,Enable conveyor speed synchronisation with main-machine speed
 Conveyor_Base_Speed_Pct,DB_Global.Par.ConveyorBaseSpeedPct,Real,ReadWrite,Production,Base conveyor speed for independent mode; range 0-100%
@@ -55,6 +55,7 @@ Alarm_Critical,DB_Global.AlarmCritical,Bool,Read,Alarms,Critical alarm summary
 Alarm_Warning,DB_Global.AlarmWarning,Bool,Read,Alarms,Warning summary
 Alarm_Word1,DB_Global.AlarmWord1,DWord,Read,Alarms,Discrete alarm trigger word for codes 1001-1901
 Alarm_Word2,DB_Global.AlarmWord2,DWord,Read,Alarms,REV21 source-proven functional alarm trigger word
+Main_Drive_Mechanical_Jam,DB_Global.Machine.MainDriveMechanicalJam,Bool,Read,Alarms,Latched filler main-drive speed-collapse alarm; reset required
 Cmd_ManualSelect,DB_Global.Cmd.ManualSelect,Bool,ReadWrite,Home,Manual mode request subject to physical MAN/AUT selector confirmation
 Gate_Manual_PageActive,DB_Global.Cmd.GateManualPageActive,Bool,ReadWrite,Manual Gate,TRUE only while the manual gate page is visible
 Gate_Manual_TestEnable,DB_Global.Cmd.ManualTestEnable,Bool,ReadWrite,Manual Gate,Engineer-level manual test permission
@@ -66,7 +67,6 @@ SMC_EV210_Manual,DB_Global.Cmd.SMCEV210Manual,Bool,ReadWrite,Manual SMC,Momentar
 SMC_EV211_Manual,DB_Global.Cmd.SMCEV211Manual,Bool,ReadWrite,Manual SMC,Momentary EV211 vacuum-in-pump request through PLC permissives
 SMC_EV212_Manual,DB_Global.Cmd.SMCEV212Manual,Bool,ReadWrite,Manual SMC,Momentary EV212 vacuum-before-pump request through PLC permissives
 SMC_Bottle_External_Wash_Manual,DB_Global.Cmd.SMCBottleExternalWashManual,Bool,ReadWrite,Manual SMC,Momentary Bottle External Washing pneumatic-enable request through PLC permissives
-SMC_Filler_External_Wash_Manual,DB_Global.Cmd.SMCFillerExternalWashManual,Bool,ReadWrite,Manual SMC,Momentary Filler External Washing request to 125Y10-A / Q130.2 through PLC permissives
 SMC_EV001_Open_Manual,DB_Global.Cmd.GateManualOpen,Bool,ReadWrite,Manual SMC,Momentary EV001 gate-open request
 SMC_EV001_Close_Manual,DB_Global.Cmd.GateManualClose,Bool,ReadWrite,Manual SMC,Momentary EV001 gate-close request
 Gate_Close,DB_Global.Cmd.GateManualClose,Bool,ReadWrite,Manual Gate,Momentary gate close command
@@ -131,6 +131,7 @@ Network_AL102_OK,DB_Global.Inp.IOLinkMaster3OK,Bool,Read,Diagnostics,REV18 perma
 Network_AL103_OK,DB_Global.Inp.IOLinkMaster4OK,Bool,Read,Diagnostics,REV18 permanent ID AL103; legacy symbolic master 4 status; physical device mapping unverified
 Network_G120C_OK,DB_Global.Inp.DriveG120CNetworkOK,Bool,Read,Diagnostics,SINAMICS G120C network status
 Network_HMI_OK,DB_Global.Inp.HMILinkOK,Bool,Read,Diagnostics,HMI communication status
+HMI_Heartbeat,DB_Global.Inp.HMIHeartbeat,DInt,ReadWrite,Diagnostics,Cyclic HMI runtime heartbeat supervised by PLC watchdog
 Network_Anybus_PN_OK,DB_Global.Inp.AnybusGatewayOK,Bool,Read,Diagnostics,HMS ABC3113-A PROFINET-side status
 Network_Anybus_ECAT_OK,DB_Global.Inp.AnybusGatewayECATOK,Bool,Read,Diagnostics,HMS ABC3113-A EtherCAT-side link to SMC
 Network_SMC_OK,DB_Global.Inp.SMCCommOK,Bool,Read,Diagnostics,Anybus SMC output-path status derived from configured PROFINET device diagnostics; independent EtherCAT/manifold feedback remains not configured
@@ -147,15 +148,15 @@ SMC_EV212_Active,DB_Global.Out.SMCEV212Active,Bool,Read,Manual SMC,Final interlo
 SMC_EV220_Active,DB_Global.Out.SMCEV220Active,Bool,Read,Manual SMC,Final interlocked EV220 output state
 SMC_EV221_Active,DB_Global.Out.SMCEV221Active,Bool,Read,Manual SMC,Final interlocked EV221 output state
 SMC_Bottle_External_Wash_Active,DB_Global.Out.SMCBottleExternalWashActive,Bool,Read,Manual SMC,Final interlocked Bottle External Washing output state
-SMC_Filler_External_Wash_Active,DB_Global.Out.SMCFillerExternalWashActive,Bool,Read,Manual SMC,Final interlocked Filler External Washing output state at 125Y10-A / Q130.2
 Encoder_Count,DB_Global.Inp.EncoderCount,DInt,Read,Diagnostics,TM Count machine encoder count retained from REV11
 Tank_Full_100,DB_Global.Inp.TankFull100,Bool,Read,Product Pump,Confirmed tank-full discrete input retained from REV11
 Capper_Outfeed_Crash,DB_Global.Inp.CapperOutfeedCrash,Bool,Read,Capper,Confirmed capper-discharge crash sensor retained from REV11
 Bottle_Count_In_Machine,DB_Global.Inp.BottleCountInMachine,DInt,Read,Production,Tracked number of bottles inside the monoblock; commissioning mapping required
+Bottle_Tracking_Valid,DB_Global.Machine.TrackingValid,Bool,Read,Home,Encoder-based bottle tracking valid; false until homing sensor mapping and station offsets are commissioned
+Bottle_Tracking_Count,DB_Global.OpenPoints.Tracking.Count,USInt,Read,Home,Active records in the commissioned encoder-based bottle tracker; display is gated by Bottle_Tracking_Valid
 Bottle_Admission_Complete,DB_Global.Inp.BottleAdmissionComplete,Bool,Read,Production,Admission controller complete handshake; commissioning mapping required
-Product_Present_At_Pump,DB_Global.Inp.ProductPresentAtPump,Bool,Read,Product Pump,Product-presence sensor used by Run Out; commissioning mapping required
+Product_Present_At_Pump,DB_Global.Inp.ProductPresentAtPump,Bool,Read,Product Pump,IFM LMT100 OUT1 mapped offline from SPL100_LMT100_ProcessData %IW324 bit 0; PLC download and wet/dry polarity test pending
 External_Wash_Valve,DB_Global.Out.ExternalBottleWashValveCmd,Bool,Read,Home,Bottle External Washing automatic request; physically assigned to Q129.6
-Filler_External_Wash_Valve,DB_Global.Out.FillerExternalWashValveCmd,Bool,Read,Home,Filler External Washing automatic request; physically assigned to Q130.2 / 125Y10-A
 Gate_Auto_Request_Enable,DB_Global.Cmd.GateAutoRequestEnable,Bool,ReadWrite,Home,Maintained Gate OFF/ON sequence request
 Gate_Auto_State,DB_Global.AutoGateRequest.State,USInt,Read,Home,Automatic gate-request sequence state
 Gate_Auto_Active,DB_Global.AutoGateRequest.Active,Bool,Read,Home,Automatic gate-request sequence active
@@ -177,7 +178,12 @@ Cmd_CIPStart,DB_Global.Cmd.CIPStart,Bool,ReadWrite,CIP,Momentary interlocked CIP
 Cmd_CIPStop,DB_Global.Cmd.CIPStop,Bool,ReadWrite,CIP,Momentary CIP controlled-stop request
 Cmd_CIPMedium,DB_Global.Cmd.CIPMedium,USInt,ReadWrite,CIP,CIP medium selection 0 Other 1 Water 2 Hot Water 3 Caustic Soda
 Cmd_ProductPumpManualEnable,DB_Global.Cmd.ProductPumpManualEnable,Bool,ReadWrite,Manual,Manual filler product-pump command with safety and presence interlocks
+Cmd_VacuumPumpManualEnable,DB_Global.Cmd.VacuumPumpManualEnable,Bool,ReadWrite,Manual,Maintained M103 vacuum-pump contactor request accepted only in Manual with safety valid and no critical alarm
+Cmd_ConveyorManualEnable,DB_Global.Cmd.ConveyorManualEnable,Bool,ReadWrite,Manual,Isolated bench/manual bottle-conveyor request limited by PLC to 5-15 Hz
+Cmd_CapDriveManualEnable,DB_Global.Cmd.CapDriveManualEnable,Bool,ReadWrite,Manual,Isolated bench/manual cap-distributor drive request qualified by PLC permissives
 Product_Pump_Manual_Frequency_Hz,DB_Global.Par.ProductPumpManualFrequencyHz,Real,ReadWrite,Manual,Manual product-pump frequency clamped by PLC to 15.0-40.0 Hz
+Conveyor_Manual_Frequency_Hz,DB_Global.Par.ConveyorManualFrequencyHz,Real,ReadWrite,Manual,Manual bottle-conveyor bench frequency clamped by PLC to 5.0-15.0 Hz
+CapDrive_Manual_Frequency_Hz,DB_Global.Par.CapDriveManualFrequencyHz,Real,ReadWrite,Manual,Manual cap-distributor frequency; startup zero and PLC-clamped to configured drive base frequency
 Product_Pump_Run,DB_Global.Out.ProductPumpRun,Bool,Read,Production,Product pump run output
 Cap_Distributor_Delay_Start,DB_Global.Par.CapDistributorDelayToStart,Time,ReadWrite,VSD,Cap distributor delay to start
 Cap_Distributor_Delay_Stop,DB_Global.Par.CapDistributorDelayToStop,Time,ReadWrite,VSD,Cap distributor delay to stop
@@ -185,7 +191,7 @@ Cap_Distributor_NoPulse_Timeout,DB_Global.Par.CapDistributorNoPulseTimeout,Time,
 Cap_Distributor_Pulse,DB_Global.Inp.CapDistributorPulse,Bool,Read,VSD,IFS240 rotation pulse; physical input mapping TBC
 Cap_Distributor_Pulse_Valid,DB_Global.Inp.CapDistributorPulseValid,Bool,Read,VSD,TRUE only after IFS240 physical mapping is commissioned
 Cap_Distributor_NoPulse_Fault,DB_Global.OpenPoints.CapSystem.NoPulseFault,Bool,Read,VSD,Latched no-pulse fault reset by deliberate machine reset
-Vacuum_Pump_Run,DB_Global.Out.VacuumPump,Bool,Read,Production,Vacuum pump run output
+Vacuum_Pump_Run,DB_Global.Out.VacuumPump,Bool,Read,Production,Vacuum pump contactor command output; not a motor-running feedback
 Vacuum_Actual_mbar,DB_Global.Inp.VacuumActualMbar,Real,Read,Production,Actual vacuum transmitter value in mbar
 Vacuum_Signal_Valid,DB_Global.Inp.VacuumSignalValid,Bool,Read,Production,Vacuum transmitter signal validity
 Vacuum_Min_mbar,DB_Global.Par.VacuumMinMbar,Real,ReadWrite,Production,Configurable minimum production vacuum nominal -400 mbar
@@ -228,8 +234,8 @@ DI_Conveyor_Ready,DB_Global.Inp.ConveyorReady,Bool,Read,Settings Inputs,M101 - C
 DI_Conveyor_Fault,DB_Global.Inp.ConveyorFault,Bool,Read,Settings Inputs,M101 - Conveyor fault - Outfeed - network channel TBC
 DI_ProductPump_Ready,DB_Global.Inp.ProductPumpReady,Bool,Read,Settings Inputs,M102 - Product pump ready - Product circuit - network channel TBC
 DI_ProductPump_Fault,DB_Global.Inp.ProductPumpFault,Bool,Read,Settings Inputs,M102 - Product pump fault - Product circuit - network channel TBC
-DI_CapDrive_Ready,DB_Global.Inp.CapDriveReady,Bool,Read,Settings Inputs,Cap drive ready - Capper - network channel TBC
-DI_CapDrive_Fault,DB_Global.Inp.CapDriveFault,Bool,Read,Settings Inputs,Cap drive fault - Capper - network channel TBC
+DI_CapDrive_Ready,DB_Global.Inp.CapDriveReady,Bool,Read,Settings Inputs,Cap drive ready - Capper - Telegram 1 status word %IW320
+DI_CapDrive_Fault,DB_Global.Inp.CapDriveFault,Bool,Read,Settings Inputs,Cap drive fault - Capper - Telegram 1 status word %IW320
 DI_Encoder_Healthy,DB_Global.Inp.EncoderHealthy,Bool,Read,Settings Inputs,E100 - Main encoder healthy - Main drive - PLC HSC address TBC
 DI_Machine_Zero,DB_Global.Inp.MachineZero,Bool,Read,Settings Inputs,ZS100 - Machine zero sensor - Filler - PLC DI address TBC
 DI_Bottle_Infeed,DB_Global.Inp.BottleInfeed,Bool,Read,Settings Inputs,SPB100 - Bottle presence - Infeed - PLC DI address TBC

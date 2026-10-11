@@ -53,15 +53,24 @@ VAR
     CIPStartBlocked : Bool;
 END_VAR
 BEGIN
-    Par.ProductionSpeedBPH := 12000.0;
+    Par.ProductionSpeedBPH := 3000.0;
+    Par.MinSpeedBPH := 3000.0;
     Par.MaxSpeedBPH := 12000.0;
     Par.JogSpeedPct := 5.0;
     Par.DriveBaseFrequencyHz := 50.0;
+    Par.MainDriveMaxFrequencyHz := 65.0;
     Par.MainJogMaxFrequencyHz := 15.0;
     Par.MainJogAccelerationTime := T#3s;
+    Par.MainDriveJamArmDelay := T#1s;
+    Par.MainDriveJamTripDelay := T#500ms;
+    Par.MainDriveJamMinCommandHz := 5.0;
+    Par.MainDriveJamArmSpeedPct := 80.0;
+    Par.MainDriveJamTripSpeedPct := 50.0;
     Par.ProductPumpManualFrequencyHz := 15.0;
     Par.ProductPumpManualMinHz := 15.0;
     Par.ProductPumpManualMaxHz := 40.0;
+    Par.ConveyorManualFrequencyHz := 5.0;
+    Par.CapDriveManualFrequencyHz := 0.0;
     Par.CapDistributorDelayToStart := T#1s;
     Par.CapDistributorDelayToStop := T#1s;
     Par.CapDistributorNoPulseTimeout := T#3s;
@@ -118,7 +127,13 @@ BEGIN
     OpenPoints.MainDrive.Device.Required := TRUE;
     OpenPoints.ProductPumpDrive.Device.Required := TRUE;
     OpenPoints.ConveyorDrive.Device.Required := TRUE;
+    // The bottle-conveyor G120C is installed in the approved TIA hardware
+    // configuration and its cyclic Telegram 1 feedback is mapped in FB_Application.
+    OpenPoints.ConveyorDrive.Device.Configured := TRUE;
     OpenPoints.CapDistributorDrive.Device.Required := TRUE;
+    // The cap-distributor G120C is installed in the approved TIA hardware
+    // configuration and its cyclic Telegram 1 feedback is mapped in FB_Application.
+    OpenPoints.CapDistributorDrive.Device.Configured := TRUE;
     G120CStar.BaselineRevision := '2026-09-23';
     G120CStar.SoftwareStructureConfigured := TRUE;
     G120CStar.IndependentStarRequired := TRUE;
@@ -135,7 +150,7 @@ BEGIN
     G120CStar.MainMachine.SubnetMask := '255.255.255.0';
     G120CStar.MainMachine.OrderNumber := '6SL3210-1KE21-3AF1';
     G120CStar.MainMachine.FirmwareVersion := 'TBC';
-    G120CStar.MainMachine.Telegram := 'TBC';
+    G120CStar.MainMachine.Telegram := 'Telegram 1';
     G120CStar.MainMachine.LogicalInterfacePresent := TRUE;
     G120CStar.MainMachine.NetworkParametersApproved := TRUE;
 
@@ -149,7 +164,7 @@ BEGIN
     G120CStar.BottleConveyor.SubnetMask := '255.255.255.0';
     G120CStar.BottleConveyor.OrderNumber := '6SL3210-1KE12-3AF2';
     G120CStar.BottleConveyor.FirmwareVersion := 'TBC';
-    G120CStar.BottleConveyor.Telegram := 'TBC';
+    G120CStar.BottleConveyor.Telegram := 'Telegram 1';
     G120CStar.BottleConveyor.LogicalInterfacePresent := TRUE;
     G120CStar.BottleConveyor.NetworkParametersApproved := TRUE;
 
@@ -163,7 +178,7 @@ BEGIN
     G120CStar.ProductPump.SubnetMask := '255.255.255.0';
     G120CStar.ProductPump.OrderNumber := '6SL3210-1KE15-8AF2';
     G120CStar.ProductPump.FirmwareVersion := 'TBC';
-    G120CStar.ProductPump.Telegram := 'TBC';
+    G120CStar.ProductPump.Telegram := 'Telegram 1';
     G120CStar.ProductPump.LogicalInterfacePresent := TRUE;
     G120CStar.ProductPump.NetworkParametersApproved := TRUE;
 
@@ -175,9 +190,9 @@ BEGIN
     G120CStar.CapDistributorVibrator.ProfinetDeviceName := 'vsd-cap-distributor';
     G120CStar.CapDistributorVibrator.IpAddress := '192.168.10.43';
     G120CStar.CapDistributorVibrator.SubnetMask := '255.255.255.0';
-    G120CStar.CapDistributorVibrator.OrderNumber := '6SL3210-1KE11-8AF2';
+    G120CStar.CapDistributorVibrator.OrderNumber := '6SL3210-1KE11-8AF1';
     G120CStar.CapDistributorVibrator.FirmwareVersion := 'TBC';
-    G120CStar.CapDistributorVibrator.Telegram := 'TBC';
+    G120CStar.CapDistributorVibrator.Telegram := 'Telegram 1';
     G120CStar.CapDistributorVibrator.LogicalInterfacePresent := TRUE;
     G120CStar.CapDistributorVibrator.NetworkParametersApproved := TRUE;
     OpenPoints.Pilz.Required := TRUE;

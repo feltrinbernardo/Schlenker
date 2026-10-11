@@ -54,6 +54,13 @@ Questi punti non sono semplici `WAITING FOR INPUT`: sono contraddizioni da corre
 
 ### 2.1 Porte Pilz: 11, non 12 — CORRETTO E IMPORTATO NEL TIA
 
+**DECISIONE BLOCCATA DAL PROPRIETARIO — 2026-09-25:** il totale resta fissato
+a **11 porte** e non può essere modificato, né può essere introdotta `DR12`,
+finché il proprietario non rilascia o sostituisce esplicitamente il lock
+`SCHLENKER-DOOR-INVENTORY-2026-09-25`. Il controllo automatico è definito in
+`config/controlled-decisions/door-inventory-lock.json` e verificato da
+`scripts/validate-door-inventory-lock.ps1`.
+
 La baseline controllata della macchina conferma **11 porte**:
 
 - 4 frontali;
@@ -264,9 +271,9 @@ Ancora da chiudere:
 | 4 | Infeed gate | PARTLY DEFINED | Conferma `%I0.5/%I0.6`, polarità, finestra encoder, timeout, feedback contradiction, recovery |
 | 5 | Cap system | PARTLY DEFINED | Mapping fisico DI-040/060/061/062, timeout/jam, feedback drive e canali reali |
 | 6 | EV230 | WAITING FOR TM COUNT | TO/modulo/canale fast DQ, angolo/offset, tolleranza, pulse duration, scaling, safe polarity, single-pulse test |
-| 7 | ABC3113-A | WAITING FOR DEVICE FILE | GSDML, order number/firmware, name/IP, process lengths, byte order, watchdog, config export |
-| 8 | EX260-SEC1 | WAITING FOR ETHERCAT MAP | ESI/config export, PDO map, firmware, module order, safe communication-loss behavior |
-| 9 | Valve 01–10 | WAITING FOR ELECTRICAL MAP | Funzione, EX260 channel, EtherCAT/PROFINET offset, PLC byte/bit, solenoid, drawing reference |
+| 7 | ABC3113-A | CONFIGURED / TEST PENDING | GSDML e immagine output 4 byte `%QD128` presenti; restano firmware/config export, byte order, watchdog e prova reale |
+| 8 | EX260-SEC1 | SOFTWARE MAP COMPLETE / TEST PENDING | REV03 definisce Output 0…19 e riserve; restano ESI/config export, firmware e comportamento reale su perdita comunicazione |
+| 9 | Valve 01–10 | SOFTWARE MAP COMPLETE / TEST PENDING | 125Y1…125Y9 assegnate; 125Y10 spare; restano cavo/solenoide e prova end-to-end |
 | 10 | Pilz | WAITING FOR PILZ PROJECT | GSDML/module, device name/IP, raw byte map, DataValid/watchdog, aggregate and individual diagnostics realmente esportati |
 | 11 | AL100–AL104 | WAITING FOR TIA HARDWARE | 5 AL1403, device names/IP, GSDML, port modes, IODD, process data, polarity/scaling, diagnostics |
 | 12 | Customer CIP | WAITING FOR CUSTOMER INTERFACE | 24 VDC PNP o dry contacts, relays, request/feedback map, handshake, timeout, fault ownership |
@@ -274,7 +281,7 @@ Ancora da chiudere:
 | 14 | TLS100/process instruments | WAITING FOR DEVICE SELECTION | Modello reale, IO-Link o 4–20 mA, range, unità, scaling, filtro e allarmi |
 | 15 | Vacuum M103 | WAITING FOR MOTOR/INSTRUMENT DATA | Contactor o VFD, motor data, feedback, transmitter/scaling e verifica polarità `-400 mbar` |
 | 16 | Hood M104 | WAITING FOR ELECTRICAL CONFIRMATION | Contactor/VFD, motor data, associazione `AirFilterRelayCmd`, pressure switch e fault feedback |
-| 17 | SMC external wash/process valves | WAITING FOR MANIFOLD MAP | EV200-O/C, EV210, EV217, EV213, EV212, EV247 e wash valve: solenoide/bit/cavo e prova end-to-end |
+| 17 | SMC external wash/process valves | REV03 MAPPED / PHYSICAL TEST PENDING | EV001, EV010, EV011, EV210, EV211, EV212, EV220, EV221 e bottle-wash assegnati; verificare solenoide/cavo/attuazione end-to-end |
 
 ## 7. Regole fail-safe che Rob deve mantenere
 

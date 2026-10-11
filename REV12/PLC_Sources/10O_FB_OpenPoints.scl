@@ -302,6 +302,10 @@ VAR_INPUT
     HomeStart           : Bool;
     Reset               : Bool;
     ProductionActive    : Bool;
+    BenchManualMainJogPermit : Bool;
+    BenchManualProductPumpPermit : Bool;
+    BenchManualConveyorPermit : Bool;
+    BenchManualCapDrivePermit : Bool;
     ConveyorRunRequest  : Bool;
     ConveyorSpeedRequestPct : Real;
     MachineState        : USInt;
@@ -392,7 +396,8 @@ BEGIN
     O.ProductPumpDrive.FrequencyRequestHz := Out.ProductPumpFrequencyHz;
     O.ConveyorDrive.FrequencyRequestHz := Out.ConveyorFrequencyHz;
     O.CapDistributorDrive.FrequencyRequestHz := Out.CapDriveFrequencyHz;
-    O.CapDistributorDrive.RequestedRun := O.CapSystem.DistributorCommand;
+    O.CapDistributorDrive.RequestedRun :=
+        O.CapSystem.DistributorCommand OR BenchManualCapDrivePermit;
     O.CapDistributorDrive.SpeedRequestPct := LIMIT(MN := 0.0, IN := Out.CapDriveSpeedPct, MX := 100.0);
 
     // No G120C running/status telegram is mapped yet. Command bits and retained
@@ -556,17 +561,25 @@ BEGIN
 
     O.ControlledStopRequest := ((MachineState = USINT#20) OR ProductionActive)
                                AND NOT O.ReadyPermissives;
-    IF O.ControlledStopRequest OR NOT SafetyOK THEN
+    // Isolated-bench exceptions are accepted only when FB_Application has
+    // already qualified the corresponding manual command. They never permit
+    // automatic or production operation.
+    IF O.ControlledStopRequest OR (NOT SafetyOK AND NOT BenchManualMainJogPermit) THEN
         Out.MainRun := FALSE;
         Out.MainSpeedPct := 0.0;
+    END_IF;
+    IF O.ControlledStopRequest OR
+       (NOT SafetyOK AND NOT BenchManualProductPumpPermit) THEN
         Out.ProductPumpRun := FALSE;
         Out.ProductPumpSpeedPct := 0.0;
     END_IF;
 
-    Out.ConveyorRun := O.ConveyorDrive.RunCommand AND O.ReadyPermissives;
+    Out.ConveyorRun := O.ConveyorDrive.RunCommand
+                       AND (O.ReadyPermissives OR BenchManualConveyorPermit);
     Out.ConveyorSpeedPct := SEL(G := Out.ConveyorRun, IN0 := 0.0,
                                 IN1 := LIMIT(MN := 0.0, IN := O.ConveyorDrive.SpeedRequestPct, MX := 100.0));
-    Out.CapDriveRun := O.CapDistributorDrive.RunCommand AND O.ReadyPermissives;
+    Out.CapDriveRun := O.CapDistributorDrive.RunCommand
+                       AND (O.ReadyPermissives OR BenchManualCapDrivePermit);
     Out.CapDriveSpeedPct := SEL(G := Out.CapDriveRun, IN0 := 0.0,
                                 IN1 := LIMIT(MN := 0.0, IN := O.CapDistributorDrive.SpeedRequestPct, MX := 100.0));
     Out.EV230FastRelease := O.EV230.OutputCommand AND O.ReadyPermissives;
