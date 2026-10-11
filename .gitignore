@@ -23,6 +23,18 @@ logs/hooks/
 logs/context-archive/
 .codex-remote-attachments/
 
+# Local Siemens engineering workspaces and recovery copies. Their immutable
+# identity is recorded under tia-project-versioning/manifests/ instead.
+/tia v19 programming hmi and plc/
+/tia v19 programming hmi and plc.backup/
+
+# Tool argument/output artefacts accidentally materialized as repository-root
+# paths. Preserve them locally, but never treat them as reviewable source.
+/--manual-validated-rebuild/
+/--no-xref/
+/--user-header-layout-fix/
+/v19
+
 # Local TIA credentials and operator-only secrets
 .tia-secrets/
 *.tia-secret

@@ -1,0 +1,13 @@
+# Native vendor projects remain ignored, but classify them as binary if an
+# explicitly reviewed fixture is ever force-added.
+*.ap19 binary
+*.zap19 binary
+*.zip binary
+*.pdf binary
+*.png binary
+
+# Keep generated binary deliverables reviewable without growing normal Git
+# history on every regeneration. These path-specific rules intentionally
+# follow the generic binary rules.
+output/**/*.pdf filter=lfs diff=lfs merge=lfs -text
+REV12/Documentation/assets/*.png filter=lfs diff=lfs merge=lfs -text

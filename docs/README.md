@@ -17,6 +17,9 @@ evidence can be reviewed together.
 - [Railway context-archive deployment](agent-foundation/railway-context-archive-deployment.md):
   reviewed production topology, risk controls, service boundaries, secrets,
   and deployment gate.
+- [Repository layout and versioning](repository-layout-and-versioning.md):
+  canonical responsibility boundaries, local-only native artefacts, Git LFS,
+  commit grouping, and branch policy.
 
 ## Product documentation
 
