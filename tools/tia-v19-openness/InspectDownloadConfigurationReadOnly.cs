@@ -9,16 +9,19 @@ namespace Schlenker.TiaV19
 {
     internal static class InspectDownloadConfigurationReadOnly
     {
-        private const string ExpectedProject =
-            @"C:\TIA Projects\Schlenkers 36-10 190036-7-8v2.12-MTP1200-DeployWorking-20260918\Backup Schlenkers 36-10 190036-7-8v2.12.ap19";
-
-        private static int Main()
+        private static int Main(string[] args)
         {
+            if (args.Length != 1)
+            {
+                Console.Error.WriteLine("Usage: InspectDownloadConfigurationReadOnly <exact-ap19>");
+                return 2;
+            }
+            string expectedProject = System.IO.Path.GetFullPath(args[0]);
             try
             {
                 TiaPortalProcess selected = TiaPortal.GetProcesses().SingleOrDefault(process =>
                     process.ProjectPath != null && process.ProjectPath.FullName.Equals(
-                        ExpectedProject, StringComparison.OrdinalIgnoreCase));
+                        expectedProject, StringComparison.OrdinalIgnoreCase));
                 if (selected == null)
                     throw new InvalidOperationException("Exact authorized project is not open.");
                 using (TiaPortal portal = selected.Attach())

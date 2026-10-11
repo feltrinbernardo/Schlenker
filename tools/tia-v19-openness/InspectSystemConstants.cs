@@ -23,19 +23,30 @@ namespace Schlenker.TiaV19
             {
                 Project project = portal.Projects.Single();
                 PlcSoftware plc = FindPlc(project);
-                foreach (PlcTagTable table in plc.TagTableGroup.TagTables)
-                {
-                    foreach (PlcSystemConstant item in table.SystemConstants)
-                    {
-                        if (item.Name.IndexOf("ANYBUS", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                            item.Name.IndexOf("SMC", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                            item.DataTypeName.Equals("Hw_IoSystem", StringComparison.OrdinalIgnoreCase))
-                            Console.WriteLine("SYSTEM_CONSTANT name={0}; type={1}; value={2}",
-                                item.Name, item.DataTypeName, item.Value);
-                    }
-                }
+                InspectTagTables(plc.TagTableGroup);
             }
             return 0;
+        }
+
+        private static void InspectTagTables(PlcTagTableGroup group)
+        {
+            foreach (PlcTagTable table in group.TagTables)
+            {
+                foreach (PlcSystemConstant item in table.SystemConstants)
+                {
+                    if (item.Name.IndexOf("ANYBUS", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        item.Name.IndexOf("SMC", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        item.Name.IndexOf("AL10", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        item.Name.IndexOf("G120", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        item.Name.IndexOf("VSD", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        item.DataTypeName.Equals("Hw_Device", StringComparison.OrdinalIgnoreCase) ||
+                        item.DataTypeName.Equals("Hw_IoSystem", StringComparison.OrdinalIgnoreCase))
+                        Console.WriteLine("SYSTEM_CONSTANT name={0}; type={1}; value={2}",
+                            item.Name, item.DataTypeName, item.Value);
+                }
+            }
+            foreach (PlcTagTableUserGroup child in group.Groups)
+                InspectTagTables(child);
         }
 
         private static PlcSoftware FindPlc(Project project)

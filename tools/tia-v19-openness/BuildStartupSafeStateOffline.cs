@@ -146,44 +146,108 @@ namespace Schlenker.TiaV19
             if (tapped == null || !tapped.Script.ScriptCode.Contains("startup_safe_state"))
                 throw new InvalidOperationException("Home navigation to startup checklist is missing.");
 
-            HmiScreen manual = hmi.Screens.Find("manual");
-            if (manual == null)
-                throw new InvalidOperationException("Manual screen was not found.");
-            if (manual.ScreenItems.Select(item => item.Name)
-                .Distinct(StringComparer.OrdinalIgnoreCase).Count() != manual.ScreenItems.Count)
-                throw new InvalidOperationException("Manual screen contains duplicate object names.");
-            string[] smcButtons = { "REV42_Manual_SMC_EV220", "REV42_Manual_SMC_EV221" };
-            string[] smcTags = { "SMC_EV220_Manual", "SMC_EV221_Manual" };
-            for (int index = 0; index < smcButtons.Length; index++)
+            HmiText pageTitle = screen.ScreenItems.Find("REV13_Common_Page") as HmiText;
+            if (pageTitle == null || !pageTitle.Text.Items.Any(item =>
+                item.Text.Contains("STARTUP COMMAND CHECK")))
+                throw new InvalidOperationException("Startup page title is not normalized.");
+            HmiText commissioning = screen.ScreenItems.Find(
+                "REV54_Startup_Commissioning_Status") as HmiText;
+            if (commissioning == null || !commissioning.Text.Items.Any(item =>
+                item.Text.Contains("SAFETY VALIDATION PENDING")))
+                throw new InvalidOperationException(
+                    "Startup commissioning disclaimer is missing.");
+
+            HmiRectangle panel = screen.ScreenItems.Find(
+                "REV40_Startup_Panel") as HmiRectangle;
+            int panelIndex = panel == null ? -1 : screen.ScreenItems.IndexOf(panel);
+            int highestFrameIndex = screen.ScreenItems
+                .Where(item =>
+                    item.Name.StartsWith("REV13_Common_", StringComparison.OrdinalIgnoreCase) ||
+                    item.Name.StartsWith("REV13_Nav_", StringComparison.OrdinalIgnoreCase) ||
+                    item.Name.StartsWith("REV14_Nav_", StringComparison.OrdinalIgnoreCase) ||
+                    item.Name.StartsWith("REV21_Common_", StringComparison.OrdinalIgnoreCase) ||
+                    item.Name.Equals("REV12_Production_User_Header", StringComparison.OrdinalIgnoreCase) ||
+                    item.Name.Equals("Line_1", StringComparison.OrdinalIgnoreCase) ||
+                    item.Name.Equals("Line_2", StringComparison.OrdinalIgnoreCase))
+                .Select(item => screen.ScreenItems.IndexOf(item))
+                .DefaultIfEmpty(-1)
+                .Max();
+            if (panelIndex <= highestFrameIndex)
+                throw new InvalidOperationException(
+                    "Startup content is not above the shared frame: panel=" +
+                    panelIndex + ", frame=" + highestFrameIndex);
+            HmiText footer = screen.ScreenItems.Find(
+                "REV13_Common_BottomInfo") as HmiText;
+            HmiEllipse linkLamp = screen.ScreenItems.Find(
+                "REV28_Common_HmiLinkLamp") as HmiEllipse;
+            if (footer == null || footer.ForeColor.ToArgb() !=
+                    System.Drawing.Color.White.ToArgb() ||
+                footer.Dynamizations.Find("Text") == null || linkLamp == null ||
+                linkLamp.Dynamizations.Find("BackColor") == null)
+                throw new InvalidOperationException(
+                    "Startup PLC/HMI common footer audit failed.");
+
+            int loginControls = 0;
+            HmiScreen masterHome = hmi.Screens.Find("home");
+            HmiGraphicView masterLoginIcon = masterHome == null ? null : masterHome.ScreenItems.Find(
+                "REV21_Common_User_Profile_Icon") as HmiGraphicView;
+            HmiText masterUserLabel = masterHome == null ? null : masterHome.ScreenItems.Find(
+                "REV12_Production_User_Header_1") as HmiText;
+            HmiButton masterLogin = masterHome == null ? null : masterHome.ScreenItems.Find(
+                "REV54_Common_User_Login") as HmiButton;
+            if (masterLoginIcon == null || masterUserLabel == null || masterLogin == null)
+                throw new InvalidOperationException("Home user-header master audit failed.");
+            int alarmCounts = 0;
+            foreach (HmiScreen candidate in hmi.Screens)
             {
-                HmiButton button = manual.ScreenItems.Find(smcButtons[index]) as HmiButton;
-                if (button == null || button.Left != (index == 0 ? 55 : 290) ||
-                    button.Top != 337 || button.Width != 210 || button.Height != 44 ||
-                    button.EventHandlers.Count < 2 ||
-                    !button.EventHandlers.Any(handler =>
-                        handler.Script.ScriptCode.Contains(smcTags[index]) &&
-                        handler.Script.ScriptCode.Contains("Write(1)")) ||
-                    !button.EventHandlers.Any(handler =>
-                        handler.Script.ScriptCode.Contains(smcTags[index]) &&
-                        handler.Script.ScriptCode.Contains("Write(0)")))
+                if (candidate.ScreenItems.Find("REV13_Common_BottomInfo") == null)
+                    continue;
+                HmiButton login = candidate.ScreenItems.Find(
+                    "REV54_Common_User_Login") as HmiButton;
+                HmiButtonEventHandler loginTapped = login == null ? null :
+                    login.EventHandlers.Find(HmiButtonEventType.Tapped);
+                HmiGraphicView loginIcon = candidate.ScreenItems.Find(
+                    "REV21_Common_User_Profile_Icon") as HmiGraphicView;
+                HmiText userLabel = candidate.ScreenItems.Find(
+                    "REV12_Production_User_Header_1") as HmiText;
+                HmiText legacyUserLabel = candidate.ScreenItems.Find(
+                    "REV12_Production_User_Header") as HmiText;
+                HmiText alarmHeader = candidate.ScreenItems.Find(
+                    "REV13_Common_AlarmText") as HmiText;
+                ScriptDynamization alarmText = alarmHeader == null ? null :
+                    alarmHeader.Dynamizations.Find("Text") as ScriptDynamization;
+                ScriptDynamization alarmColor = alarmHeader == null ? null :
+                    alarmHeader.Dynamizations.Find("ForeColor") as ScriptDynamization;
+                if (login == null || login.Dynamizations.Find("Text") == null ||
+                    loginTapped == null || !loginTapped.Script.ScriptCode.Contains(
+                        "ShowLoginDialog") || login.Left != masterLogin.Left ||
+                    login.Top != masterLogin.Top || login.Width != masterLogin.Width ||
+                    login.Height != masterLogin.Height || loginIcon == null ||
+                    !loginIcon.Visible || loginIcon.Left != masterLoginIcon.Left ||
+                    loginIcon.Top != masterLoginIcon.Top || loginIcon.Width != masterLoginIcon.Width ||
+                    loginIcon.Height != masterLoginIcon.Height || userLabel == null ||
+                    !userLabel.Visible || userLabel.Left != masterUserLabel.Left ||
+                    userLabel.Top != masterUserLabel.Top || userLabel.Width != masterUserLabel.Width ||
+                    userLabel.Height != masterUserLabel.Height ||
+                    !userLabel.Text.Items.Any(item =>
+                        item.Text.IndexOf("USER", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                        item.Text.IndexOf("N/A", StringComparison.OrdinalIgnoreCase) < 0) ||
+                    userLabel.Dynamizations.Find("Text") != null ||
+                    (legacyUserLabel != null && legacyUserLabel.Visible))
                     throw new InvalidOperationException(
-                        "Manual SMC command audit failed: " + smcButtons[index]);
+                        "Runtime login control audit failed: " + candidate.Name);
+                if (alarmText == null || alarmColor == null ||
+                    !alarmText.ScriptCode.Contains("Alarm_Word1") ||
+                    !alarmText.ScriptCode.Contains("Alarm_Word2") ||
+                    !alarmColor.ScriptCode.Contains("Alarm_Word1") ||
+                    !alarmColor.ScriptCode.Contains("Alarm_Word2"))
+                    throw new InvalidOperationException(
+                        "Common active-alarm count audit failed: " + candidate.Name);
+                loginControls++;
+                alarmCounts++;
             }
-            HmiText smcNote = manual.ScreenItems.Find(
-                "REV42_Manual_SMC_PhysicalNote") as HmiText;
-            if (smcNote == null || smcNote.Left != 525 || smcNote.Top != 337 ||
-                smcNote.Width != 210 || smcNote.Height != 44)
-                throw new InvalidOperationException("Manual SMC physical mapping note audit failed.");
-            HmiIOField pumpHz = manual.ScreenItems.Find(
-                "REV43_Manual_Pump_Hz_Value") as HmiIOField;
-            TagDynamization pumpHzBinding = pumpHz == null ? null :
-                pumpHz.Dynamizations.Find("ProcessValue") as TagDynamization;
-            if (pumpHz == null || pumpHzBinding == null || pumpHzBinding.ReadOnly ||
-                !pumpHzBinding.Tag.Equals("Product_Pump_Manual_Frequency_Hz",
-                    StringComparison.OrdinalIgnoreCase) || pumpHz.OutputFormat != "{F1}" ||
-                pumpHz.Left != 1015 || pumpHz.Top != 663 ||
-                pumpHz.Width != 110 || pumpHz.Height != 30)
-                throw new InvalidOperationException("Manual product-pump frequency audit failed.");
+            if (loginControls == 0)
+                throw new InvalidOperationException("No runtime login controls were audited.");
 
             int decimalFields = 0;
             foreach (HmiScreen candidate in hmi.Screens)
@@ -203,10 +267,16 @@ namespace Schlenker.TiaV19
             report.WriteLine("ScreenItemCount=" + screen.ScreenItems.Count);
             report.WriteLine("ChecklistBindings=" + requiredTags.Length);
             report.WriteLine("HomeNavigation=PASS");
-            report.WriteLine("ManualSmcCommands=2");
-            report.WriteLine("ManualSmcMomentaryEvents=PASS");
-            report.WriteLine("ManualProductPumpFrequencyHz=PASS_15_TO_40_PLC_CLAMP");
-            report.WriteLine("PhysicalVqcStationMapping=NOT_CONFIGURED_OUTPUT_INHIBITED");
+            report.WriteLine("SharedProductionFrame=PASS");
+            report.WriteLine("CommissioningNotSafetyDisclaimer=PASS");
+            report.WriteLine("StartupContentAboveSharedFrame=PASS");
+            report.WriteLine("StartupPlcHmiFooter=PASS");
+            report.WriteLine("RuntimeLoginControls=" + loginControls);
+            report.WriteLine("RuntimeLoginDialog=PASS");
+            report.WriteLine("RuntimeUserLabel=USER");
+            report.WriteLine("CommonAlarmCounts=" + alarmCounts);
+            report.WriteLine("CommonAlarmCountSource=Alarm_Word1+Alarm_Word2");
+            report.WriteLine("RuntimeUserAccounts=UNCHANGED_REQUIRES_TIA_USER_EDITOR");
             report.WriteLine("VisibleDecimalFields=" + decimalFields);
             report.WriteLine("VisibleDecimalFormat={F1}");
         }

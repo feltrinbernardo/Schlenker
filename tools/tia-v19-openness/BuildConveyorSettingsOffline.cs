@@ -36,9 +36,24 @@ namespace Schlenker.TiaV19
             try
             {
                 using (StreamWriter report = new StreamWriter(reportPath, false))
-                using (TiaPortal portal = new TiaPortal(TiaPortalMode.WithoutUserInterface))
                 {
-                    Project project = portal.Projects.Open(new FileInfo(projectPath));
+                    report.AutoFlush = true;
+                    report.WriteLine("PHASE=DISCOVER_OPEN_PROJECT");
+                    TiaPortalProcess process = TiaPortal.GetProcesses().SingleOrDefault(candidate =>
+                        candidate.ProjectPath != null &&
+                        Path.GetFullPath(candidate.ProjectPath.FullName).Equals(
+                            projectPath, StringComparison.OrdinalIgnoreCase));
+                    bool attached = process != null;
+                    report.WriteLine("PHASE=OPEN_PROJECT|ATTACHED=" + attached);
+                    using (TiaPortal portal = attached
+                        ? process.Attach()
+                        : new TiaPortal(TiaPortalMode.WithoutUserInterface))
+                    {
+                    report.WriteLine("PHASE=PORTAL_READY");
+                    Project project = attached
+                        ? portal.Projects.Single()
+                        : portal.Projects.Open(new FileInfo(projectPath));
+                    report.WriteLine("PHASE=PROJECT_READY");
                     Device hmiDevice;
                     DeviceItem hmiItem;
                     HmiSoftware hmi = FindUnifiedHmi(project, out hmiDevice, out hmiItem);
@@ -57,7 +72,9 @@ namespace Schlenker.TiaV19
                     if (builder == null)
                         throw new MissingMethodException(
                             "BuildUnifiedHomeScreen.BuildConveyorSettings was not found.");
+                    report.WriteLine("PHASE=APPLY_SCREEN");
                     builder.Invoke(null, new object[] { hmi });
+                    report.WriteLine("PHASE=SCREEN_APPLIED");
 
                     AuditScreen(hmi, report);
 
@@ -67,13 +84,17 @@ namespace Schlenker.TiaV19
                         throw new InvalidOperationException(
                             "Unified HMI compile service is unavailable.");
 
+                    report.WriteLine("PHASE=COMPILE_HMI");
                     CompilerResult result = compilable.Compile();
+                    report.WriteLine("PHASE=COMPILE_COMPLETE");
                     report.WriteLine("RootErrors=" + result.ErrorCount);
                     report.WriteLine("RootWarnings=" + result.WarningCount);
                     WriteMessages(result.Messages, report, "  ");
                     if (result.ErrorCount == 0)
                     {
+                        report.WriteLine("PHASE=SAVE_PROJECT");
                         project.Save();
+                        report.WriteLine("PHASE=SAVE_COMPLETE");
                         report.WriteLine("SaveInvoked=YES");
                         report.WriteLine("STATUS=PASS");
                     }
@@ -83,7 +104,7 @@ namespace Schlenker.TiaV19
                         report.WriteLine("STATUS=FAIL_NOT_SAVED");
                     }
                     report.Flush();
-                    project.Close();
+                    if (!attached) project.Close();
 
                     Console.WriteLine("ERRORS=" + result.ErrorCount);
                     Console.WriteLine("WARNINGS=" + result.WarningCount);
@@ -91,6 +112,7 @@ namespace Schlenker.TiaV19
                     Console.WriteLine("STATUS=" +
                         (result.ErrorCount == 0 ? "PASS" : "FAIL_NOT_SAVED"));
                     return result.ErrorCount == 0 ? 0 : 1;
+                    }
                 }
             }
             catch (TargetInvocationException exception)

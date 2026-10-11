@@ -168,6 +168,8 @@ namespace Schlenker.TiaV19
                 args[3].Equals("--home-content-finalize", StringComparison.OrdinalIgnoreCase);
             bool homeAuxiliaryDivider = args.Length > 3 &&
                 args[3].Equals("--home-auxiliary-divider", StringComparison.OrdinalIgnoreCase);
+            bool homeAuxiliaryStatusRefinement = args.Length > 3 &&
+                args[3].Equals("--home-auxiliary-status-refinement", StringComparison.OrdinalIgnoreCase);
             bool operatePriorityContentFix = args.Length > 3 &&
                 args[3].Equals("--operate-priority-content-fix", StringComparison.OrdinalIgnoreCase);
             bool operateContentFinalization = args.Length > 3 &&
@@ -202,6 +204,10 @@ namespace Schlenker.TiaV19
                 args[3].Equals("--diagnostics-legacy-cleanup", StringComparison.OrdinalIgnoreCase);
             bool diagnosticsDataSourceSpacing = args.Length > 3 &&
                 args[3].Equals("--diagnostics-data-source-spacing", StringComparison.OrdinalIgnoreCase);
+            bool diagnosticsEntryNavigationFix = args.Length > 3 &&
+                args[3].Equals("--diagnostics-entry-navigation-fix", StringComparison.OrdinalIgnoreCase);
+            bool manualValvesRuntimeCoverFix = args.Length > 3 &&
+                args[3].Equals("--manual-valves-runtime-cover-fix", StringComparison.OrdinalIgnoreCase);
             bool ioDirectoryPriorityRefinement = args.Length > 3 &&
                 args[3].Equals("--io-directory-priority-refinement", StringComparison.OrdinalIgnoreCase);
             bool ioDirectoryOverlapCleanup = args.Length > 3 &&
@@ -267,6 +273,11 @@ namespace Schlenker.TiaV19
             string globalCommonRenderFixTarget = globalCommonRenderFix && args.Length > 4
                 ? args[4]
                 : null;
+            bool confirmedScreenOverlapFix = args.Length > 3 &&
+                args[3].Equals("--confirmed-screen-overlap-fix", StringComparison.OrdinalIgnoreCase);
+            string confirmedScreenOverlapFixTarget = confirmedScreenOverlapFix && args.Length > 4
+                ? args[4]
+                : null;
             bool revision25IoLinkHeaderAlign = args.Length > 3 &&
                 args[3].Equals("--rev25-iolink-header-align", StringComparison.OrdinalIgnoreCase);
             string revision25IoLinkHeaderTarget = revision25IoLinkHeaderAlign && args.Length > 4
@@ -294,6 +305,18 @@ namespace Schlenker.TiaV19
                 args[3].Equals("--compile-current-hmi-runtime-diagnostic", StringComparison.OrdinalIgnoreCase);
             bool reloadExactOpenProject = args.Length > 3 &&
                 args[3].Equals("--reload-exact-open-project", StringComparison.OrdinalIgnoreCase);
+            bool hmiHeartbeatLink = args.Length > 3 &&
+                args[3].Equals("--hmi-heartbeat-link", StringComparison.OrdinalIgnoreCase);
+            bool homeHmiLinkLamp = args.Length > 3 &&
+                args[3].Equals("--home-hmi-link-lamp", StringComparison.OrdinalIgnoreCase);
+            bool allHmiLinkLamps = args.Length > 3 &&
+                args[3].Equals("--all-hmi-link-lamps", StringComparison.OrdinalIgnoreCase);
+            bool auditHmiLinkFooter = args.Length > 3 &&
+                args[3].Equals("--audit-hmi-link-footer", StringComparison.OrdinalIgnoreCase);
+            bool videoRuntimeCorrections = args.Length > 3 &&
+                args[3].Equals("--video-runtime-corrections", StringComparison.OrdinalIgnoreCase);
+            bool homeLegacyEditorCleanup = args.Length > 3 &&
+                args[3].Equals("--home-legacy-editor-cleanup", StringComparison.OrdinalIgnoreCase);
 
             if (verifyNavigationOnly)
             {
@@ -372,6 +395,14 @@ namespace Schlenker.TiaV19
                         return 5;
                     }
 
+                    if (auditHmiLinkFooter)
+                    {
+                        AuditHmiLinkFooter(hmi);
+                        Console.WriteLine("SAVE_INVOKED=NO");
+                        Console.WriteLine("STATUS=PASS");
+                        return 0;
+                    }
+
                     Directory.CreateDirectory(archiveDirectory);
                     if (existingArchive == null)
                     {
@@ -390,11 +421,50 @@ namespace Schlenker.TiaV19
                     }
 
                     string repositoryRoot = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", ".."));
-                    if (compileSaveCurrentHmi || compileCurrentHmiRuntimeDiagnostic)
+                    if (homeLegacyEditorCleanup)
+                    {
+                        ApplyHomeLegacyEditorCleanup(hmi);
+                        project.Save();
+                        Console.WriteLine("STEP=HOME_LEGACY_EDITOR_CLEANUP_READY");
+                        Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=home");
+                    }
+                    else if (videoRuntimeCorrections)
+                    {
+                        ApplyVideoRuntimeCorrections(project, hmi);
+                        project.Save();
+                        Console.WriteLine("STEP=VIDEO_RUNTIME_CORRECTIONS_READY");
+                        Console.WriteLine("PROJECT_SAVED_AFTER_SCREENS=home|setup|efficiency|settings_timers");
+                    }
+                    else if (compileSaveCurrentHmi || compileCurrentHmiRuntimeDiagnostic)
                     {
                         Console.WriteLine(compileCurrentHmiRuntimeDiagnostic
                             ? "STEP=COMPILE_CURRENT_HMI_RUNTIME_DIAGNOSTIC"
                             : "STEP=COMPILE_SAVE_CURRENT_HMI");
+                    }
+                    else if (hmiHeartbeatLink)
+                    {
+                        EnsureHmiTags(hmi, Path.Combine(repositoryRoot, "REV12", "HMI", "REV12_HMI_Tags.csv"));
+                        ApplyHmiHeartbeatLink(hmi);
+                        project.Save();
+                        Console.WriteLine("STEP=HMI_HEARTBEAT_LINK_READY");
+                        Console.WriteLine("HMI_HEARTBEAT_PERIOD_MS=500");
+                        Console.WriteLine("PLC_WATCHDOG_TIMEOUT_MS=3000");
+                    }
+                    else if (homeHmiLinkLamp)
+                    {
+                        ApplyHomeHmiLinkLamp(hmi);
+                        project.Save();
+                        Console.WriteLine("STEP=HOME_HMI_LINK_LAMP_READY");
+                        Console.WriteLine("HOME_HMI_LINK_TEXT_COLOR=WHITE");
+                        Console.WriteLine("HOME_HMI_LINK_LAMP=DYNAMIC_GREEN_OR_AMBER");
+                    }
+                    else if (allHmiLinkLamps)
+                    {
+                        ApplyHmiLinkLampsToAllScreens(hmi);
+                        project.Save();
+                        Console.WriteLine("STEP=ALL_HMI_LINK_LAMPS_READY");
+                        Console.WriteLine("ALL_HMI_LINK_TEXT_COLOR=WHITE");
+                        Console.WriteLine("ALL_HMI_LINK_LAMPS=DYNAMIC_GREEN_OR_AMBER");
                     }
                     else if (cipEditorLinkOnly)
                     {
@@ -460,6 +530,18 @@ namespace Schlenker.TiaV19
                         Console.WriteLine("GLOBAL_COMMON_OVERLAP_TARGET=" + globalCommonOverlapFixTarget);
                         Console.WriteLine("GLOBAL_COMMON_PRODUCTION_MASTER_MODIFIED=0");
                         Console.WriteLine("GLOBAL_COMMON_BINDINGS_MODIFIED=0");
+                    }
+                    else if (confirmedScreenOverlapFix)
+                    {
+                        if (String.IsNullOrWhiteSpace(confirmedScreenOverlapFixTarget))
+                        {
+                            throw new InvalidOperationException(
+                                "Confirmed screen overlap correction requires one explicit target screen.");
+                        }
+                        ApplyConfirmedScreenOverlapFix(
+                            project, hmi, confirmedScreenOverlapFixTarget);
+                        Console.WriteLine("STEP=CONFIRMED_SCREEN_OVERLAP_FIXED");
+                        Console.WriteLine("OVERLAP_FIX_TARGET=" + confirmedScreenOverlapFixTarget);
                     }
                     else if (globalCommonRebuild)
                     {
@@ -588,6 +670,22 @@ namespace Schlenker.TiaV19
                         Console.WriteLine("STEP=DIAGNOSTICS_DATA_SOURCE_SPACING_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=diagnostics");
                         Console.WriteLine("DIAGNOSTICS_COMMON_FRAME_MODIFIED=0");
+                    }
+                    else if (diagnosticsEntryNavigationFix)
+                    {
+                        ApplyDiagnosticsEntryNavigationFix(hmi);
+                        project.Save();
+                        Console.WriteLine("STEP=DIAGNOSTICS_ENTRY_NAVIGATION_FIXED");
+                        Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=diagnostics");
+                        Console.WriteLine("DIAGNOSTICS_COMMON_FRAME_MODIFIED=0");
+                    }
+                    else if (manualValvesRuntimeCoverFix)
+                    {
+                        ApplyManualValvesRuntimeCoverFix(hmi);
+                        project.Save();
+                        Console.WriteLine("STEP=MANUAL_VALVES_RUNTIME_COVER_FIXED");
+                        Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=manual_valves");
+                        Console.WriteLine("MANUAL_VALVES_PROCESS_BINDINGS_MODIFIED=0");
                     }
                     else if (ioDirectoryPriorityRefinement)
                     {
@@ -827,6 +925,14 @@ namespace Schlenker.TiaV19
                         ApplyHomeAuxiliaryDivider(hmi);
                         project.Save();
                         Console.WriteLine("STEP=HOME_AUXILIARY_DIVIDER_READY");
+                        Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=home");
+                        Console.WriteLine("HOME_COMMON_FRAME_MODIFIED=0");
+                    }
+                    else if (homeAuxiliaryStatusRefinement)
+                    {
+                        ApplyHomeAuxiliaryStatusRefinement(hmi);
+                        project.Save();
+                        Console.WriteLine("STEP=HOME_AUXILIARY_STATUS_REFINED");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=home");
                         Console.WriteLine("HOME_COMMON_FRAME_MODIFIED=0");
                     }
@@ -1233,7 +1339,7 @@ namespace Schlenker.TiaV19
 
                     if (productionContentRefinementFinal || safetyContentRefinementFinal ||
                         pilzDiagnosticsContentRefinementFinal ||
-                        homeContentFinalize || homeAuxiliaryDivider ||
+                        homeContentFinalize || homeAuxiliaryDivider || homeAuxiliaryStatusRefinement ||
                         operatePriorityContentFix || operateContentFinalization ||
                         cipPriorityContentFix || cipVisualFinalize ||
                         cipProgressStaticFix || cipEditSpacingFix || cipEditFullRefinement ||
@@ -1441,12 +1547,18 @@ namespace Schlenker.TiaV19
 
         private static void EnsureNewAlarms(HmiSoftware hmi)
         {
+            EnsureAlarm(hmi, "ALM_1303_ProductLevelNotReached", 1303U, 21U, "Warning",
+                "Product level not reached.", "Machine start remains inhibited in gravity-feed mode.");
+            EnsureAlarm(hmi, "ALM_1202_AutoGateSequenceFault", 1202U, 22U, "Critical",
+                "Automatic bottle gate sequence fault", "Close the gate and stop the machine before reset.");
             EnsureAlarm(hmi, "ALM_2101_CIPStartBlocked", 2101U, 23U, "Warning",
                 "Stop Production before starting CIP.", "CIP request blocked by the mode interlock.");
             EnsureAlarm(hmi, "ALM_2102_CIPMediaLoss", 2102U, 24U, "Critical",
                 "CIP fluid presence lost.", "Product pump stopped after the configured media-loss delay.");
             EnsureAlarm(hmi, "ALM_2103_LowVacuum", 2103U, 25U, "Critical",
                 "Production vacuum below configured minimum.", "Filler stopped; correct vacuum fault and reset.");
+            EnsureAlarm(hmi, "ALM_2104_CIPSequenceFault", 2104U, 26U, "Critical",
+                "CIP sequence aborted or remote interface fault.", "Inspect the active CIP step and remote interface before reset.");
         }
 
         private static void EnsureRevision21Alarms(HmiSoftware hmi)
@@ -1483,6 +1595,8 @@ namespace Schlenker.TiaV19
                 "CIP complete awaiting operator acknowledgement.", "Acknowledge completion and select the next permitted mode.");
             EnsureAlarmOnTag(hmi, "ALM_2246_AL104CommFault", 2246U, "Alarm_Word2", 15U, "Critical",
                 "AL104 customer CIP interface communication fault.", "New CIP requests are inhibited. Open AL104 diagnostics.");
+            EnsureAlarmOnTag(hmi, "ALM_1605_MainDriveMechanicalJam", 1605U, "Alarm_Word2", 19U, "Critical",
+                "Filler main drive mechanical jam.", "Stop the main drive, inspect the obstruction or bearing, then reset manually.");
         }
 
         private static void EnsureAlarm(
@@ -2761,7 +2875,8 @@ namespace Schlenker.TiaV19
                 { "io_link_al102", "DIAGNOSTICS" },
                 { "io_link_al103", "DIAGNOSTICS" },
                 { "io_link_al104", "DIAGNOSTICS" },
-                { "safety_pilz_diagnostics", "DIAGNOSTICS" }
+                { "safety_pilz_diagnostics", "DIAGNOSTICS" },
+                { "startup_safe_state", "DIAGNOSTICS" }
             };
             string[] labels =
             {
@@ -2868,12 +2983,14 @@ namespace Schlenker.TiaV19
                 { "setup", "SETUP" }, { "settings_inputs", "SETUP" },
                 { "settings_outputs", "SETUP" }, { "settings_timers", "SETUP" },
                 { "settings_external_wash", "SETUP" }, { "manual", "MANUAL" },
+                { "manual_valves", "MANUAL" }, { "conveyor_settings", "PRODUCTION" },
                 { "lift_warning", "MANUAL" }, { "efficiency", "EFFICIENCY" },
                 { "diagnostics", "DIAGNOSTICS" }, { "io_diagnostics", "DIAGNOSTICS" },
                 { "io_link_overview", "DIAGNOSTICS" }, { "io_link_al100", "DIAGNOSTICS" },
                 { "io_link_al101", "DIAGNOSTICS" }, { "io_link_al102", "DIAGNOSTICS" },
                 { "io_link_al103", "DIAGNOSTICS" }, { "io_link_al104", "DIAGNOSTICS" },
-                { "safety_pilz_diagnostics", "DIAGNOSTICS" }
+                { "safety_pilz_diagnostics", "DIAGNOSTICS" },
+                { "startup_safe_state", "DIAGNOSTICS" }
             };
             string activePage;
             if (!activePages.TryGetValue(targetScreen, out activePage))
@@ -3018,6 +3135,181 @@ namespace Schlenker.TiaV19
 
             Console.WriteLine("GLOBAL_COMMON_REMOVED=" + obsoleteFrame.Length);
             Console.WriteLine("GLOBAL_COMMON_PAGE_NAV_RELOCATED=" + targetScreen);
+        }
+
+        private static void ApplyConfirmedScreenOverlapFix(
+            Project project,
+            HmiSoftware hmi,
+            string targetScreen)
+        {
+            HashSet<string> approved = new HashSet<string>(
+                new[] { "manual_valves", "conveyor_settings", "startup_safe_state", "home", "production" },
+                StringComparer.OrdinalIgnoreCase);
+            if (!approved.Contains(targetScreen))
+            {
+                throw new InvalidOperationException(
+                    "No confirmed overlap correction is approved for: " + targetScreen);
+            }
+
+            HmiScreen screen = hmi.Screens.Find(targetScreen);
+            if (screen == null)
+                throw new InvalidOperationException("Confirmed overlap target was not found: " + targetScreen);
+
+            Dictionary<string, string> preservedBindings = screen.ScreenItems
+                .OfType<HmiIOField>()
+                .Where(field => !IsObsoleteGlobalCommonFrameItem(field.Name))
+                .ToDictionary(field => field.Name, field =>
+                {
+                    TagDynamization binding = field.Dynamizations.Find("ProcessValue") as TagDynamization;
+                    return (binding == null ? "" : binding.Tag) + "|" +
+                        (binding != null && binding.ReadOnly) + "|" + field.EventHandlers.Count;
+                }, StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, string[]> preservedButtonEvents = screen.ScreenItems
+                .OfType<HmiButton>()
+                .Where(button => !IsObsoleteGlobalCommonFrameItem(button.Name))
+                .ToDictionary(button => button.Name, button => button.EventHandlers
+                    .Select(handler => handler.EventType.ToString() + "|" + handler.Script.ScriptCode)
+                    .OrderBy(value => value, StringComparer.Ordinal).ToArray(),
+                    StringComparer.OrdinalIgnoreCase);
+
+            if (targetScreen.Equals("production", StringComparison.OrdinalIgnoreCase))
+            {
+                HmiIOField productPresence = RequireManualItem<HmiIOField>(screen,
+                    "REV12_Mimic_ProductPresence");
+                HmiText productPressure = RequireManualItem<HmiText>(screen,
+                    "REV14_ProductPressure_Value_2");
+                HmiGraphicView tachometer = RequireManualItem<HmiGraphicView>(screen,
+                    "REF07_DriveSpeedTachometer");
+                SetBounds(productPresence, 177, 416, 51, 32);
+                SetBounds(productPressure, 982, 210, 141, 19);
+                SetBounds(tachometer, 969, 265, 40, 44);
+            }
+            else if (targetScreen.Equals("home", StringComparison.OrdinalIgnoreCase))
+            {
+                string[] suffixes = { "LightsRelay", "AirFilterRelay", "AirFilterPressure" };
+                int[] tops = { 565, 624, 673 };
+                for (int index = 0; index < suffixes.Length; index++)
+                {
+                    HmiRectangle back = screen.ScreenItems.Find(
+                        "REV40_Home_Aux_Status_" + suffixes[index] + "_Back") as HmiRectangle;
+                    HmiText text = screen.ScreenItems.Find(
+                        "REV40_Home_Aux_Status_" + suffixes[index] + "_Text") as HmiText;
+                    if (back == null || text == null)
+                        throw new InvalidOperationException("Home auxiliary status pair is missing: " + suffixes[index]);
+                    SetBounds(back, 420, tops[index], 105, 32);
+                    SetBounds(text, 422, tops[index], 101, 32);
+                }
+            }
+            else
+            {
+                ApplyGlobalCommonFrameExact(project, hmi, targetScreen);
+                if (targetScreen.Equals("conveyor_settings", StringComparison.OrdinalIgnoreCase))
+                {
+                    ConfigureRectangle(RequireManualItem<HmiRectangle>(screen,
+                        "ROB_Conveyor_Settings_Panel"), 25, 140, 1090, 575, Panel, Border, 1);
+                }
+                else if (targetScreen.Equals("startup_safe_state", StringComparison.OrdinalIgnoreCase))
+                {
+                    ConfigureRectangle(RequireManualItem<HmiRectangle>(screen,
+                        "REV40_Startup_Panel"), 25, 130, 1090, 565, Panel, Border, 1);
+                }
+            }
+
+            bool bindingsPreserved = preservedBindings.All(pair =>
+            {
+                HmiIOField field = screen.ScreenItems.Find(pair.Key) as HmiIOField;
+                TagDynamization binding = field == null ? null :
+                    field.Dynamizations.Find("ProcessValue") as TagDynamization;
+                string current = (binding == null ? "" : binding.Tag) + "|" +
+                    (binding != null && binding.ReadOnly) + "|" +
+                    (field == null ? -1 : field.EventHandlers.Count);
+                return field != null && current == pair.Value;
+            });
+            bool buttonEventsPreserved = preservedButtonEvents.All(pair =>
+            {
+                HmiButton button = screen.ScreenItems.Find(pair.Key) as HmiButton;
+                return button != null && pair.Value.SequenceEqual(button.EventHandlers
+                    .Select(handler => handler.EventType.ToString() + "|" + handler.Script.ScriptCode)
+                    .OrderBy(value => value, StringComparer.Ordinal), StringComparer.Ordinal);
+            });
+            int uniqueNames = screen.ScreenItems.Select(item => item.Name)
+                .Distinct(StringComparer.OrdinalIgnoreCase).Count();
+
+            bool geometryValid;
+            if (targetScreen.Equals("production", StringComparison.OrdinalIgnoreCase))
+            {
+                HmiText productLabel = RequireManualItem<HmiText>(screen,
+                    "REV12_Mimic_ProductPresence_Label");
+                HmiIOField productPresence = RequireManualItem<HmiIOField>(screen,
+                    "REV12_Mimic_ProductPresence");
+                HmiGraphicView bottle = RequireManualItem<HmiGraphicView>(screen,
+                    "REF01_Kpi_Bottles_Icon");
+                HmiText productPressure = RequireManualItem<HmiText>(screen,
+                    "REV14_ProductPressure_Value_2");
+                HmiText speedTitle = RequireManualItem<HmiText>(screen,
+                    "REF01_Kpi_LineSpeed_Title");
+                HmiGraphicView tachometer = RequireManualItem<HmiGraphicView>(screen,
+                    "REF07_DriveSpeedTachometer");
+                HmiText speedValue = RequireManualItem<HmiText>(screen,
+                    "REV21_SpeedGauge_BPH_Value");
+                geometryValid = productLabel.Left + productLabel.Width < productPresence.Left &&
+                    bottle.Top + bottle.Height < productPressure.Top &&
+                    speedTitle.Top + speedTitle.Height < tachometer.Top &&
+                    tachometer.Left + tachometer.Width < speedValue.Left &&
+                    productPresence.Left + productPresence.Width <= 1141 &&
+                    productPressure.Left + productPressure.Width <= 1141;
+            }
+            else if (targetScreen.Equals("home", StringComparison.OrdinalIgnoreCase))
+            {
+                HmiText lights = RequireManualItem<HmiText>(screen, "REV12_Label_LightsRelay");
+                HmiText relay = RequireManualItem<HmiText>(screen, "REV12_Label_AirFilterRelay");
+                HmiText pressure = RequireManualItem<HmiText>(screen, "REV12_Label_AirFilterPressureOK");
+                geometryValid = lights.Left + lights.Width <= 420 &&
+                    relay.Left + relay.Width <= 420 && pressure.Left + pressure.Width <= 420 &&
+                    new[] { "LightsRelay", "AirFilterRelay", "AirFilterPressure" }.All(suffix =>
+                    {
+                        HmiRectangle back = RequireManualItem<HmiRectangle>(screen,
+                            "REV40_Home_Aux_Status_" + suffix + "_Back");
+                        return back.Left == 420 && back.Left + back.Width <= 525;
+                    });
+            }
+            else
+            {
+                string prefix = targetScreen.Equals("manual_valves", StringComparison.OrdinalIgnoreCase)
+                    ? "REV50_ValveTest_"
+                    : targetScreen.Equals("conveyor_settings", StringComparison.OrdinalIgnoreCase)
+                        ? "ROB_Conveyor_"
+                        : "REV40_Startup_";
+                geometryValid = screen.ScreenItems.Where(item => item.Visible &&
+                        item.Name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                    .All(item =>
+                    {
+                        int left = ReadOperateCoordinate(item, "Left");
+                        int top = ReadOperateCoordinate(item, "Top");
+                        int width = ReadOperateCoordinate(item, "Width");
+                        int height = ReadOperateCoordinate(item, "Height");
+                        return left >= 0 && top >= 104 && left + width <= 1141 && top + height <= 744;
+                    });
+                HmiRectangle navBack = screen.ScreenItems.Find("REV13_Nav_Back") as HmiRectangle;
+                geometryValid = geometryValid && navBack != null && navBack.Left == 1141 &&
+                    navBack.Top == 104 && navBack.Width == 139 && navBack.Height == 640 &&
+                    !screen.ScreenItems.Any(item => item.Name.StartsWith(
+                        "REV12_Nav_", StringComparison.OrdinalIgnoreCase)) &&
+                    !screen.ScreenItems.Any(item => item.Name.StartsWith(
+                        "REV12_Common_", StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!bindingsPreserved || !buttonEventsPreserved || !geometryValid ||
+                uniqueNames != screen.ScreenItems.Count)
+            {
+                throw new InvalidOperationException(
+                    "Confirmed screen overlap correction failed validation: " + targetScreen);
+            }
+
+            Console.WriteLine("OVERLAP_FIX_BINDINGS_PRESERVED=" + preservedBindings.Count);
+            Console.WriteLine("OVERLAP_FIX_BUTTON_EVENT_SETS_PRESERVED=" + preservedButtonEvents.Count);
+            Console.WriteLine("OVERLAP_FIX_GEOMETRY_VALID=YES");
+            Console.WriteLine("OVERLAP_FIX_DUPLICATE_NAMES=0");
         }
 
         private static void ApplyGlobalCommonOverlapFix(HmiSoftware hmi, string targetScreen)
@@ -3302,6 +3594,562 @@ namespace Schlenker.TiaV19
             Console.WriteLine("HOME_PROCESS_BINDINGS_MODIFIED=0");
         }
 
+        private static void ApplyVideoRuntimeCorrections(Project project, HmiSoftware hmi)
+        {
+            // Preserve every existing object, event and binding.  Only copy the
+            // approved common-frame geometry and move the three Home badges that
+            // intersect their labels.
+            AlignExistingCommonFrameGeometry(hmi, "home", true);
+            AlignExistingCommonFrameGeometry(hmi, "settings_timers", false);
+            FixHomeAuxiliaryOverlapDirect(hmi);
+
+            ApplyHomeRuntimeSymbolicStates(hmi);
+            ApplySetupRuntimeSymbolicStates(hmi);
+            ApplyEfficiencyNetworkSemantics(hmi);
+
+            Console.WriteLine("VIDEO_CORRECTION_HOME_RAW_BOOLEANS=3");
+            Console.WriteLine("VIDEO_CORRECTION_SETUP_RAW_BOOLEANS=6");
+            Console.WriteLine("VIDEO_CORRECTION_HOME_OVERLAPS=3");
+            Console.WriteLine("VIDEO_CORRECTION_EFFICIENCY_NETWORK=SEMANTICALLY_DISTINGUISHED");
+            Console.WriteLine("VIDEO_CORRECTION_COMMON_FRAME=home|settings_timers");
+            Console.WriteLine("VIDEO_CORRECTION_PROCESS_BINDINGS_MODIFIED=0");
+        }
+
+        private static void ApplyHomeLegacyEditorCleanup(HmiSoftware hmi)
+        {
+            HmiScreen screen = hmi.Screens.Find("home");
+            if (screen == null)
+                throw new InvalidOperationException("Home legacy cleanup requires the Home screen.");
+
+            string[] names =
+            {
+                "REV12_Production_User_Header",
+                "REV12_Mimic_Vacuum_Label_1"
+            };
+            foreach (string name in names)
+            {
+                HmiText item = screen.ScreenItems.Find(name) as HmiText;
+                if (item == null)
+                    throw new InvalidOperationException("Home legacy editor object is missing: " + name);
+                if (item.EventHandlers.Count != 0 || item.Dynamizations.Count != 0)
+                    throw new InvalidOperationException(
+                        "Home legacy editor object gained behavior; cleanup aborted: " + name);
+                SetBounds(item, 0, 930, 1, 1);
+                item.Visible = false;
+                item.Enabled = false;
+            }
+
+            HmiRectangle footerCover = screen.ScreenItems.Find(
+                "REV13_Common_Bottom") as HmiRectangle;
+            if (footerCover == null || footerCover.EventHandlers.Count != 0 ||
+                footerCover.Dynamizations.Count != 0)
+                throw new InvalidOperationException(
+                    "Home duplicate footer cover is missing or gained behavior.");
+            SetBounds(footerCover, 0, 930, 1, 1);
+            footerCover.Visible = false;
+            footerCover.Enabled = false;
+
+            string[,] commandPairs =
+            {
+                { "REV13_Home_ProdOn", "REV13_Home_ProdOff" },
+                { "REV12_Pump_On", "REV12_Pump_Off" },
+                { "REV12_Gate_Auto_On", "REV12_Gate_Auto_Off" },
+                { "REV12_Lights_On", "REV12_Lights_Off" },
+                { "REV12_Filter_On", "REV12_Filter_Off" }
+            };
+            for (int index = 0; index < commandPairs.GetLength(0); index++)
+            {
+                HmiButton onButton = screen.ScreenItems.Find(commandPairs[index, 0]) as HmiButton;
+                HmiButton offButton = screen.ScreenItems.Find(commandPairs[index, 1]) as HmiButton;
+                if (onButton == null || offButton == null)
+                    throw new InvalidOperationException(
+                        "Home command pair is incomplete: " + commandPairs[index, 0]);
+                int onEvents = onButton.EventHandlers.Count;
+                int offEvents = offButton.EventHandlers.Count;
+                int onDynamics = onButton.Dynamizations.Count;
+                int offDynamics = offButton.Dynamizations.Count;
+                onButton.BackColor = Color.FromArgb(145, 155, 165);
+                offButton.BackColor = Red;
+                if (onButton.EventHandlers.Count != onEvents ||
+                    offButton.EventHandlers.Count != offEvents ||
+                    onButton.Dynamizations.Count != onDynamics ||
+                    offButton.Dynamizations.Count != offDynamics)
+                    throw new InvalidOperationException(
+                        "Home command behavior changed unexpectedly: " + commandPairs[index, 0]);
+            }
+
+            string[] auxiliarySuffixes =
+            {
+                "LightsRelay", "AirFilterRelay", "AirFilterPressure"
+            };
+            int[] auxiliaryTops = { 570, 633, 675 };
+            for (int index = 0; index < auxiliarySuffixes.Length; index++)
+            {
+                HmiRectangle back = screen.ScreenItems.Find(
+                    "REV40_Home_Aux_Status_" + auxiliarySuffixes[index] + "_Back") as HmiRectangle;
+                HmiText text = screen.ScreenItems.Find(
+                    "REV40_Home_Aux_Status_" + auxiliarySuffixes[index] + "_Text") as HmiText;
+                if (back == null || text == null)
+                    throw new InvalidOperationException(
+                        "Home auxiliary status pair is missing: " + auxiliarySuffixes[index]);
+                SetBounds(back, 418, auxiliaryTops[index], 95, 32);
+                SetBounds(text, 420, auxiliaryTops[index], 91, 32);
+            }
+
+            string[,] metricLabels =
+            {
+                { "REV13_Home_MetricLabel_Speed", "REV13_Home_MetricValue_Speed" },
+                { "REV13_Home_MetricLabel_Drive", "REV13_Home_MetricValue_Drive" },
+                { "REV13_Home_MetricLabel_Tank", "REV13_Home_MetricValue_Tank" },
+                { "REV13_Home_MetricLabel_Vacuum", "REV13_Home_MetricValue_Vacuum" }
+            };
+            for (int index = 0; index < metricLabels.GetLength(0); index++)
+            {
+                HmiText label = screen.ScreenItems.Find(metricLabels[index, 0]) as HmiText;
+                HmiIOField field = screen.ScreenItems.Find(metricLabels[index, 1]) as HmiIOField;
+                if (label == null || field == null)
+                    throw new InvalidOperationException(
+                        "Home metric pair is incomplete: " + metricLabels[index, 0]);
+                SetBounds(label, field.Left, label.Top, field.Width, label.Height);
+            }
+
+            Console.WriteLine("HOME_LEGACY_EDITOR_OBJECTS_PARKED=3");
+            Console.WriteLine("HOME_SAFE_STATIC_COMMAND_PAIRS=5");
+            Console.WriteLine("HOME_AUXILIARY_STATUS_COLUMNS_ALIGNED=3");
+            Console.WriteLine("HOME_METRIC_LABELS_ALIGNED=4");
+            Console.WriteLine("HOME_LEGACY_EDITOR_BINDINGS_MODIFIED=0");
+        }
+
+        private static void AlignExistingCommonFrameGeometry(
+            HmiSoftware hmi, string targetScreenName, bool alignNavigation)
+        {
+            HmiScreen source = hmi.Screens.Find("production");
+            HmiScreen target = hmi.Screens.Find(targetScreenName);
+            if (source == null || target == null)
+                throw new InvalidOperationException(
+                    "Common-frame geometry requires Production and " + targetScreenName + ".");
+
+            int copied = 0;
+            foreach (HmiScreenItemBase sourceItem in source.ScreenItems.ToArray())
+            {
+                // REV13_Common_Bottom is a footer background on these screens,
+                // while the Production copy uses it as a full-screen base layer.
+                // Copying its Production bounds without copying its z-order hides
+                // the complete page at runtime.
+                if (sourceItem.Name.Equals(
+                    "REV13_Common_Bottom", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                bool isFooter = sourceItem.Name.StartsWith(
+                    "REV13_Common_", StringComparison.OrdinalIgnoreCase);
+                bool isNavigation = alignNavigation && (
+                    sourceItem.Name.Equals("REV13_Nav_Back", StringComparison.OrdinalIgnoreCase) ||
+                    sourceItem.Name.StartsWith("REV13_Nav_Button_", StringComparison.OrdinalIgnoreCase) ||
+                    sourceItem.Name.StartsWith("REV14_Nav_Icon_", StringComparison.OrdinalIgnoreCase) ||
+                    sourceItem.Name.StartsWith("REF05_NavSeparator_", StringComparison.OrdinalIgnoreCase));
+                if (!isFooter && !isNavigation) continue;
+
+                HmiScreenItemBase targetItem = target.ScreenItems.Find(sourceItem.Name);
+                if (targetItem == null)
+                    throw new InvalidOperationException(
+                        targetScreenName + ": common object is missing: " + sourceItem.Name);
+                double left, top, width, height;
+                if (!TryReadNumericProperty(sourceItem, "Left", out left) ||
+                    !TryReadNumericProperty(sourceItem, "Top", out top) ||
+                    !TryReadNumericProperty(sourceItem, "Width", out width) ||
+                    !TryReadNumericProperty(sourceItem, "Height", out height))
+                {
+                    Console.WriteLine("COMMON_FRAME_GEOMETRY_SKIPPED=" +
+                        targetScreenName + "|" + sourceItem.Name + "|" + sourceItem.GetType().Name);
+                    continue;
+                }
+                SetBounds(targetItem, Convert.ToInt32(left), Convert.ToInt32(top),
+                    Convert.ToUInt32(width), Convert.ToUInt32(height));
+                copied++;
+            }
+
+            HmiRectangle footerBackground = target.ScreenItems.Find(
+                "REV13_Common_Bottom") as HmiRectangle;
+            if (footerBackground == null)
+                throw new InvalidOperationException(
+                    targetScreenName + ": footer background is missing.");
+            SetBounds(footerBackground, 0, 930, 1, 1);
+            footerBackground.Visible = false;
+            footerBackground.Enabled = false;
+
+            if (alignNavigation)
+            {
+                HmiRectangle activeBar = target.ScreenItems.Find("REF05_NavActiveBar") as HmiRectangle;
+                HmiButton activeButton = target.ScreenItems.Find("REV13_Nav_Button_HOME") as HmiButton;
+                if (activeBar == null || activeButton == null)
+                    throw new InvalidOperationException("Home active navigation marker is incomplete.");
+                activeBar.Top = activeButton.Top;
+            }
+
+            Console.WriteLine("COMMON_FRAME_GEOMETRY_ALIGNED=" + targetScreenName + "|" + copied);
+        }
+
+        private static void FixHomeAuxiliaryOverlapDirect(HmiSoftware hmi)
+        {
+            HmiScreen screen = hmi.Screens.Find("home");
+            if (screen == null)
+                throw new InvalidOperationException("Home overlap correction requires the Home screen.");
+
+            string[] suffixes = { "LightsRelay", "AirFilterRelay", "AirFilterPressure" };
+            foreach (string suffix in suffixes)
+            {
+                HmiRectangle back = screen.ScreenItems.Find(
+                    "REV40_Home_Aux_Status_" + suffix + "_Back") as HmiRectangle;
+                HmiText text = screen.ScreenItems.Find(
+                    "REV40_Home_Aux_Status_" + suffix + "_Text") as HmiText;
+                if (back == null || text == null)
+                    throw new InvalidOperationException(
+                        "Home auxiliary badge is incomplete: " + suffix);
+                back.Left = 420;
+                text.Left = 422;
+            }
+        }
+
+        private static void ApplyHomeRuntimeSymbolicStates(HmiSoftware hmi)
+        {
+            HmiScreen screen = hmi.Screens.Find("home");
+            if (screen == null)
+                throw new InvalidOperationException("Video correction requires the existing Home screen.");
+
+            ConfigureRuntimeBooleanBadgeOverField(
+                screen,
+                "REV12_Home_Vacuum_Status",
+                "REV57_Home_Vacuum_Status",
+                "Vacuum_Pump_Run",
+                "ACTIVE",
+                "OFF",
+                Green,
+                Red,
+                true);
+            SetRuntimeBadgeBounds(screen, "REV57_Home_Vacuum_Status", 993, 325, 84, 40);
+
+            ConfigureRuntimeBooleanBadgeOverField(
+                screen,
+                "REV12_Home_Wash_Status",
+                "REV57_Home_Wash_Status",
+                "External_Wash_Active",
+                "ACTIVE",
+                "OFF",
+                Green,
+                Red,
+                true);
+            SetRuntimeBadgeBounds(screen, "REV57_Home_Wash_Status", 993, 377, 84, 40);
+
+            ConfigureRuntimeBooleanBadgeOverField(
+                screen,
+                "REV12_Filter_Warn_Field",
+                "REV57_Home_Filter_Service",
+                "AirFilter_ChangeRequired",
+                "SERVICE DUE",
+                "OK",
+                Red,
+                Green,
+                true);
+            SetRuntimeBadgeBounds(screen, "REV57_Home_Filter_Service", 946, 583, 122, 42);
+
+            HmiText serviceText = screen.ScreenItems.Find("REV12_Filter_Warn_Text") as HmiText;
+            if (serviceText == null)
+                throw new InvalidOperationException("Home filter-service caption is missing.");
+            SetText(serviceText.Text, "FILTER CONDITION");
+
+            HmiText legend = screen.ScreenItems.Find("REV12_Home_Process_Legend") as HmiText;
+            if (legend == null)
+                throw new InvalidOperationException("Home process-state legend is missing.");
+            SetText(legend.Text, "GREEN ACTIVE | GREY NOT SELECTED | RED OFF / FAULT");
+
+            ConfigureCommandSelectionColors(screen,
+                "REV13_Home_ProdOn", "REV13_Home_ProdOff", "Mode_ProductionActive");
+            ConfigureCommandSelectionColors(screen,
+                "REV12_Pump_On", "REV12_Pump_Off", "Product_Pump_Enable");
+            ConfigureCommandSelectionColors(screen,
+                "REV12_Gate_Auto_On", "REV12_Gate_Auto_Off", "Gate_Auto_Request_Enable");
+            ConfigureCommandSelectionColors(screen,
+                "REV12_Lights_On", "REV12_Lights_Off", "Lights_Relay");
+            ConfigureCommandSelectionColors(screen,
+                "REV12_Filter_On", "REV12_Filter_Off", "AirFilter_Relay");
+
+            ConfigureHomeAuxiliaryBadgeOffColor(screen, "LightsRelay", "Lights_Relay");
+            ConfigureHomeAuxiliaryBadgeOffColor(screen, "AirFilterRelay", "AirFilter_Relay");
+            ConfigureHomeAuxiliaryBadgeOffColor(screen, "AirFilterPressure", "AirFilter_PressureOK");
+        }
+
+        private static void SetRuntimeBadgeBounds(
+            HmiScreen screen, string prefix, int left, int top, uint width, uint height)
+        {
+            HmiRectangle back = screen.ScreenItems.Find(prefix + "_Back") as HmiRectangle;
+            HmiText text = screen.ScreenItems.Find(prefix + "_Text") as HmiText;
+            if (back == null || text == null)
+                throw new InvalidOperationException("Runtime badge is incomplete: " + prefix);
+            SetBounds(back, left, top, width, height);
+            SetBounds(text, left + 2, top, width > 4 ? width - 4 : width, height);
+        }
+
+        private static void ConfigureCommandSelectionColors(
+            HmiScreen screen, string onButtonName, string offButtonName, string stateTag)
+        {
+            HmiButton onButton = screen.ScreenItems.Find(onButtonName) as HmiButton;
+            HmiButton offButton = screen.ScreenItems.Find(offButtonName) as HmiButton;
+            if (onButton == null || offButton == null)
+                throw new InvalidOperationException(
+                    "Home command pair is incomplete: " + onButtonName + " / " + offButtonName);
+
+            int onEvents = onButton.EventHandlers.Count;
+            int offEvents = offButton.EventHandlers.Count;
+            ConfigureNumericDynamization(onButton, "BackColor", stateTag,
+                "let v=Boolean(HMIRuntime.Tags(\"" + stateTag + "\").Read());" +
+                "if(v){return HMIRuntime.Math.RGB(28,145,82);}" +
+                "return HMIRuntime.Math.RGB(145,155,165);");
+            ConfigureNumericDynamization(offButton, "BackColor", stateTag,
+                "let v=Boolean(HMIRuntime.Tags(\"" + stateTag + "\").Read());" +
+                "if(v){return HMIRuntime.Math.RGB(145,155,165);}" +
+                "return HMIRuntime.Math.RGB(195,45,55);");
+            if (onButton.EventHandlers.Count != onEvents || offButton.EventHandlers.Count != offEvents)
+                throw new InvalidOperationException(
+                    "Home command events changed unexpectedly: " + onButtonName + ".");
+        }
+
+        private static void ConfigureHomeAuxiliaryBadgeOffColor(
+            HmiScreen screen, string suffix, string tag)
+        {
+            HmiRectangle back = screen.ScreenItems.Find(
+                "REV40_Home_Aux_Status_" + suffix + "_Back") as HmiRectangle;
+            if (back == null)
+                throw new InvalidOperationException("Home auxiliary status background is missing: " + suffix);
+            ConfigureNumericDynamization(back, "BackColor", tag,
+                "let q=Boolean(HMIRuntime.Tags(\"Network_HMI_OK\").Read());" +
+                "if(!q){return HMIRuntime.Math.RGB(145,155,165);}" +
+                "let v=Boolean(HMIRuntime.Tags(\"" + tag + "\").Read());" +
+                "if(v){return HMIRuntime.Math.RGB(28,145,82);}" +
+                "return HMIRuntime.Math.RGB(195,45,55);");
+        }
+
+        private static void ApplySetupRuntimeSymbolicStates(HmiSoftware hmi)
+        {
+            HmiScreen screen = hmi.Screens.Find("setup");
+            if (screen == null)
+                throw new InvalidOperationException("Video correction requires the existing Setup screen.");
+
+            ConfigureRuntimeBooleanBadgeOverField(screen,
+                "REV12_Value_EStopChainHealthy", "REV57_Setup_EStopChainHealthy",
+                "EStop_Chain_Healthy", "HEALTHY", "FAULT", Green, Red, false);
+            ConfigureRuntimeBooleanBadgeOverField(screen,
+                "REV12_Value_DoorSafetyCircuitClosed", "REV57_Setup_SafetyCircuitClosed",
+                "Door_Safety_Circuit_Closed", "CLOSED", "OPEN", Green, Red, false);
+            ConfigureRuntimeBooleanBadgeOverField(screen,
+                "REV12_Value_DoorSafetySystemFault", "REV57_Setup_SafetySystemFault",
+                "Door_Safety_System_Fault", "FAULT", "CLEAR", Red, Green, false);
+            ConfigureRuntimeBooleanBadgeOverField(screen,
+                "REV12_Value_DoorAllClosed", "REV57_Setup_AllDoorsClosed",
+                "Door_AllClosed", "CLOSED", "OPEN", Green, Red, false);
+            ConfigureRuntimeBooleanBadgeOverField(screen,
+                "REV12_Value_DoorAllUnlocked", "REV57_Setup_AllDoorsUnlocked",
+                "Door_AllUnlocked", "UNLOCKED", "LOCKED", Green, Red, false);
+            ConfigureRuntimeBooleanBadgeOverField(screen,
+                "REV12_Value_DoorUnlockRequest", "REV57_Setup_UnlockRequest",
+                "Door_Unlock_Request", "REQUEST", "IDLE", Amber,
+                Color.FromArgb(145, 155, 165), false);
+        }
+
+        private static void ConfigureRuntimeBooleanBadgeOverField(
+            HmiScreen screen,
+            string fieldName,
+            string overlayPrefix,
+            string tag,
+            string trueText,
+            string falseText,
+            Color trueColor,
+            Color falseColor,
+            bool gateWithHmiLink)
+        {
+            HmiIOField field = screen.ScreenItems.Find(fieldName) as HmiIOField;
+            TagDynamization binding = field == null ? null :
+                field.Dynamizations.Find("ProcessValue") as TagDynamization;
+            if (field == null || binding == null ||
+                !binding.Tag.Equals(tag, StringComparison.OrdinalIgnoreCase) || !binding.ReadOnly)
+            {
+                throw new InvalidOperationException(
+                    "Expected read-only Boolean source is missing or changed: " +
+                    screen.Name + "|" + fieldName + "|" + tag);
+            }
+
+            int left = field.Left;
+            int top = field.Top;
+            uint width = field.Width;
+            uint height = field.Height;
+            SetBounds(field, 0, 930, 1, 1);
+            field.Visible = false;
+            field.Enabled = false;
+
+            HmiRectangle back = GetOrCreate<HmiRectangle>(screen, overlayPrefix + "_Back");
+            ConfigureRectangle(back, left, top, width, height,
+                Color.FromArgb(145, 155, 165), Border, 0);
+            SetRoundedCorners(back, 5);
+            back.Enabled = false;
+
+            string qualityColor = gateWithHmiLink
+                ? "let q=Boolean(HMIRuntime.Tags(\"Network_HMI_OK\").Read());" +
+                  "if(!q){return HMIRuntime.Math.RGB(145,155,165);}" : "";
+            ConfigureNumericDynamization(back, "BackColor", tag,
+                qualityColor +
+                "let v=Boolean(HMIRuntime.Tags(\"" + tag + "\").Read());" +
+                "if(v){return HMIRuntime.Math.RGB(" + trueColor.R + "," + trueColor.G + "," + trueColor.B + ");}" +
+                "return HMIRuntime.Math.RGB(" + falseColor.R + "," + falseColor.G + "," + falseColor.B + ");");
+
+            HmiText text = GetOrCreate<HmiText>(screen, overlayPrefix + "_Text");
+            ConfigureText(text, left + 2, top, width > 4 ? width - 4 : width, height,
+                gateWithHmiLink ? "NO DATA" : falseText,
+                Color.White, 9, HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
+            text.Enabled = false;
+            string qualityText = gateWithHmiLink
+                ? "let q=Boolean(HMIRuntime.Tags(\"Network_HMI_OK\").Read());" +
+                  "if(!q){return \"NO DATA\";}" : "";
+            ConfigureNumericDynamization(text, "Text", tag,
+                qualityText +
+                "let v=Boolean(HMIRuntime.Tags(\"" + tag + "\").Read());" +
+                "return v?\"" + trueText + "\":\"" + falseText + "\";");
+        }
+
+        private static void ApplyEfficiencyNetworkSemantics(HmiSoftware hmi)
+        {
+            HmiScreen screen = hmi.Screens.Find("efficiency");
+            if (screen == null)
+                throw new InvalidOperationException("Video correction requires the existing Efficiency screen.");
+
+            HmiText label = screen.ScreenItems.Find("REV12_Label_NetworkOK") as HmiText;
+            HmiRectangle back = screen.ScreenItems.Find("REV32_Efficiency_Network_Back") as HmiRectangle;
+            HmiText text = screen.ScreenItems.Find("REV32_Efficiency_Network_Text") as HmiText;
+            if (label == null || back == null || text == null)
+                throw new InvalidOperationException("Efficiency machine-network status row is incomplete.");
+
+            SetText(label.Text, "MACHINE NET");
+            ConfigureNumericDynamization(text, "Text", "Network_OK",
+                "let v=Boolean(HMIRuntime.Tags(\"Network_OK\").Read());" +
+                "return v?\"HEALTHY\":\"FAULT\";");
+            ConfigureNumericDynamization(back, "BackColor", "Network_OK",
+                "let v=Boolean(HMIRuntime.Tags(\"Network_OK\").Read());" +
+                "if(v){return HMIRuntime.Math.RGB(28,145,82);}" +
+                "return HMIRuntime.Math.RGB(195,45,55);");
+        }
+
+        private static void ApplyHomeAuxiliaryStatusRefinement(HmiSoftware hmi)
+        {
+            HmiScreen screen = hmi.Screens.Find("home");
+            if (screen == null)
+            {
+                throw new InvalidOperationException(
+                    "Home auxiliary status refinement requires the existing 'home' screen.");
+            }
+
+            HmiText title = screen.ScreenItems.Find("REV12_Aux_Title") as HmiText;
+            if (title == null)
+            {
+                throw new InvalidOperationException("The Home auxiliary title is missing.");
+            }
+            ConfigureText(title, 40, 480, 400, 28, "MAIN AUXILIARIES & STATUS",
+                Navy, 20, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+
+            Dictionary<string, int> eventCounts = new Dictionary<string, int>(
+                StringComparer.OrdinalIgnoreCase);
+            string[] buttonNames =
+            {
+                "REV12_Lights_On", "REV12_Lights_Off",
+                "REV12_Filter_On", "REV12_Filter_Off"
+            };
+            foreach (string buttonName in buttonNames)
+            {
+                HmiButton button = screen.ScreenItems.Find(buttonName) as HmiButton;
+                if (button == null)
+                {
+                    throw new InvalidOperationException(
+                        "Home auxiliary command button is missing: " + buttonName);
+                }
+                eventCounts[buttonName] = button.EventHandlers.Count;
+                button.BackColor = Blue;
+                button.ForeColor = Color.White;
+                button.BorderColor = Color.White;
+            }
+
+            ConfigureHomeAuxiliaryStatusBadge(screen, "LightsRelay",
+                "REV12_Value_LightsRelay", "Lights_Relay", 450, 516,
+                "ON", "OFF");
+            ConfigureHomeAuxiliaryStatusBadge(screen, "AirFilterRelay",
+                "REV12_Value_AirFilterRelay", "AirFilter_Relay", 450, 606,
+                "ON", "OFF");
+            ConfigureHomeAuxiliaryStatusBadge(screen, "AirFilterPressure",
+                "REV12_Value_AirFilterPressureOK", "AirFilter_PressureOK", 450, 646,
+                "PROVEN", "NOT PROVEN");
+
+            foreach (string buttonName in buttonNames)
+            {
+                HmiButton button = (HmiButton)screen.ScreenItems.Find(buttonName);
+                if (button.EventHandlers.Count != eventCounts[buttonName])
+                {
+                    throw new InvalidOperationException(
+                        "Home auxiliary command events changed unexpectedly: " + buttonName);
+                }
+            }
+
+            Console.WriteLine("HOME_AUXILIARY_COMMAND_COLORS=NEUTRAL_BLUE_4/4");
+            Console.WriteLine("HOME_AUXILIARY_LIVE_STATUS_BADGES=3/3");
+            Console.WriteLine("HOME_AUXILIARY_TITLE_WIDTH=400");
+            Console.WriteLine("HOME_AUXILIARY_EVENTS_PRESERVED=4/4");
+        }
+
+        private static void ConfigureHomeAuxiliaryStatusBadge(
+            HmiScreen screen,
+            string suffix,
+            string legacyFieldName,
+            string tag,
+            int left,
+            int top,
+            string trueText,
+            string falseText)
+        {
+            HmiIOField legacyField = screen.ScreenItems.Find(legacyFieldName) as HmiIOField;
+            TagDynamization binding = legacyField == null ? null :
+                legacyField.Dynamizations.Find("ProcessValue") as TagDynamization;
+            if (legacyField == null || binding == null ||
+                !binding.Tag.Equals(tag, StringComparison.OrdinalIgnoreCase) ||
+                !binding.ReadOnly)
+            {
+                throw new InvalidOperationException(
+                    "Home auxiliary bound source is missing or changed: " + legacyFieldName + ".");
+            }
+            SetBounds(legacyField, 0, 930, 1, 1);
+            legacyField.Visible = false;
+            legacyField.Enabled = false;
+
+            HmiRectangle back = GetOrCreate<HmiRectangle>(screen,
+                "REV40_Home_Aux_Status_" + suffix + "_Back");
+            ConfigureRectangle(back, left, top, 105, 32,
+                Color.FromArgb(145, 155, 165), Border, 1);
+            SetRoundedCorners(back, 5);
+            back.Enabled = false;
+            ConfigureNumericDynamization(back, "BackColor", "",
+                "let q=Boolean(HMIRuntime.Tags(\"Network_HMI_OK\").Read());" +
+                "if(!q){return HMIRuntime.Math.RGB(145,155,165);}" +
+                "let v=Boolean(HMIRuntime.Tags(\"" + tag + "\").Read());" +
+                "if(v){return HMIRuntime.Math.RGB(28,145,82);}" +
+                "return HMIRuntime.Math.RGB(145,155,165);");
+
+            HmiText text = GetOrCreate<HmiText>(screen,
+                "REV40_Home_Aux_Status_" + suffix + "_Text");
+            ConfigureText(text, left + 2, top, 101, 32,
+                "NO DATA", Color.White, 10, HmiFontWeight.Bold,
+                HmiHorizontalAlignment.Center);
+            text.Enabled = false;
+            ConfigureNumericDynamization(text, "Text", "",
+                "let q=Boolean(HMIRuntime.Tags(\"Network_HMI_OK\").Read());" +
+                "if(!q){return \"NO DATA\";}" +
+                "let v=Boolean(HMIRuntime.Tags(\"" + tag + "\").Read());" +
+                "return v?\"" + trueText + "\":\"" + falseText + "\";");
+        }
+
         private static void ApplyHomeAuxiliaryDivider(HmiSoftware hmi)
         {
             HmiScreen screen = hmi.Screens.Find("home");
@@ -3533,15 +4381,15 @@ namespace Schlenker.TiaV19
             ConfigureRectangle(GetOrCreate<HmiRectangle>(screen, "REV12_Aux_Panel"),
                 20, 470, 1170, 225, Panel, Border, 1);
             ConfigureText(GetOrCreate<HmiText>(screen, "REV12_Aux_Title"),
-                40, 480, 260, 28, "MAIN AUXILIARIES & STATUS", Navy, 20,
+                40, 480, 400, 28, "MAIN AUXILIARIES & STATUS", Navy, 20,
                 HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
             ConfigureText(GetOrCreate<HmiText>(screen, "REV12_Lights_Title"),
                 40, 515, 220, 24, "MACHINE LIGHTS 24 VDC", Dark, 16,
                 HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
             ConfigureMomentaryButton(GetOrCreate<HmiButton>(screen, "REV12_Lights_On"),
-                40, 545, 110, 45, "LIGHTS ON", Green, "Lights_On");
+                40, 545, 110, 45, "LIGHTS ON", Blue, "Lights_On");
             ConfigureMomentaryButton(GetOrCreate<HmiButton>(screen, "REV12_Lights_Off"),
-                160, 545, 110, 45, "LIGHTS OFF", Grey, "Lights_Off");
+                160, 545, 110, 45, "LIGHTS OFF", Blue, "Lights_Off");
             ConfigureText(GetOrCreate<HmiText>(screen, "REV12_Label_LightsRelay"),
                 290, 520, 150, 28, "Relay status", Dark, 13,
                 HmiFontWeight.Normal, HmiHorizontalAlignment.Left);
@@ -3553,9 +4401,9 @@ namespace Schlenker.TiaV19
                 40, 610, 220, 24, "AIR FILTER 24 VDC", Dark, 16,
                 HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
             ConfigureMomentaryButton(GetOrCreate<HmiButton>(screen, "REV12_Filter_On"),
-                40, 640, 110, 45, "FILTER ON", Green, "AirFilter_On");
+                40, 640, 110, 45, "FILTER ON", Blue, "AirFilter_On");
             ConfigureMomentaryButton(GetOrCreate<HmiButton>(screen, "REV12_Filter_Off"),
-                160, 640, 110, 45, "FILTER OFF", Grey, "AirFilter_Off");
+                160, 640, 110, 45, "FILTER OFF", Blue, "AirFilter_Off");
             ConfigureText(GetOrCreate<HmiText>(screen, "REV12_Label_AirFilterRelay"),
                 290, 610, 150, 28, "Relay status", Dark, 13,
                 HmiFontWeight.Normal, HmiHorizontalAlignment.Left);
@@ -4132,7 +4980,8 @@ namespace Schlenker.TiaV19
                 { "io_link_overview", "IO-LINK OVERVIEW" }, { "io_link_al100", "AL100 IO-LINK DETAIL" },
                 { "io_link_al101", "AL101 IO-LINK DETAIL" }, { "io_link_al102", "AL102 IO-LINK DETAIL" },
                 { "io_link_al103", "AL103 IO-LINK DETAIL" }, { "io_link_al104", "AL104 IO-LINK DETAIL" },
-                { "safety_pilz_diagnostics", "PILZ SAFETY DIAGNOSTICS" }
+                { "safety_pilz_diagnostics", "PILZ SAFETY DIAGNOSTICS" },
+                { "startup_safe_state", "STARTUP COMMAND CHECK" }
             };
             string title;
             return titles.TryGetValue(screenName, out title) ? title : screenName.ToUpperInvariant();
@@ -5458,6 +6307,389 @@ namespace Schlenker.TiaV19
             Console.WriteLine("REV23_PLC_MACHINE_LOGIC_MODIFIED=0");
             Console.WriteLine("REV23_HARDWARE_CONFIGURATION_MODIFIED=0");
             Console.WriteLine("REV23_NAVIGATION_MASTER_MODIFIED=0");
+        }
+
+        private static void ApplyHmiHeartbeatLink(HmiSoftware hmi)
+        {
+            int updated = 0;
+            const string heartbeatScript =
+                "let ht=HMIRuntime.Tags(\"HMI_Heartbeat\");let h=Number(ht.Read());" +
+                "if(!Number.isFinite(h)||h>=2147483000||h<0){h=0;}" +
+                "try{ht.Write(h+1);}catch(e){}" +
+                "let st=HMIRuntime.Tags(\"Network_HMI_OK\");let q=Boolean(st.Read());" +
+                "let qc=Number(st.QualityCode);let live=st.LastError===0&&(qc&192)>=128&&q;" +
+                "return live?\"● LINK ONLINE     PLC / HMI\":\"● LINK STARTING / OFFLINE     PLC / HMI\";";
+            const string colorScript =
+                "let st=HMIRuntime.Tags(\"Network_HMI_OK\");let q=Boolean(st.Read());" +
+                "let qc=Number(st.QualityCode);let live=st.LastError===0&&(qc&192)>=128&&q;" +
+                "return live?HMIRuntime.Math.RGB(80,205,70):HMIRuntime.Math.RGB(235,160,30);";
+
+            foreach (HmiScreen screen in hmi.Screens)
+            {
+                HmiText status = screen.ScreenItems.Find("REV13_Common_BottomInfo") as HmiText;
+                if (status == null) continue;
+
+                if (status.EventHandlers.Count != 0 || status.Dynamizations.Count != 1 ||
+                    status.Dynamizations.Find("Text") == null)
+                {
+                    throw new InvalidOperationException(
+                        "Refusing to replace PLC/HMI footer text because its verified binding/event shape changed: " +
+                        screen.Name + "|events=" + status.EventHandlers.Count +
+                        "|dynamizations=" + status.Dynamizations.Count);
+                }
+
+                ConfigureNumericDynamization(status, "Text", "", heartbeatScript);
+                ConfigureNumericDynamization(status, "ForeColor", "", colorScript);
+                updated++;
+            }
+
+            if (updated == 0)
+            {
+                throw new InvalidOperationException(
+                    "No REV13 common footer was found for the HMI heartbeat link.");
+            }
+
+            Console.WriteLine("HMI_HEARTBEAT_FOOTERS_UPDATED=" + updated);
+        }
+
+        private static void ApplyHomeHmiLinkLamp(HmiSoftware hmi)
+        {
+            HmiScreen home = hmi.Screens.Find("home");
+            if (home == null)
+                throw new InvalidOperationException("Home screen not found.");
+
+            // Remove every verified legacy PLC/HMI footer object before positioning the
+            // single live status group inside the dark footer.
+            string[] legacyNames =
+            {
+                "REV12_Exact_Bottom_Connection",
+                "REV12_Exact_Bottom_PlcHmi",
+                "REF01_FooterConnectionLamp",
+                "REF01_FooterPlcLamp",
+                "REV13_Common_BottomInfo_1",
+                "REV13_Production_BottleUnavailable"
+            };
+            foreach (string legacyName in legacyNames) DeleteItem(home, legacyName);
+
+            HmiText status = home.ScreenItems.Find("REV13_Common_BottomInfo") as HmiText;
+            if (status == null)
+                throw new InvalidOperationException("Home PLC/HMI footer text was not found.");
+
+            ConfigureText(status, 875, 754, 280, 38,
+                "LINK STARTING / OFFLINE     PLC / HMI", Color.White, 12,
+                HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+            DynamizationBase existingColor = status.Dynamizations.Find("ForeColor");
+            if (existingColor != null) existingColor.Delete();
+            ConfigureNumericDynamization(status, "Text", "",
+                "let ht=HMIRuntime.Tags(\"HMI_Heartbeat\");let h=Number(ht.Read());" +
+                "if(!Number.isFinite(h)||h>=2147483000||h<0){h=0;}" +
+                "try{ht.Write(h+1);}catch(e){}" +
+                "let st=HMIRuntime.Tags(\"Network_HMI_OK\");let q=Boolean(st.Read());" +
+                "let qc=Number(st.QualityCode);let live=st.LastError===0&&(qc&192)>=128&&q;" +
+                "return live?\"LINK ONLINE     PLC / HMI\":\"LINK STARTING / OFFLINE     PLC / HMI\";");
+
+            HmiEllipse lamp = GetOrCreate<HmiEllipse>(home, "REV28_Home_HmiLinkLamp");
+            lamp.CenterX = 865;
+            lamp.CenterY = 772;
+            lamp.RadiusX = 6;
+            lamp.RadiusY = 6;
+            lamp.BackColor = Amber;
+            lamp.BorderColor = Amber;
+            lamp.BorderWidth = 0;
+            lamp.BackFillPattern = HmiFillPattern.Solid;
+            lamp.Visible = true;
+            lamp.Enabled = false;
+            ConfigureNumericDynamization(lamp, "BackColor", "",
+                "let st=HMIRuntime.Tags(\"Network_HMI_OK\");let q=Boolean(st.Read());" +
+                "let qc=Number(st.QualityCode);let live=st.LastError===0&&(qc&192)>=128&&q;" +
+                "return live?HMIRuntime.Math.RGB(80,205,70):HMIRuntime.Math.RGB(235,160,30);");
+
+            Console.WriteLine("HOME_HMI_LINK_LEGACY_OBJECTS_REMOVED=VERIFIED_SET");
+        }
+
+        private static void ApplyHmiLinkLampsToAllScreens(HmiSoftware hmi)
+        {
+            int updated = 0;
+            int legacyRemoved = 0;
+            const string textScript =
+                "let ht=HMIRuntime.Tags(\"HMI_Heartbeat\");let h=Number(ht.Read());" +
+                "if(!Number.isFinite(h)||h>=2147483000||h<0){h=0;}" +
+                "try{ht.Write(h+1);}catch(e){}" +
+                "let st=HMIRuntime.Tags(\"Network_HMI_OK\");let q=Boolean(st.Read());" +
+                "let qc=Number(st.QualityCode);let live=st.LastError===0&&(qc&192)>=128&&q;" +
+                "return live?\"LINK ONLINE     PLC / HMI\":\"LINK STARTING / OFFLINE     PLC / HMI\";";
+            const string lampScript =
+                "let st=HMIRuntime.Tags(\"Network_HMI_OK\");let q=Boolean(st.Read());" +
+                "let qc=Number(st.QualityCode);let live=st.LastError===0&&(qc&192)>=128&&q;" +
+                "return live?HMIRuntime.Math.RGB(80,205,70):HMIRuntime.Math.RGB(235,160,30);";
+
+            foreach (HmiScreen screen in hmi.Screens.OrderBy(candidate => candidate.Name))
+            {
+                HmiText status = screen.ScreenItems.Find("REV13_Common_BottomInfo") as HmiText;
+                if (status == null) continue;
+
+                string[] legacyNames =
+                {
+                    "REV12_Exact_Bottom_Connection",
+                    "REV12_Exact_Bottom_PlcHmi",
+                    "REF01_FooterConnectionLamp",
+                    "REF01_FooterPlcLamp",
+                    "REV13_Common_BottomInfo_1",
+                    "REV13_Production_BottleUnavailable"
+                };
+                foreach (string legacyName in legacyNames)
+                {
+                    HmiScreenItemBase legacy = screen.ScreenItems.Find(legacyName);
+                    if (legacy == null) continue;
+                    legacy.Delete();
+                    legacyRemoved++;
+                }
+
+                // Recreate only the verified text object so it becomes foreground content.
+                // Its sole Text dynamization is restored below; it has no events.
+                status.Delete();
+                status = screen.ScreenItems.Create<HmiText>("REV13_Common_BottomInfo");
+
+                ConfigureText(status, 875, 754, 280, 38,
+                    "LINK STARTING / OFFLINE     PLC / HMI", Color.White, 12,
+                    HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+                DynamizationBase existingColor = status.Dynamizations.Find("ForeColor");
+                if (existingColor != null) existingColor.Delete();
+                ConfigureNumericDynamization(status, "Text", "", textScript);
+
+                bool isHome = screen.Name.Equals("home", StringComparison.OrdinalIgnoreCase);
+                string lampName = isHome
+                    ? "REV28_Home_HmiLinkLamp"
+                    : "REV28_Common_HmiLinkLamp";
+                string obsoleteLampName = isHome
+                    ? "REV28_Common_HmiLinkLamp"
+                    : "REV28_Home_HmiLinkLamp";
+                DeleteItem(screen, obsoleteLampName);
+
+                HmiEllipse lamp = GetOrCreate<HmiEllipse>(screen, lampName);
+                lamp.CenterX = 865;
+                lamp.CenterY = 772;
+                lamp.RadiusX = 6;
+                lamp.RadiusY = 6;
+                lamp.BackColor = Amber;
+                lamp.BorderColor = Amber;
+                lamp.BorderWidth = 0;
+                lamp.BackFillPattern = HmiFillPattern.Solid;
+                lamp.Visible = true;
+                lamp.Enabled = false;
+                ConfigureNumericDynamization(lamp, "BackColor", "", lampScript);
+
+                string[] footerBackgroundNames =
+                {
+                    "REV12_Nav_Back",
+                    "REV52_Manual_Footer_Back",
+                    "REV13_Common_Bottom"
+                };
+                foreach (string footerBackgroundName in footerBackgroundNames)
+                {
+                    HmiScreenItemBase footerBackground = screen.ScreenItems.Find(footerBackgroundName);
+                    if (footerBackground == null) continue;
+                    if (screen.ScreenItems.IndexOf(status) <= screen.ScreenItems.IndexOf(footerBackground) ||
+                        screen.ScreenItems.IndexOf(lamp) <= screen.ScreenItems.IndexOf(footerBackground))
+                    {
+                        throw new InvalidOperationException(
+                            "PLC/HMI footer foreground validation failed: " + screen.Name +
+                            "|background=" + footerBackgroundName);
+                    }
+                }
+
+                foreach (string legacyName in legacyNames)
+                {
+                    if (screen.ScreenItems.Find(legacyName) != null)
+                    {
+                        throw new InvalidOperationException(
+                            "Legacy PLC/HMI footer object remained after cleanup: " +
+                            screen.Name + "|" + legacyName);
+                    }
+                }
+                bool footerVerified = status.Left == 875 && status.Top == 754 &&
+                    status.Width == 280 && status.Height == 38 &&
+                    status.ForeColor.ToArgb() == Color.White.ToArgb() && status.Dynamizations.Find("ForeColor") == null &&
+                    status.Dynamizations.Find("Text") != null && lamp.CenterX == 865 && lamp.CenterY == 772 &&
+                    lamp.RadiusX == 6 && lamp.RadiusY == 6 && lamp.BorderWidth == 0 &&
+                    lamp.Dynamizations.Find("BackColor") != null;
+                Console.WriteLine(
+                    "HMI_LINK_VERIFY={0}|TEXT={1},{2},{3},{4}|WHITE={5}|TEXT_DYN={6}|FORE_DYN={7}|" +
+                    "LAMP={8},{9},{10},{11}|BORDER={12}|LAMP_DYN={13}",
+                    screen.Name, status.Left, status.Top, status.Width, status.Height,
+                    status.ForeColor.ToArgb() == Color.White.ToArgb(), status.Dynamizations.Find("Text") != null,
+                    status.Dynamizations.Find("ForeColor") != null, lamp.CenterX, lamp.CenterY,
+                    lamp.RadiusX, lamp.RadiusY, lamp.BorderWidth,
+                    lamp.Dynamizations.Find("BackColor") != null);
+                Console.WriteLine("HMI_LINK_ZORDER={0}|TEXT_INDEX={1}|LAMP_INDEX={2}|ITEMS={3}",
+                    screen.Name, screen.ScreenItems.IndexOf(status), screen.ScreenItems.IndexOf(lamp),
+                    screen.ScreenItems.Count);
+                if (!footerVerified)
+                {
+                    throw new InvalidOperationException(
+                        "PLC/HMI footer verification failed on screen: " + screen.Name);
+                }
+
+                updated++;
+                Console.WriteLine("HMI_LINK_LAMP_SCREEN=" + screen.Name);
+            }
+
+            if (updated == 0)
+            {
+                throw new InvalidOperationException(
+                    "No REV13 common footer was found for the all-screen HMI link correction.");
+            }
+
+            Console.WriteLine("HMI_LINK_LAMP_SCREENS_UPDATED=" + updated);
+            Console.WriteLine("HMI_LINK_LEGACY_OBJECTS_REMOVED=" + legacyRemoved);
+        }
+
+        private static void ApplyRuntimeLoginControlToAllCommonScreens(HmiSoftware hmi)
+        {
+            HmiScreen home = hmi.Screens.Find("home");
+            if (home == null)
+                throw new InvalidOperationException("Home screen was not found for the approved user-header master.");
+            HmiGraphicView masterIcon = home.ScreenItems.Find(
+                "REV21_Common_User_Profile_Icon") as HmiGraphicView;
+            HmiText masterUserLabel = home.ScreenItems.Find(
+                "REV12_Production_User_Header_1") as HmiText;
+            HmiButton masterLogin = home.ScreenItems.Find(
+                "REV54_Common_User_Login") as HmiButton;
+            HmiText masterAlarm = home.ScreenItems.Find(
+                "REV13_Common_AlarmText") as HmiText;
+            if (masterIcon == null || masterUserLabel == null || masterLogin == null || masterAlarm == null)
+                throw new InvalidOperationException(
+                    "The operator-approved Home user/alarm header objects are incomplete.");
+
+            // The operator positioned these three controls directly on Home.  Home is
+            // now the geometry/style master; do not reconstruct its placement from an
+            // assumed screen size.
+            SetText(masterUserLabel.Text, "USER");
+            masterUserLabel.Visible = true;
+            masterUserLabel.Enabled = false;
+
+            int updated = 0;
+            foreach (HmiScreen screen in hmi.Screens.OrderBy(candidate => candidate.Name))
+            {
+                HmiText commonFooter = screen.ScreenItems.Find(
+                    "REV13_Common_BottomInfo") as HmiText;
+                if (commonFooter == null) continue;
+
+                HmiText userHeader = screen.ScreenItems.Find(
+                    "REV12_Production_User_Header") as HmiText;
+                if (userHeader != null) userHeader.Visible = false;
+
+                HmiText userLabel = GetOrCreate<HmiText>(screen,
+                    "REV12_Production_User_Header_1");
+                if (!Object.ReferenceEquals(userLabel, masterUserLabel))
+                    CopyRevision25FrameProperties(masterUserLabel, userLabel);
+                DynamizationBase oldUserText = userLabel.Dynamizations.Find("Text");
+                if (oldUserText != null) oldUserText.Delete();
+                SetText(userLabel.Text, "USER");
+                userLabel.Visible = true;
+                userLabel.Enabled = false;
+
+                HmiGraphicView userIcon = GetOrCreate<HmiGraphicView>(screen,
+                    "REV21_Common_User_Profile_Icon");
+                if (!Object.ReferenceEquals(userIcon, masterIcon))
+                    CopyRevision25FrameProperties(masterIcon, userIcon);
+
+                HmiButton login = GetOrCreate<HmiButton>(screen,
+                    "REV54_Common_User_Login");
+                if (!Object.ReferenceEquals(login, masterLogin))
+                    CopyRevision25FrameProperties(masterLogin, login);
+                login.Enabled = true;
+                login.Visible = true;
+                ConfigureNumericDynamization(login, "Text", "",
+                    "let u=String(HMIRuntime.Tags(\"@UserName\").Read());" +
+                    "if(!u||u===\"DefaultUser\"||u===\"Anonymous\"){return \"LOGIN\";}" +
+                    "return u;");
+
+                HmiButtonEventHandler tapped = login.EventHandlers.Find(
+                    HmiButtonEventType.Tapped);
+                if (tapped == null)
+                    tapped = login.EventHandlers.Create(HmiButtonEventType.Tapped);
+                tapped.Script.ScriptCode =
+                    "HMIRuntime.UI.UserManagement.SysFct.ShowLoginDialog();";
+
+                HmiText alarmHeader = GetOrCreate<HmiText>(screen,
+                    "REV13_Common_AlarmText");
+                if (!Object.ReferenceEquals(alarmHeader, masterAlarm))
+                    CopyRevision25FrameProperties(masterAlarm, alarmHeader);
+                ConfigureCommonAlarmCount(alarmHeader);
+
+                updated++;
+                Console.WriteLine("RUNTIME_LOGIN_CONTROL=" + screen.Name +
+                    "|USER_LABEL=USER|USER=@UserName|ACTION=ShowLoginDialog" +
+                    "|ICON=" + userIcon.Left + "," + userIcon.Top + "," + userIcon.Width + "," + userIcon.Height +
+                    "|LABEL=" + userLabel.Left + "," + userLabel.Top + "," + userLabel.Width + "," + userLabel.Height +
+                    "|LOGIN=" + login.Left + "," + login.Top + "," + login.Width + "," + login.Height +
+                    "|ALARM_COUNT=Alarm_Word1+Alarm_Word2");
+            }
+
+            Console.WriteLine("RUNTIME_LOGIN_CONTROLS_UPDATED=" + updated);
+            Console.WriteLine("COMMON_ALARM_COUNTS_UPDATED=" + updated);
+            Console.WriteLine("RUNTIME_USER_ACCOUNTS_MODIFIED=0");
+        }
+
+        private static void ConfigureCommonAlarmCount(HmiText alarmHeader)
+        {
+            SetText(alarmHeader.Text, "ALARMS 0");
+            string countPrefix =
+                "let ar=Number(HMIRuntime.Tags(\"Alarm_Word1\").Read());" +
+                "let br=Number(HMIRuntime.Tags(\"Alarm_Word2\").Read());" +
+                "if(!Number.isFinite(ar)||!Number.isFinite(br)){";
+            ConfigureNumericDynamization(alarmHeader, "Text", "", countPrefix +
+                "return \"ALARMS --\";}" +
+                "let a=ar>>>0;let b=br>>>0;let c=0;" +
+                "while(a){c+=a&1;a=a>>>1;}while(b){c+=b&1;b=b>>>1;}" +
+                "return \"ALARMS \"+c;");
+            ConfigureNumericDynamization(alarmHeader, "ForeColor", "", countPrefix +
+                "return HMIRuntime.Math.RGB(235,160,30);}" +
+                "let a=ar>>>0;let b=br>>>0;let c=0;" +
+                "while(a){c+=a&1;a=a>>>1;}while(b){c+=b&1;b=b>>>1;}" +
+                "if(c>0){return HMIRuntime.Math.RGB(205,45,45);}" +
+                "return HMIRuntime.Math.RGB(102,120,142);");
+        }
+
+        private static void AuditHmiLinkFooter(HmiSoftware hmi)
+        {
+            foreach (HmiScreen screen in hmi.Screens.OrderBy(candidate => candidate.Name))
+            {
+                foreach (HmiScreenItemBase item in screen.ScreenItems.OrderBy(candidate => candidate.Name))
+                {
+                    bool nameMatch = item.Name.IndexOf("Bottom", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        item.Name.IndexOf("Connection", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        item.Name.IndexOf("PlcHmi", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        item.Name.IndexOf("Link", StringComparison.OrdinalIgnoreCase) >= 0;
+                    int top = -1;
+                    int left = -1;
+                    int width = -1;
+                    int height = -1;
+                    HmiEllipse ellipse = item as HmiEllipse;
+                    if (ellipse != null)
+                    {
+                        top = checked((int)(ellipse.CenterY - ellipse.RadiusY));
+                        left = checked((int)(ellipse.CenterX - ellipse.RadiusX));
+                        width = checked((int)(ellipse.RadiusX * 2));
+                        height = checked((int)(ellipse.RadiusY * 2));
+                    }
+                    else
+                    {
+                        PropertyInfo topProperty = item.GetType().GetProperty("Top");
+                        PropertyInfo leftProperty = item.GetType().GetProperty("Left");
+                        PropertyInfo widthProperty = item.GetType().GetProperty("Width");
+                        PropertyInfo heightProperty = item.GetType().GetProperty("Height");
+                        if (topProperty != null) top = Convert.ToInt32(topProperty.GetValue(item, null));
+                        if (leftProperty != null) left = Convert.ToInt32(leftProperty.GetValue(item, null));
+                        if (widthProperty != null) width = Convert.ToInt32(widthProperty.GetValue(item, null));
+                        if (heightProperty != null) height = Convert.ToInt32(heightProperty.GetValue(item, null));
+                    }
+                    if (!nameMatch && top < 700) continue;
+                    Console.WriteLine("FOOTER_ITEM={0}|{1}|{2},{3},{4},{5}|VISIBLE={6}",
+                        screen.Name, item.Name, left, top, width, height, item.Visible);
+                }
+            }
         }
 
         private static void BuildPilzPlcHmiImplementation(HmiSoftware hmi)
@@ -9026,11 +10258,11 @@ namespace Schlenker.TiaV19
             {
                 { HmiAlarmBlock.ID, 70 },
                 { HmiAlarmBlock.Class, 105 },
-                { HmiAlarmBlock.AlarmText1, 430 },
-                { HmiAlarmBlock.EventText, 430 },
-                { HmiAlarmBlock.RaiseTime, 165 },
-                { HmiAlarmBlock.AcknowledgmentState, 135 },
-                { HmiAlarmBlock.StateText, 115 }
+                { HmiAlarmBlock.AlarmText1, 300 },
+                { HmiAlarmBlock.EventText, 300 },
+                { HmiAlarmBlock.RaiseTime, 155 },
+                { HmiAlarmBlock.AcknowledgmentState, 100 },
+                { HmiAlarmBlock.StateText, 100 }
             };
             foreach (HmiAlarmColumnPart column in grid.Columns.OfType<HmiAlarmColumnPart>())
             {
@@ -9316,48 +10548,55 @@ namespace Schlenker.TiaV19
 
         private static void ConfigureAlarmColumns(HmiDataGridViewPart grid)
         {
+            List<HmiAlarmColumnPart> alarmColumns = grid.Columns
+                .OfType<HmiAlarmColumnPart>().ToList();
+            List<HmiAlarmColumnPart> operatorTextColumns = alarmColumns
+                .Where(column => column.AlarmBlock == HmiAlarmBlock.AlarmText1 ||
+                                 column.AlarmBlock == HmiAlarmBlock.Information)
+                .ToList();
+            if (operatorTextColumns.Count < 2)
+                throw new InvalidOperationException(
+                    "The alarm table requires separate description and action columns.");
+            HmiAlarmColumnPart alarmTextColumn = operatorTextColumns.First();
+            HmiAlarmColumnPart detailColumn = operatorTextColumns.Last();
+            alarmTextColumn.AlarmBlock = HmiAlarmBlock.AlarmText1;
+            detailColumn.AlarmBlock = HmiAlarmBlock.Information;
             HmiAlarmBlock[] preferredOrder =
             {
-                HmiAlarmBlock.RaiseTime,
                 HmiAlarmBlock.ID,
                 HmiAlarmBlock.Class,
                 HmiAlarmBlock.AlarmText1,
-                HmiAlarmBlock.EventText,
-                HmiAlarmBlock.StateText,
-                HmiAlarmBlock.AcknowledgmentState
+                HmiAlarmBlock.Information,
+                HmiAlarmBlock.RaiseTime,
+                HmiAlarmBlock.AcknowledgmentState,
+                HmiAlarmBlock.StateText
             };
             Dictionary<HmiAlarmBlock, uint> widths = new Dictionary<HmiAlarmBlock, uint>
             {
-                { HmiAlarmBlock.RaiseTime, 180 },
-                { HmiAlarmBlock.ID, 90 },
-                { HmiAlarmBlock.Class, 120 },
-                { HmiAlarmBlock.AlarmText1, 485 },
-                { HmiAlarmBlock.EventText, 485 },
-                { HmiAlarmBlock.StateText, 135 },
-                { HmiAlarmBlock.AcknowledgmentState, 140 }
+                { HmiAlarmBlock.RaiseTime, 155 },
+                { HmiAlarmBlock.ID, 60 },
+                { HmiAlarmBlock.Class, 90 },
+                { HmiAlarmBlock.AlarmText1, 300 },
+                { HmiAlarmBlock.Information, 330 },
+                { HmiAlarmBlock.StateText, 90 },
+                { HmiAlarmBlock.AcknowledgmentState, 100 }
             };
             Dictionary<HmiAlarmBlock, string> headers = new Dictionary<HmiAlarmBlock, string>
             {
                 { HmiAlarmBlock.RaiseTime, "DATE / TIME" },
                 { HmiAlarmBlock.ID, "ID" },
                 { HmiAlarmBlock.Class, "CLASS" },
-                { HmiAlarmBlock.AlarmText1, "ALARM TEXT" },
-                { HmiAlarmBlock.EventText, "ALARM TEXT" },
+                { HmiAlarmBlock.AlarmText1, "ALARM DESCRIPTION" },
+                { HmiAlarmBlock.Information, "DETAIL / ACTION" },
                 { HmiAlarmBlock.StateText, "STATE" },
                 { HmiAlarmBlock.AcknowledgmentState, "ACKNOWLEDGED" }
             };
 
-            bool hasAlarmText1 = grid.Columns.OfType<HmiAlarmColumnPart>()
-                .Any(column => column.AlarmBlock == HmiAlarmBlock.AlarmText1);
-            foreach (HmiAlarmColumnPart column in grid.Columns.OfType<HmiAlarmColumnPart>())
+            foreach (HmiAlarmColumnPart column in alarmColumns)
             {
                 bool selected = preferredOrder.Contains(column.AlarmBlock);
-                if (hasAlarmText1 && column.AlarmBlock == HmiAlarmBlock.EventText)
-                {
-                    selected = false;
-                }
                 column.Visible = selected;
-                column.Enabled = true;
+                column.Enabled = selected;
                 column.AllowSort = true;
                 column.UseAlarmColors = true;
                 if (widths.ContainsKey(column.AlarmBlock))
@@ -10231,12 +11470,31 @@ namespace Schlenker.TiaV19
         private static void BuildConveyorSettings(HmiSoftware hmi)
         {
             HmiScreen screen = GetOrCreateScreen(hmi, "conveyor_settings");
-            ConfigurePageChrome(screen, "CONVEYOR SETTINGS", "SETUP",
-                "SYNCHRONISED SPEED AND NORMAL-STOP RUN-ON  |  SAFETY STOPS REMAIN IMMEDIATE");
-            AddNavigationRail(screen, "SETUP");
+
+            // This screen is fully generated. Rebuild it in strict Z-order:
+            // one Production master frame first, followed by page content.
+            // Keeping the earlier REV12 and REV13 frames together placed the
+            // full-screen background above the content at Runtime.
+            foreach (HmiScreenItemBase item in screen.ScreenItems.ToArray())
+                item.Delete();
+            ApplyRevision25ProductionMasterFrameExact(null, hmi,
+                "conveyor_settings");
+            ApplyConveyorUserHeaderAndFooter(hmi, screen);
+
+            // CONVEYOR_SETTINGS is a Production subpage. Keep the Production
+            // navigation highlight, but make it actionable as the return path.
+            HmiButton productionReturn = screen.ScreenItems.Find(
+                "REV13_Nav_Button_PRODUCTION") as HmiButton;
+            if (productionReturn == null)
+                throw new InvalidOperationException(
+                    "Production navigation button is missing on conveyor_settings.");
+            productionReturn.Enabled = true;
+            productionReturn.BackColor = Color.FromArgb(0, 90, 205);
+            ConfigureScreenNavigation(productionReturn,
+                "production", "PRODUCTION");
 
             ConfigureRectangle(GetOrCreate<HmiRectangle>(screen,
-                "ROB_Conveyor_Settings_Panel"), 25, 140, 1165, 575,
+                "ROB_Conveyor_Settings_Panel"), 25, 140, 1110, 575,
                 Panel, Border, 1);
             ConfigureText(GetOrCreate<HmiText>(screen,
                 "ROB_Conveyor_Settings_Title"), 55, 155, 1080, 34,
@@ -10266,8 +11524,8 @@ namespace Schlenker.TiaV19
                 "?HMIRuntime.Math.RGB(28,145,82):HMIRuntime.Math.RGB(25,111,180);");
 
             ConfigureText(GetOrCreate<HmiText>(screen,
-                "ROB_Conveyor_Mode_Note"), 445, 215, 690, 58,
-                "SYNC MODE follows the main-machine speed reference and applies only a positive offset. Independent mode uses the base conveyor speed.",
+                "ROB_Conveyor_Mode_Note"), 445, 215, 670, 58,
+                "SYNC MODE follows the main-machine reference and adds only a positive offset.\nINDEPENDENT MODE uses the base conveyor speed.",
                 Dark, 13, HmiFontWeight.Normal, HmiHorizontalAlignment.Left);
 
             ConfigureText(GetOrCreate<HmiText>(screen,
@@ -10312,29 +11570,59 @@ namespace Schlenker.TiaV19
                 "LIVE COORDINATION STATUS", Navy, 15,
                 HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
             ConfigureText(GetOrCreate<HmiText>(screen,
-                "ROB_Conveyor_Sync_Status"), 55, 555, 500, 48,
+                "ROB_Conveyor_Sync_Status"), 55, 555, 500, 26,
                 "SYNC STATUS", Dark, 14, HmiFontWeight.Bold,
                 HmiHorizontalAlignment.Center);
-            ConfigureNumericDynamization(GetOrCreate<HmiText>(screen,
-                "ROB_Conveyor_Sync_Status"), "Text", "",
+            HmiRectangle syncStateBack = GetOrCreate<HmiRectangle>(screen,
+                "ROB_Conveyor_Sync_State_Back");
+            ConfigureRectangle(syncStateBack, 150, 588, 310, 42,
+                Grey, Border, 1);
+            ConfigureNumericDynamization(syncStateBack, "BackColor", "",
+                "let q=Boolean(HMIRuntime.Tags(\"Network_HMI_OK\").Read());" +
+                "if(!q){return HMIRuntime.Math.RGB(145,150,155);}" +
+                "let e=Boolean(HMIRuntime.Tags(\"Conveyor_Sync_Enable\").Read());" +
+                "let a=Boolean(HMIRuntime.Tags(\"Conveyor_Sync_Active\").Read());" +
+                "if(!e){return HMIRuntime.Math.RGB(25,111,180);}" +
+                "return a?HMIRuntime.Math.RGB(28,145,82):HMIRuntime.Math.RGB(235,160,30);");
+            HmiText syncState = GetOrCreate<HmiText>(screen,
+                "ROB_Conveyor_Sync_State");
+            ConfigureText(syncState, 150, 588, 310, 42,
+                "NO DATA", Color.White, 14, HmiFontWeight.Bold,
+                HmiHorizontalAlignment.Center);
+            ConfigureNumericDynamization(syncState, "Text", "",
                 "let q=Boolean(HMIRuntime.Tags(\"Network_HMI_OK\").Read());" +
                 "if(!q){return \"NO DATA\";}" +
-                "return Boolean(HMIRuntime.Tags(\"Conveyor_Sync_Active\").Read())" +
-                "?\"SYNCHRONISED\":\"INDEPENDENT / STOPPED\";");
+                "let e=Boolean(HMIRuntime.Tags(\"Conveyor_Sync_Enable\").Read());" +
+                "let a=Boolean(HMIRuntime.Tags(\"Conveyor_Sync_Active\").Read());" +
+                "if(!e){return \"INDEPENDENT MODE\";}" +
+                "return a?\"SYNCHRONISED\":\"WAITING FOR SYNC\";");
             ConfigureText(GetOrCreate<HmiText>(screen,
-                "ROB_Conveyor_RunOn_Status"), 610, 555, 500, 48,
+                "ROB_Conveyor_RunOn_Status"), 610, 555, 500, 26,
                 "RUN-ON STATUS", Dark, 14, HmiFontWeight.Bold,
                 HmiHorizontalAlignment.Center);
-            ConfigureNumericDynamization(GetOrCreate<HmiText>(screen,
-                "ROB_Conveyor_RunOn_Status"), "Text", "",
+            HmiRectangle runOnStateBack = GetOrCreate<HmiRectangle>(screen,
+                "ROB_Conveyor_RunOn_State_Back");
+            ConfigureRectangle(runOnStateBack, 705, 588, 310, 42,
+                Grey, Border, 1);
+            ConfigureNumericDynamization(runOnStateBack, "BackColor", "",
+                "let q=Boolean(HMIRuntime.Tags(\"Network_HMI_OK\").Read());" +
+                "if(!q){return HMIRuntime.Math.RGB(145,150,155);}" +
+                "return Boolean(HMIRuntime.Tags(\"Conveyor_RunOn_Active\").Read())" +
+                "?HMIRuntime.Math.RGB(235,160,30):HMIRuntime.Math.RGB(145,150,155);");
+            HmiText runOnState = GetOrCreate<HmiText>(screen,
+                "ROB_Conveyor_RunOn_State");
+            ConfigureText(runOnState, 705, 588, 310, 42,
+                "NO DATA", Color.White, 14, HmiFontWeight.Bold,
+                HmiHorizontalAlignment.Center);
+            ConfigureNumericDynamization(runOnState, "Text", "",
                 "let q=Boolean(HMIRuntime.Tags(\"Network_HMI_OK\").Read());" +
                 "if(!q){return \"NO DATA\";}" +
                 "return Boolean(HMIRuntime.Tags(\"Conveyor_RunOn_Active\").Read())" +
                 "?\"RUN-ON ACTIVE\":\"RUN-ON INACTIVE\";");
 
             ConfigureText(GetOrCreate<HmiText>(screen,
-                "ROB_Conveyor_Safety_Note"), 55, 625, 1080, 54,
-                "SAFETY NOTE - Emergency stop, guard/safety loss or critical alarm cancels the conveyor command immediately. The run-on applies only to a normal production stop.",
+                "ROB_Conveyor_Safety_Note"), 67, 650, 1044, 54,
+                "SAFETY - E-stop, open guard, safety loss or critical alarm cancels the conveyor immediately.\nRun-on applies only to a normal production stop.",
                 Red, 12, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
 
             HmiScreen production = hmi.Screens.Find("production");
@@ -10346,23 +11634,158 @@ namespace Schlenker.TiaV19
                 "conveyor_settings", "PRODUCTION");
         }
 
+        private static void ApplyConveyorUserHeaderAndFooter(
+            HmiSoftware hmi,
+            HmiScreen screen)
+        {
+            HmiScreen home = hmi.Screens.Find("home");
+            if (home == null)
+                throw new InvalidOperationException(
+                    "Home screen was not found for the conveyor common header.");
+
+            HmiGraphicView masterIcon = home.ScreenItems.Find(
+                "REV21_Common_User_Profile_Icon") as HmiGraphicView;
+            HmiText masterUserLabel = home.ScreenItems.Find(
+                "REV12_Production_User_Header_1") as HmiText;
+            HmiButton masterLogin = home.ScreenItems.Find(
+                "REV54_Common_User_Login") as HmiButton;
+            if (masterIcon == null || masterUserLabel == null || masterLogin == null)
+                throw new InvalidOperationException(
+                    "The approved Home user header is incomplete.");
+
+            HmiText obsoleteUserLabel = screen.ScreenItems.Find(
+                "REV12_Production_User_Header") as HmiText;
+            if (obsoleteUserLabel != null) obsoleteUserLabel.Visible = false;
+
+            HmiGraphicView userIcon = GetOrCreate<HmiGraphicView>(screen,
+                "REV21_Common_User_Profile_Icon");
+            CopyRevision25FrameProperties(masterIcon, userIcon);
+
+            HmiText userLabel = GetOrCreate<HmiText>(screen,
+                "REV12_Production_User_Header_1");
+            CopyRevision25FrameProperties(masterUserLabel, userLabel);
+            DynamizationBase oldUserText = userLabel.Dynamizations.Find("Text");
+            if (oldUserText != null) oldUserText.Delete();
+            SetText(userLabel.Text, "USER");
+            userLabel.Visible = true;
+            userLabel.Enabled = false;
+
+            HmiButton login = GetOrCreate<HmiButton>(screen,
+                "REV54_Common_User_Login");
+            CopyRevision25FrameProperties(masterLogin, login);
+            login.Enabled = true;
+            login.Visible = true;
+            ConfigureNumericDynamization(login, "Text", "",
+                "let u=String(HMIRuntime.Tags(\"@UserName\").Read());" +
+                "if(!u||u===\"DefaultUser\"||u===\"Anonymous\"){return \"LOGIN\";}" +
+                "return u;");
+            HmiButtonEventHandler tapped = login.EventHandlers.Find(
+                HmiButtonEventType.Tapped);
+            if (tapped == null)
+                tapped = login.EventHandlers.Create(HmiButtonEventType.Tapped);
+            tapped.Script.ScriptCode =
+                "HMIRuntime.UI.UserManagement.SysFct.ShowLoginDialog();";
+
+            ApplyHomeFooterReference(home, screen);
+        }
+
+        private static void ApplyHomeFooterReference(
+            HmiScreen home,
+            HmiScreen target)
+        {
+            HmiScreenItemBase[] oldFooterItems = target.ScreenItems.Where(item =>
+            {
+                if (IsReplaceableNavigationItem(item) ||
+                    item.Name.Equals("REF05_NavActiveBar", StringComparison.OrdinalIgnoreCase))
+                    return false;
+                double top;
+                return TryReadNumericProperty(item, "Top", out top) &&
+                    top >= 712 && top < 800;
+            }).ToArray();
+            foreach (HmiScreenItemBase item in oldFooterItems) item.Delete();
+
+            HmiScreenItemBase[] homeFooterItems = home.ScreenItems.Where(item =>
+            {
+                if (IsReplaceableNavigationItem(item) ||
+                    item.Name.Equals("REF05_NavActiveBar", StringComparison.OrdinalIgnoreCase) ||
+                    item.Name.Equals("REV13_Common_Bottom", StringComparison.OrdinalIgnoreCase))
+                    return false;
+                double top;
+                return TryReadNumericProperty(item, "Top", out top) &&
+                    top >= 712 && top < 800;
+            }).ToArray();
+            if (homeFooterItems.Length == 0)
+                throw new InvalidOperationException(
+                    "The approved Home footer contains no foreground objects.");
+
+            foreach (HmiScreenItemBase source in homeFooterItems)
+            {
+                HmiScreenItemBase copy = CreateRevision25FrameItem(target, source);
+                CopyRevision25FrameProperties(source, copy);
+                CopyNavigationSpecificProperties(source, copy);
+
+                HmiButton sourceButton = source as HmiButton;
+                HmiButton targetButton = copy as HmiButton;
+                if (sourceButton != null && targetButton != null)
+                {
+                    foreach (HmiButtonEventHandler handler in targetButton.EventHandlers.ToArray())
+                        handler.Delete();
+                    foreach (HmiButtonEventHandler handler in sourceButton.EventHandlers)
+                    {
+                        HmiButtonEventHandler created =
+                            targetButton.EventHandlers.Create(handler.EventType);
+                        created.Script.ScriptCode = handler.Script.ScriptCode;
+                    }
+                }
+            }
+
+            HmiText footer = target.ScreenItems.Find(
+                "REV13_Common_BottomInfo") as HmiText;
+            if (footer == null)
+                throw new InvalidOperationException(
+                    "The approved Home footer has no PLC/HMI link status object.");
+            ConfigureNumericDynamization(footer, "Text", "",
+                "let ht=HMIRuntime.Tags(\"HMI_Heartbeat\");let h=Number(ht.Read());" +
+                "if(!Number.isFinite(h)||h>=2147483000||h<0){h=0;}" +
+                "try{ht.Write(h+1);}catch(e){}" +
+                "let st=HMIRuntime.Tags(\"Network_HMI_OK\");let q=Boolean(st.Read());" +
+                "let qc=Number(st.QualityCode);let live=st.LastError===0&&(qc&192)>=128&&q;" +
+                "return live?\"● LINK ONLINE     PLC / HMI\":\"● LINK STARTING / OFFLINE     PLC / HMI\";");
+            ConfigureNumericDynamization(footer, "ForeColor", "",
+                "let st=HMIRuntime.Tags(\"Network_HMI_OK\");let q=Boolean(st.Read());" +
+                "let qc=Number(st.QualityCode);let live=st.LastError===0&&(qc&192)>=128&&q;" +
+                "return live?HMIRuntime.Math.RGB(80,205,70):HMIRuntime.Math.RGB(235,160,30);");
+            Console.WriteLine("CONVEYOR_FOOTER_SOURCE=HOME|OBJECTS=" +
+                homeFooterItems.Length);
+        }
+
         private static void BuildStartupSafeState(HmiSoftware hmi)
         {
             HmiScreen screen = GetOrCreateScreen(hmi, "startup_safe_state");
-            ConfigurePageChrome(screen, "STARTUP SAFE STATE", "DIAGNOSTICS",
-                "PLC COMMAND CHECK  |  START IS BLOCKED UNTIL EVERY MONITORED COMMAND IS OFF");
-            AddNavigationRail(screen, "DIAGNOSTICS");
+
+            // Establish the complete shared frame first. Page content is then
+            // created above the frame, preventing the common white surface from
+            // hiding the startup checklist at Runtime.
+            ApplyRevision25ProductionMasterFrameExact(null, hmi,
+                "startup_safe_state");
+            DeleteItemsWithPrefix(screen, "REV40_Startup_");
+            DeleteItem(screen, "REV54_Startup_Commissioning_Status");
+
+            ConfigureText(GetOrCreate<HmiText>(screen,
+                "REV54_Startup_Commissioning_Status"), 55, 104, 1080, 26,
+                "COMMISSIONING — SOFTWARE COMMAND CHECK ONLY — SAFETY VALIDATION PENDING",
+                Amber, 11, HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
 
             ConfigureRectangle(GetOrCreate<HmiRectangle>(screen,
                 "REV40_Startup_Panel"), 25, 130, 1165, 565, Panel, Border, 1);
             HmiButton overall = GetOrCreate<HmiButton>(screen,
                 "REV40_Startup_Overall");
             ConfigureButton(overall, 55, 158, 1080, 54,
-                "STARTUP BLOCKED", Red);
+                "SOFTWARE COMMAND CHECK — BLOCKED", Red);
             overall.Enabled = false;
             ConfigureNumericDynamization(overall, "Text", "",
                 "return Boolean(HMIRuntime.Tags(\"Startup_Start_Permitted\").Read())" +
-                "?\"STARTUP PERMITTED — ALL MONITORED COMMANDS ARE OFF\":\"STARTUP BLOCKED — CHECK THE LIST BELOW\";");
+                "?\"SOFTWARE COMMAND CHECK — READY\":\"SOFTWARE COMMAND CHECK — BLOCKED\";");
             ConfigureNumericDynamization(overall, "BackColor", "",
                 "return Boolean(HMIRuntime.Tags(\"Startup_Start_Permitted\").Read())" +
                 "?HMIRuntime.Math.RGB(28,145,82):HMIRuntime.Math.RGB(195,45,55);");
@@ -10405,7 +11828,7 @@ namespace Schlenker.TiaV19
 
             ConfigureText(GetOrCreate<HmiText>(screen,
                 "REV40_Startup_Note"), 55, 602, 1080, 62,
-                "NOTE — This blocking checklist verifies software commands. Physical feedback is shown separately, remains non-blocking and is not claimed safe until configured. Product Pump Enable initializes OFF at power-up.",
+                "COMMISSIONING NOTE — This checklist verifies software command states only. It does not validate emergency stop, PILZ, field wiring or physical safe state. Physical feedback remains non-blocking until configured and tested. Product Pump Enable initializes OFF at power-up.",
                 Navy, 12, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
 
             HmiScreen home = hmi.Screens.Find("home");
@@ -10451,10 +11874,9 @@ namespace Schlenker.TiaV19
             Console.WriteLine("STARTUP_BANNER_BOUNDS=" + startupBanner.Left + "," +
                 startupBanner.Top + "," + startupBanner.Width + "," + startupBanner.Height);
 
-            ApplySmcManualControls(hmi);
-
             int removedGates = RemoveUnverifiedHmiLinkGate(hmi);
             ConfigureUnverifiedHmiDiagnostic(hmi);
+            ApplyRuntimeLoginControlToAllCommonScreens(hmi);
             int normalizedFormats = NormalizeVisibleDecimalFormats(hmi);
             int normalizedScripts = NormalizeScriptNumericFormats(hmi);
             Console.WriteLine("HMI_LINK_GLOBAL_GATES_REMOVED=" + removedGates);
@@ -10568,6 +11990,11 @@ namespace Schlenker.TiaV19
             foreach (HmiScreenItemBase item in screen.ScreenItems)
             foreach (ScriptDynamization dynamic in item.Dynamizations.OfType<ScriptDynamization>().ToArray())
             {
+                bool verifiedDiagnostic =
+                    item.Name.Equals("REV28_Home_HmiLinkLamp", StringComparison.OrdinalIgnoreCase) ||
+                    item.Name.Equals("REV28_Common_HmiLinkLamp", StringComparison.OrdinalIgnoreCase) ||
+                    item.Name.Equals("REV13_Common_BottomInfo", StringComparison.OrdinalIgnoreCase);
+                if (verifiedDiagnostic) continue;
                 string script = dynamic.ScriptCode;
                 if (String.IsNullOrWhiteSpace(script) || !script.Contains("Network_HMI_OK")) continue;
                 script = script.Replace(
@@ -11918,9 +13345,19 @@ namespace Schlenker.TiaV19
             HideItem(screen, "REV50_ValveTest_FillerWash_Title");
             HideItem(screen, "REV50_ValveTest_FillerWash_StatusBack");
             HideItem(screen, "REV50_ValveTest_FillerWash_Status");
-            AddManualValveTestCard(screen, "FillerExternalWash", 395, 585,
-                "FILLER EXTERNAL WASHING", "SMC_Filler_External_Wash_Manual",
-                "SMC_Filler_External_Wash_Active");
+            ConfigureRectangle(GetOrCreate<HmiRectangle>(screen,
+                "REV50_ValveTest_FillerExternalWash_Card"),
+                395, 585, 350, 100, Panel, Border, 1);
+            ConfigureText(GetOrCreate<HmiText>(screen,
+                "REV50_ValveTest_FillerExternalWash_Title"),
+                410, 594, 320, 25, "125Y10  |  SPARE DOUBLE-SOLENOID", Dark, 13,
+                HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+            HideItem(screen, "REV50_ValveTest_FillerExternalWash_Command");
+            HideItem(screen, "REV41_MANUAL_ValveOutputFillerExternalWash_Back");
+            HideItem(screen, "REV41_MANUAL_ValveOutputFillerExternalWash_Text");
+            ConfigureText(GetOrCreate<HmiText>(screen, "REV50_ValveTest_Y10Spare_Note"),
+                410, 630, 320, 38, "Q130.2 / Q130.3 FORCED OFF - NO COMMAND", Grey, 11,
+                HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
             ConfigureNavigateButton(GetOrCreate<HmiButton>(screen, "REV50_ValveTest_Back"),
                 765, 605, 350, 58, "BACK TO MANUAL CONTROLS", Blue,
                 "manual", "MANUAL");
@@ -16866,7 +18303,16 @@ namespace Schlenker.TiaV19
 
             int generatedNavigationBefore = screen.ScreenItems.Count(item =>
                 item.Name.StartsWith("REV12_Nav_", StringComparison.OrdinalIgnoreCase));
-            RemoveGeneratedNavigationRail(screen);
+            // The validated MTP1200 rebuild must retire only the obsolete REV12
+            // navigation layer. REV13/REV14 are the active common navigation
+            // frame and are verified below, so deleting them makes the rebuild
+            // fail after the page content has already been rearranged.
+            HmiScreenItemBase[] legacyNavigation = screen.ScreenItems
+                .Where(item => item.Name.StartsWith(
+                    "REV12_Nav_", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+            foreach (HmiScreenItemBase item in legacyNavigation)
+                item.Delete();
             DeleteItem(screen, "REV42_Manual_SMC_EV220");
             DeleteItem(screen, "REV42_Manual_SMC_EV221");
             DeleteItem(screen, "REV42_Manual_SMC_PhysicalNote");
@@ -17037,6 +18483,11 @@ namespace Schlenker.TiaV19
                 "let q=Number(t.QualityCode);if(t.LastError!==0||(q&192)<128){return \"SYSTEM NO DATA\";}" +
                 "return v?\"SYSTEM READY\":\"SYSTEM NOT READY\";");
 
+            // The button for the page currently displayed is a state marker,
+            // not a navigation command. Keep its existing visual style and
+            // event inventory, but prevent redundant activation on MANUAL.
+            RequireManualItem<HmiButton>(screen, "REV13_Nav_Button_MANUAL").Enabled = false;
+
             bool buttonEventsPreserved = preservedButtonEvents.All(pair =>
             {
                 HmiButton button = screen.ScreenItems.Find(pair.Key) as HmiButton;
@@ -17099,6 +18550,19 @@ namespace Schlenker.TiaV19
                 content.Left == 0 && content.Top == 104 &&
                 content.Width == 1141 && content.Height == 640 &&
                 screen.BackColor == Navy && screen.AlternateBackColor == Navy;
+            Console.WriteLine("MANUAL_VERIFY_BUTTON_EVENTS_PRESERVED=" + buttonEventsPreserved);
+            Console.WriteLine("MANUAL_VERIFY_IO_BINDINGS_PRESERVED=" + ioBindingsPreserved);
+            Console.WriteLine("MANUAL_VERIFY_BOUNDS_VALID=" + boundsValid);
+            Console.WriteLine("MANUAL_VERIFY_BACKGROUND_VALID=" + backgroundValid);
+            Console.WriteLine("MANUAL_VERIFY_NAVIGATION_VALID=" + navigationValid);
+            Console.WriteLine("MANUAL_VERIFY_RETIRED_SMC_LAYER_REMOVED=" + retiredSmcLayerRemoved);
+            Console.WriteLine("MANUAL_VERIFY_QUALITY_VALID=" + qualityValid);
+            Console.WriteLine("MANUAL_VERIFY_UNIQUE_NAMES=" + uniqueNames);
+            Console.WriteLine("MANUAL_VERIFY_ITEM_COUNT=" + screen.ScreenItems.Count);
+            Console.WriteLine("MANUAL_VERIFY_REV13_NAV_COUNT=" + screen.ScreenItems.Count(item =>
+                item.Name.StartsWith("REV13_Nav_Button_", StringComparison.OrdinalIgnoreCase)));
+            Console.WriteLine("MANUAL_VERIFY_MANUAL_NAV_ENABLED=" +
+                RequireManualItem<HmiButton>(screen, "REV13_Nav_Button_MANUAL").Enabled);
             if (!buttonEventsPreserved || !ioBindingsPreserved || !boundsValid || !backgroundValid ||
                 !navigationValid || !retiredSmcLayerRemoved || !qualityValid ||
                 uniqueNames != screen.ScreenItems.Count)
@@ -19432,6 +20896,175 @@ namespace Schlenker.TiaV19
             Console.WriteLine("DIAGNOSTICS_DATA_SOURCE_SCREEN_OBJECTS_DELETED=0");
         }
 
+        private static void ApplyDiagnosticsEntryNavigationFix(HmiSoftware hmi)
+        {
+            HmiScreen screen = hmi.Screens.Find("diagnostics");
+            HmiScreen ioDiagnostics = hmi.Screens.Find("io_diagnostics");
+            HmiScreen ioLinkOverview = hmi.Screens.Find("io_link_overview");
+            if (screen == null || ioDiagnostics == null || ioLinkOverview == null)
+            {
+                throw new InvalidOperationException(
+                    "Diagnostics entry navigation requires all existing destination screens.");
+            }
+
+            HmiButton ioButton = screen.ScreenItems.Find(
+                "REV15_Diagnostics_To_IO") as HmiButton;
+            HmiButton ioLinkButton = screen.ScreenItems.Find(
+                "REV18_Diagnostics_To_IOLink") as HmiButton;
+            HmiRectangle blocker = screen.ScreenItems.Find(
+                "REV12_Exact_Kpi_Card_Bottles") as HmiRectangle;
+            if (ioButton == null || ioLinkButton == null || blocker == null)
+            {
+                throw new InvalidOperationException(
+                    "Diagnostics navigation buttons or confirmed blocking rectangle are missing.");
+            }
+
+            string[] ioEvents = ioButton.EventHandlers.Select(handler =>
+                handler.EventType + "|" + (handler.Script.ScriptCode ?? ""))
+                .OrderBy(value => value, StringComparer.Ordinal).ToArray();
+            string[] ioLinkEvents = ioLinkButton.EventHandlers.Select(handler =>
+                handler.EventType + "|" + (handler.Script.ScriptCode ?? ""))
+                .OrderBy(value => value, StringComparer.Ordinal).ToArray();
+            string ioTarget = "HMIRuntime.UI.SysFct.ChangeScreen(\"io_diagnostics\", \"/Main screen window_1\");";
+            string ioLinkTarget = "HMIRuntime.UI.SysFct.ChangeScreen(\"io_link_overview\", \"/Main screen window_1\");";
+            HmiButtonEventHandler ioTapped = ioButton.EventHandlers.Find(HmiButtonEventType.Tapped);
+            HmiButtonEventHandler ioLinkTapped = ioLinkButton.EventHandlers.Find(HmiButtonEventType.Tapped);
+            if (ioTapped == null || ioLinkTapped == null ||
+                !(ioTapped.Script.ScriptCode ?? "").Contains(ioTarget) ||
+                !(ioLinkTapped.Script.ScriptCode ?? "").Contains(ioLinkTarget))
+            {
+                throw new InvalidOperationException(
+                    "Diagnostics navigation targets do not match the approved screens.");
+            }
+            if (!blocker.Visible || blocker.Enabled ||
+                screen.ScreenItems.IndexOf(blocker) <= screen.ScreenItems.IndexOf(ioButton) ||
+                screen.ScreenItems.IndexOf(blocker) <= screen.ScreenItems.IndexOf(ioLinkButton) ||
+                blocker.Dynamizations.Count != 0 || blocker.EventHandlers.Count != 0)
+            {
+                throw new InvalidOperationException(
+                    "Confirmed diagnostics blocking rectangle state changed; correction aborted.");
+            }
+
+            blocker.Visible = false;
+            blocker.Enabled = false;
+            SetBounds(blocker, 0, 900, 1, 1);
+            ioButton.Visible = true;
+            ioButton.Enabled = true;
+            ioLinkButton.Visible = true;
+            ioLinkButton.Enabled = true;
+
+            string[] ioEventsAfter = ioButton.EventHandlers.Select(handler =>
+                handler.EventType + "|" + (handler.Script.ScriptCode ?? ""))
+                .OrderBy(value => value, StringComparer.Ordinal).ToArray();
+            string[] ioLinkEventsAfter = ioLinkButton.EventHandlers.Select(handler =>
+                handler.EventType + "|" + (handler.Script.ScriptCode ?? ""))
+                .OrderBy(value => value, StringComparer.Ordinal).ToArray();
+            if (!ioEvents.SequenceEqual(ioEventsAfter, StringComparer.Ordinal) ||
+                !ioLinkEvents.SequenceEqual(ioLinkEventsAfter, StringComparer.Ordinal) ||
+                blocker.Visible || blocker.Enabled || blocker.Left != 0 || blocker.Top != 900 ||
+                blocker.Width != 1 || blocker.Height != 1)
+            {
+                throw new InvalidOperationException(
+                    "Diagnostics entry navigation post-change validation failed.");
+            }
+
+            Console.WriteLine("DIAGNOSTICS_BLOCKING_OBJECT_PARKED=REV12_Exact_Kpi_Card_Bottles");
+            Console.WriteLine("DIAGNOSTICS_IO_TARGET=io_diagnostics");
+            Console.WriteLine("DIAGNOSTICS_IOLINK_TARGET=io_link_overview");
+            Console.WriteLine("DIAGNOSTICS_NAVIGATION_EVENT_SETS_PRESERVED=" +
+                (ioEvents.Length + ioLinkEvents.Length));
+            Console.WriteLine("DIAGNOSTICS_SCREEN_OBJECTS_DELETED=0");
+            Console.WriteLine("DIAGNOSTICS_PLC_TAGS_MODIFIED=0");
+        }
+
+        private static void ApplyManualValvesRuntimeCoverFix(HmiSoftware hmi)
+        {
+            HmiScreen screen = hmi.Screens.Find("manual_valves");
+            if (screen == null)
+            {
+                throw new InvalidOperationException(
+                    "Manual valve runtime cover correction requires the existing 'manual_valves' screen.");
+            }
+
+            HmiRectangle blocker = screen.ScreenItems.Find("REV13_Common_Bottom") as HmiRectangle;
+            HmiRectangle contentBackground = screen.ScreenItems.Find(
+                "REV52_ValveTest_Content_Back") as HmiRectangle;
+            if (blocker == null || contentBackground == null)
+            {
+                throw new InvalidOperationException(
+                    "Manual valve runtime cover or verified content background is missing.");
+            }
+
+            HmiScreenItemBase[] contentItems = screen.ScreenItems.Where(item =>
+                item.Visible && item.Name.StartsWith(
+                    "REV50_ValveTest_", StringComparison.OrdinalIgnoreCase)).ToArray();
+            if (contentItems.Length < 20 || !contentBackground.Visible ||
+                contentBackground.Left != 0 || contentBackground.Top != 120 ||
+                contentBackground.Width != 1141 || contentBackground.Height != 624)
+            {
+                throw new InvalidOperationException(
+                    "Manual valve content inventory or background geometry is not the approved state.");
+            }
+
+            if (!blocker.Visible || blocker.Enabled || blocker.Left != 0 || blocker.Top != 0 ||
+                blocker.Width != 1280 || blocker.Height != 800 ||
+                blocker.Dynamizations.Count != 0 || blocker.EventHandlers.Count != 0 ||
+                contentItems.Any(item => screen.ScreenItems.IndexOf(blocker) <=
+                    screen.ScreenItems.IndexOf(item)))
+            {
+                throw new InvalidOperationException(
+                    "Confirmed manual valve full-screen cover state changed; correction aborted.");
+            }
+
+            Dictionary<string, string[]> buttonEvents = contentItems.OfType<HmiButton>()
+                .ToDictionary(button => button.Name, button => button.EventHandlers
+                    .Select(handler => handler.EventType + "|" + (handler.Script.ScriptCode ?? ""))
+                    .OrderBy(value => value, StringComparer.Ordinal).ToArray(),
+                    StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, string> fieldBindings = contentItems.OfType<HmiIOField>()
+                .ToDictionary(field => field.Name, field =>
+                {
+                    TagDynamization binding = field.Dynamizations.Find("ProcessValue") as TagDynamization;
+                    return (binding == null ? "" : binding.Tag) + "|" +
+                        (binding != null && binding.ReadOnly) + "|" + field.EventHandlers.Count;
+                }, StringComparer.OrdinalIgnoreCase);
+
+            blocker.Visible = false;
+            blocker.Enabled = false;
+            SetBounds(blocker, 0, 900, 1, 1);
+
+            bool buttonsPreserved = buttonEvents.All(pair =>
+            {
+                HmiButton button = screen.ScreenItems.Find(pair.Key) as HmiButton;
+                return button != null && pair.Value.SequenceEqual(button.EventHandlers
+                    .Select(handler => handler.EventType + "|" + (handler.Script.ScriptCode ?? ""))
+                    .OrderBy(value => value, StringComparer.Ordinal), StringComparer.Ordinal);
+            });
+            bool fieldsPreserved = fieldBindings.All(pair =>
+            {
+                HmiIOField field = screen.ScreenItems.Find(pair.Key) as HmiIOField;
+                TagDynamization binding = field == null ? null :
+                    field.Dynamizations.Find("ProcessValue") as TagDynamization;
+                string current = (binding == null ? "" : binding.Tag) + "|" +
+                    (binding != null && binding.ReadOnly) + "|" +
+                    (field == null ? -1 : field.EventHandlers.Count);
+                return field != null && current == pair.Value;
+            });
+            if (!buttonsPreserved || !fieldsPreserved || blocker.Visible || blocker.Enabled ||
+                blocker.Left != 0 || blocker.Top != 900 || blocker.Width != 1 || blocker.Height != 1)
+            {
+                throw new InvalidOperationException(
+                    "Manual valve runtime cover post-change validation failed.");
+            }
+
+            Console.WriteLine("MANUAL_VALVES_BLOCKING_OBJECT_PARKED=REV13_Common_Bottom");
+            Console.WriteLine("MANUAL_VALVES_VISIBLE_CONTENT_OBJECTS=" + contentItems.Length);
+            Console.WriteLine("MANUAL_VALVES_BUTTON_EVENT_SETS_PRESERVED=" + buttonEvents.Count);
+            Console.WriteLine("MANUAL_VALVES_FIELD_BINDINGS_PRESERVED=" + fieldBindings.Count);
+            Console.WriteLine("MANUAL_VALVES_SCREEN_OBJECTS_DELETED=0");
+            Console.WriteLine("MANUAL_VALVES_PLC_TAGS_MODIFIED=0");
+        }
+
         private static void ApplyDiagnosticsLegacyEditorCleanup(HmiSoftware hmi)
         {
             HmiScreen screen = hmi.Screens.Find("diagnostics");
@@ -20023,10 +21656,10 @@ namespace Schlenker.TiaV19
 
             ConfigureText(GetOrCreate<HmiText>(screen, "REV12_Lights_Title"), 45, 512, 220, 24,
                 "MACHINE LIGHTS 24 VDC", Dark, 16, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
-            ConfigureMomentaryButton(GetOrCreate<HmiButton>(screen, "REV12_Lights_On"), 45, 542, 110, 50,
-                "LIGHTS ON", Green, "Lights_On");
-            ConfigureMomentaryButton(GetOrCreate<HmiButton>(screen, "REV12_Lights_Off"), 165, 542, 110, 50,
-                "LIGHTS OFF", Grey, "Lights_Off");
+            ConfigureMomentaryButton(GetOrCreate<HmiButton>(screen, "REV12_Lights_On"), 165, 542, 110, 50,
+                "LIGHTS ON", Blue, "Lights_On");
+            ConfigureMomentaryButton(GetOrCreate<HmiButton>(screen, "REV12_Lights_Off"), 45, 542, 110, 50,
+                "LIGHTS OFF", Blue, "Lights_Off");
             ConfigureText(GetOrCreate<HmiText>(screen, "REV12_Label_LightsRelay"), 295, 518, 150, 28,
                 "Relay energized", Dark, 14, HmiFontWeight.Normal, HmiHorizontalAlignment.Left);
             ConfigureIOField(GetOrCreate<HmiIOField>(screen, "REV12_Value_LightsRelay"), 455, 516, 75, 32,
@@ -20034,10 +21667,10 @@ namespace Schlenker.TiaV19
 
             ConfigureText(GetOrCreate<HmiText>(screen, "REV12_Filter_Title"), 45, 610, 220, 24,
                 "AIR FILTER 24 VDC", Dark, 16, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
-            ConfigureMomentaryButton(GetOrCreate<HmiButton>(screen, "REV12_Filter_On"), 45, 640, 110, 50,
-                "FILTER ON", Green, "AirFilter_On");
-            ConfigureMomentaryButton(GetOrCreate<HmiButton>(screen, "REV12_Filter_Off"), 165, 640, 110, 50,
-                "FILTER OFF", Grey, "AirFilter_Off");
+            ConfigureMomentaryButton(GetOrCreate<HmiButton>(screen, "REV12_Filter_On"), 165, 640, 110, 50,
+                "FILTER ON", Blue, "AirFilter_On");
+            ConfigureMomentaryButton(GetOrCreate<HmiButton>(screen, "REV12_Filter_Off"), 45, 640, 110, 50,
+                "FILTER OFF", Blue, "AirFilter_Off");
             ConfigureText(GetOrCreate<HmiText>(screen, "REV12_Label_AirFilterRelay"), 295, 612, 150, 28,
                 "Relay energized", Dark, 14, HmiFontWeight.Normal, HmiHorizontalAlignment.Left);
             ConfigureIOField(GetOrCreate<HmiIOField>(screen, "REV12_Value_AirFilterRelay"), 455, 610, 75, 32,
@@ -20333,7 +21966,6 @@ namespace Schlenker.TiaV19
                 script += "HMIRuntime.Tags(\"SMC_EV211_Manual\").Write(false);";
                 script += "HMIRuntime.Tags(\"SMC_EV212_Manual\").Write(false);";
                 script += "HMIRuntime.Tags(\"SMC_Bottle_External_Wash_Manual\").Write(false);";
-                script += "HMIRuntime.Tags(\"SMC_Filler_External_Wash_Manual\").Write(false);";
                 script += "HMIRuntime.Tags(\"SMC_EV001_Open_Manual\").Write(false);";
                 script += "HMIRuntime.Tags(\"SMC_EV001_Close_Manual\").Write(false);";
                 script += "HMIRuntime.Tags(\"Pendant_Up\").Write(false);";

@@ -26,8 +26,7 @@ namespace Schlenker.TiaV19
             "SMC_EV001_Open_Manual", "SMC_EV001_Close_Manual",
             "SMC_EV010_Manual", "SMC_EV011_Manual", "SMC_EV210_Manual",
             "SMC_EV211_Manual", "SMC_EV212_Manual", "SMC_EV220_Manual",
-            "SMC_EV221_Manual", "SMC_Bottle_External_Wash_Manual",
-            "SMC_Filler_External_Wash_Manual"
+            "SMC_EV221_Manual", "SMC_Bottle_External_Wash_Manual"
         };
 
         private static int Main(string[] args)
@@ -86,6 +85,19 @@ namespace Schlenker.TiaV19
                     Siemens.Engineering.HmiUnified.HmiTags.HmiTag legacy = rev12 == null ? null :
                         rev12.Tags.Find("Gate_Open_125Y1");
                     if (legacy != null) legacy.Delete();
+                    string[] retiredFillerWashTags =
+                    {
+                        "SMC_Filler_External_Wash_Manual",
+                        "SMC_Filler_External_Wash_Active",
+                        "Filler_External_Wash_Valve"
+                    };
+                    foreach (string retiredName in retiredFillerWashTags)
+                    {
+                        Siemens.Engineering.HmiUnified.HmiTags.HmiTag retired =
+                            rev12 == null ? null : rev12.Tags.Find(retiredName);
+                        if (retired != null) retired.Delete();
+                    }
+                    report.WriteLine("RetiredFillerWashTagsDeleted=3_OR_ALREADY_ABSENT");
                     Audit(hmi, report);
 
                     ICompilable compilable = hmiItem.GetService<ICompilable>() ?? hmiDevice.GetService<ICompilable>();
@@ -152,9 +164,14 @@ namespace Schlenker.TiaV19
             if (backEvent == null || !backEvent.Script.ScriptCode.Contains("ChangeScreen(\"manual\""))
                 throw new InvalidOperationException("Valve-test return navigation missing.");
 
-            HmiButton filler = screen.ScreenItems.Find("REV50_ValveTest_FillerExternalWash_Command") as HmiButton;
-            if (filler == null)
-                throw new InvalidOperationException("Filler External Washing command is missing.");
+            HmiButton filler = screen.ScreenItems.Find(
+                "REV50_ValveTest_FillerExternalWash_Command") as HmiButton;
+            HmiText spareNote = screen.ScreenItems.Find(
+                "REV50_ValveTest_Y10Spare_Note") as HmiText;
+            if ((filler != null && (filler.Visible || filler.Enabled)) ||
+                spareNote == null || !spareNote.Visible || !spareNote.Enabled)
+                throw new InvalidOperationException(
+                    "125Y10 spare-state audit failed: command must be retired and note visible.");
 
             string[] requiredStatusSuffixes =
             {
@@ -162,7 +179,7 @@ namespace Schlenker.TiaV19
                 "ValveOutputEV001Open", "ValveOutputEV001Close", "ValveOutputEV010",
                 "ValveOutputEV011", "ValveOutputEV210", "ValveOutputEV211",
                 "ValveOutputEV212", "ValveOutputEV220", "ValveOutputEV221",
-                "ValveOutputBottleExternalWash", "ValveOutputFillerExternalWash"
+                "ValveOutputBottleExternalWash"
             };
             foreach (string suffix in requiredStatusSuffixes)
             {
@@ -268,7 +285,8 @@ namespace Schlenker.TiaV19
             report.WriteLine("Screen=manual_valves");
             report.WriteLine("MomentaryCommands=" + CommandTags.Length);
             report.WriteLine("PhysicalStationNumbersVisible=0");
-            report.WriteLine("BottleAndFillerExternalWashSeparated=PASS_Q129.6_Q130.2");
+            report.WriteLine("BottleExternalWash=PASS_Q129.6");
+            report.WriteLine("Station125Y10=SPARE_Q130.2_Q130.3_FORCED_OFF");
             report.WriteLine("NavigationAndExitClearing=PASS");
             report.WriteLine("DuplicateObjectNames=0");
             report.WriteLine("ManualNavigation=12_BUTTONS_12_ICONS_SINGLE_LAYER");

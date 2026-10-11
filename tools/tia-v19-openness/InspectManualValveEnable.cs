@@ -18,8 +18,8 @@ namespace Schlenker.TiaV19
     {
         private static int Main(string[] args)
         {
-            if (args.Length != 1) return 2;
-            string expected = System.IO.Path.GetFullPath(args[0]);
+            if (args.Length < 1) return 2;
+            string expected = System.IO.Path.GetFullPath(String.Join(" ", args));
             TiaPortalProcess process = TiaPortal.GetProcesses().SingleOrDefault(p =>
                 p.ProjectPath != null && p.ProjectPath.FullName.Equals(expected,
                     StringComparison.OrdinalIgnoreCase));
@@ -32,6 +32,14 @@ namespace Schlenker.TiaV19
                 HmiScreen screen = hmi.Screens.Find("manual_valves");
                 InspectButton(screen, "REV50_ValveTest_EnableOn");
                 InspectButton(screen, "REV50_ValveTest_EnableOff");
+                foreach (HmiButton command in screen.ScreenItems.OfType<HmiButton>()
+                    .Where(item => item.Name.StartsWith("REV50_ValveTest_", StringComparison.OrdinalIgnoreCase)
+                        && item.Name.EndsWith("_Command", StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(item => item.Name))
+                {
+                    InspectMomentaryButton(command);
+                    InspectLaterOverlaps(screen, command);
+                }
                 InspectEnableButtonOverlaps(screen);
                 foreach (string name in new[]
                 {
@@ -51,6 +59,18 @@ namespace Schlenker.TiaV19
                 InspectTag(hmi, "Gate_Manual_TestEnable");
                 InspectTag(hmi, "Gate_Manual_PageActive");
                 InspectTag(hmi, "Cmd_ManualSelect");
+                foreach (string tagName in new[]
+                {
+                    "SMC_EV001_Open_Manual", "SMC_EV001_Close_Manual",
+                    "SMC_EV010_Manual", "SMC_EV011_Manual", "SMC_EV210_Manual",
+                    "SMC_EV211_Manual", "SMC_EV212_Manual", "SMC_EV220_Manual",
+                    "SMC_EV221_Manual", "SMC_Bottle_External_Wash_Manual",
+                    "SMC_EV001_Open_Active", "SMC_EV001_Close_Active",
+                    "SMC_EV010_Active", "SMC_EV011_Active", "SMC_EV210_Active",
+                    "SMC_EV211_Active", "SMC_EV212_Active", "SMC_EV220_Active",
+                    "SMC_EV221_Active", "SMC_Bottle_External_Wash_Active"
+                })
+                    InspectTagSummary(hmi, tagName);
                 foreach (object connection in hmi.Connections)
                 {
                     Console.WriteLine("CONNECTION_TYPE=" + connection.GetType().FullName);
@@ -116,6 +136,51 @@ namespace Schlenker.TiaV19
                 "; TAPPED=" + (tapped == null ? "MISSING" : tapped.Script.ScriptCode));
         }
 
+        private static void InspectMomentaryButton(HmiButton button)
+        {
+            HmiButtonEventHandler down = button.EventHandlers.Find(HmiButtonEventType.Down);
+            HmiButtonEventHandler up = button.EventHandlers.Find(HmiButtonEventType.Up);
+            Console.WriteLine("COMMAND_BUTTON=" + button.Name +
+                "; ENABLED=" + button.Enabled +
+                "; AUTHORIZATION=" + (String.IsNullOrWhiteSpace(button.Authorization) ? "<none>" : button.Authorization) +
+                "; DOWN=" + (down == null ? "MISSING" : down.Script.ScriptCode) +
+                "; UP=" + (up == null ? "MISSING" : up.Script.ScriptCode));
+        }
+
+        private static void InspectLaterOverlaps(HmiScreen screen, HmiButton button)
+        {
+            object[] items = screen.ScreenItems.Cast<object>().ToArray();
+            int buttonIndex = Array.IndexOf(items, button);
+            int left = button.Left;
+            int top = button.Top;
+            int right = left + Convert.ToInt32(button.Width);
+            int bottom = top + Convert.ToInt32(button.Height);
+            for (int index = buttonIndex + 1; index < items.Length; index++)
+            {
+                object item = items[index];
+                Type type = item.GetType();
+                PropertyInfo leftProperty = type.GetProperty("Left");
+                PropertyInfo topProperty = type.GetProperty("Top");
+                PropertyInfo widthProperty = type.GetProperty("Width");
+                PropertyInfo heightProperty = type.GetProperty("Height");
+                PropertyInfo visibleProperty = type.GetProperty("Visible");
+                PropertyInfo enabledProperty = type.GetProperty("Enabled");
+                PropertyInfo nameProperty = type.GetProperty("Name");
+                if (leftProperty == null || topProperty == null || widthProperty == null ||
+                    heightProperty == null || nameProperty == null) continue;
+                bool visible = visibleProperty == null || Convert.ToBoolean(visibleProperty.GetValue(item, null));
+                bool enabled = enabledProperty == null || Convert.ToBoolean(enabledProperty.GetValue(item, null));
+                int itemLeft = Convert.ToInt32(leftProperty.GetValue(item, null));
+                int itemTop = Convert.ToInt32(topProperty.GetValue(item, null));
+                int itemRight = itemLeft + Convert.ToInt32(widthProperty.GetValue(item, null));
+                int itemBottom = itemTop + Convert.ToInt32(heightProperty.GetValue(item, null));
+                if (visible && enabled && itemLeft < right && itemRight > left &&
+                    itemTop < bottom && itemBottom > top)
+                    Console.WriteLine("COMMAND_OVERLAP=" + button.Name + "; LATER=" +
+                        nameProperty.GetValue(item, null) + "; TYPE=" + type.Name);
+            }
+        }
+
         private static void InspectTag(HmiSoftware hmi, string name)
         {
             HmiTag tag = hmi.TagTables.SelectMany(t => t.Tags)
@@ -141,6 +206,16 @@ namespace Schlenker.TiaV19
                         "; ERROR=" + exception.GetType().Name);
                 }
             }
+        }
+
+        private static void InspectTagSummary(HmiSoftware hmi, string name)
+        {
+            HmiTag tag = hmi.TagTables.SelectMany(t => t.Tags)
+                .FirstOrDefault(t => t.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+            Console.WriteLine(tag == null ? "VALVE_TAG=" + name + "; MISSING" :
+                "VALVE_TAG=" + name + "; PLC=" + tag.PlcTag +
+                "; CONNECTION=" + tag.Connection + "; TYPE=" + tag.DataType +
+                "; RIGHTS=" + (String.IsNullOrWhiteSpace(tag.RequiredFunctionRights) ? "<none>" : tag.RequiredFunctionRights));
         }
 
         private static HmiSoftware FindHmi(Project project)

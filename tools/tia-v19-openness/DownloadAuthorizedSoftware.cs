@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Reflection;
@@ -54,36 +55,57 @@ namespace Schlenker.TiaV19
         {
             try
             {
-                bool fullAuthorized = args.Length == 1 &&
+                if (args.Length < 1 || args.Length > 2)
+                    throw new InvalidOperationException(
+                        "Usage: DownloadAuthorizedSoftware <authorization-switch> [exact-ap19-path]");
+
+                string expectedProject = args.Length == 2
+                    ? Path.GetFullPath(args[1])
+                    : ExpectedProject;
+                bool fullAuthorized =
                     args[0].Equals("--authorized-software-download", StringComparison.Ordinal);
-                bool plcOnlyAuthorized = args.Length == 1 &&
+                bool plcOnlyAuthorized =
                     args[0].Equals("--authorized-plc-software-download", StringComparison.Ordinal);
-                bool plcHardwareSoftwareAuthorized = args.Length == 1 &&
+                bool plcHardwareSoftwareAuthorized =
                     args[0].Equals("--authorized-plc-hardware-software-download", StringComparison.Ordinal);
-                bool hmiChangesAuthorized = args.Length == 1 &&
+                bool hmiChangesAuthorized =
                     args[0].Equals("--authorized-hmi-changes-download", StringComparison.Ordinal);
                 if (!fullAuthorized && !plcOnlyAuthorized && !plcHardwareSoftwareAuthorized && !hmiChangesAuthorized)
                     throw new InvalidOperationException("Explicit authorization switch is required.");
 
                 TiaPortalProcess selected = TiaPortal.GetProcesses().SingleOrDefault(process =>
                     process.ProjectPath != null && process.ProjectPath.FullName.Equals(
-                        ExpectedProject, StringComparison.OrdinalIgnoreCase));
-                if (selected == null)
-                    throw new InvalidOperationException("Exact authorized working project is not open.");
+                        expectedProject, StringComparison.OrdinalIgnoreCase));
 
-                using (TiaPortal portal = selected.Attach())
+                bool openedHeadless = selected == null;
+                using (TiaPortal portal = openedHeadless
+                    ? new TiaPortal(TiaPortalMode.WithoutUserInterface)
+                    : selected.Attach())
                 {
-                    Project project = portal.Projects.Single();
-                    Console.WriteLine("PROJECT=" + project.Path.FullName);
-                    foreach (AuthorizedTarget target in Targets.Where(item =>
-                        fullAuthorized ||
-                        (plcOnlyAuthorized && item.ProviderItemName.Equals("PLC_1", StringComparison.OrdinalIgnoreCase)) ||
-                        (plcHardwareSoftwareAuthorized && item.ProviderItemName.Equals("PLC_1", StringComparison.OrdinalIgnoreCase)) ||
-                        (hmiChangesAuthorized && item.ProviderItemName.Equals("HMI_RT_1", StringComparison.OrdinalIgnoreCase))))
-                        DownloadTarget(project, target,
-                            hmiChangesAuthorized ? DownloadOptions.SoftwareOnlyChanges :
-                            plcHardwareSoftwareAuthorized ? DownloadOptions.Hardware | DownloadOptions.Software :
-                            DownloadOptions.Software);
+                    Project project = openedHeadless
+                        ? portal.Projects.Open(new FileInfo(expectedProject))
+                        : portal.Projects.Single();
+                    try
+                    {
+                        if (!Path.GetFullPath(project.Path.FullName).Equals(expectedProject,
+                                StringComparison.OrdinalIgnoreCase))
+                            throw new InvalidOperationException("Authorized project identity changed.");
+                        Console.WriteLine("PROJECT=" + project.Path.FullName);
+                        Console.WriteLine("PROJECT_MODE=" + (openedHeadless ? "OPENED_HEADLESS" : "ATTACHED"));
+                        foreach (AuthorizedTarget target in Targets.Where(item =>
+                            fullAuthorized ||
+                            (plcOnlyAuthorized && item.ProviderItemName.Equals("PLC_1", StringComparison.OrdinalIgnoreCase)) ||
+                            (plcHardwareSoftwareAuthorized && item.ProviderItemName.Equals("PLC_1", StringComparison.OrdinalIgnoreCase)) ||
+                            (hmiChangesAuthorized && item.ProviderItemName.Equals("HMI_RT_1", StringComparison.OrdinalIgnoreCase))))
+                            DownloadTarget(project, target,
+                                hmiChangesAuthorized ? DownloadOptions.SoftwareOnlyChanges :
+                                plcHardwareSoftwareAuthorized ? DownloadOptions.Hardware | DownloadOptions.Software :
+                                DownloadOptions.Software);
+                    }
+                    finally
+                    {
+                        if (openedHeadless) project.Close();
+                    }
                 }
 
                 Console.WriteLine("OVERALL_STATUS=SUCCESS");

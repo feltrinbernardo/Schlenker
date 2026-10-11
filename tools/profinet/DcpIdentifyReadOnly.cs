@@ -59,11 +59,15 @@ namespace Schlenker.Profinet
                 byte[] request = BuildIdentifyRequest(localMac, xid);
                 if (pcap_sendpacket(handle, request, request.Length) != 0)
                     throw new InvalidOperationException("Npcap could not send the read-only DCP Identify request.");
+                byte[] vlanRequest = BuildVlanIdentifyRequest(localMac, xid);
+                if (pcap_sendpacket(handle, vlanRequest, vlanRequest.Length) != 0)
+                    throw new InvalidOperationException("Npcap could not send the VLAN-tagged read-only DCP Identify request.");
 
                 Console.WriteLine("MODE=PROFINET_DCP_IDENTIFY_READ_ONLY");
                 Console.WriteLine("ADAPTER=" + device);
                 Console.WriteLine("LOCAL_MAC=" + FormatMac(localMac));
                 Console.WriteLine("REQUEST_XID=0x" + xid.ToString("X8"));
+                Console.WriteLine("REQUEST_VARIANTS=UNTAGGED,VLAN_PRIORITY_TAGGED");
                 Console.WriteLine("DEVICE_WRITES=NO");
 
                 HashSet<string> seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -137,6 +141,17 @@ namespace Schlenker.Profinet
             frame[24] = 0x00; frame[25] = 0x04;
             frame[26] = 0xFF; frame[27] = 0xFF;
             frame[28] = 0x00; frame[29] = 0x00;
+            return frame;
+        }
+
+        private static byte[] BuildVlanIdentifyRequest(byte[] localMac, uint xid)
+        {
+            byte[] untagged = BuildIdentifyRequest(localMac, xid);
+            byte[] frame = new byte[untagged.Length + 4];
+            Buffer.BlockCopy(untagged, 0, frame, 0, 12);
+            frame[12] = 0x81; frame[13] = 0x00;
+            frame[14] = 0x00; frame[15] = 0x00; // Priority tag, VLAN ID 0.
+            Buffer.BlockCopy(untagged, 12, frame, 16, untagged.Length - 12);
             return frame;
         }
 
