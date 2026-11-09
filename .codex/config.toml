@@ -4,5 +4,10 @@ model_auto_compact_token_limit_scope = "total"
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 
+[features]
+# Temporary diagnostic test explicitly requested by the user on 2026-11-09.
+# Remove this override to restore the previous hook configuration.
+hooks = false
+
 [plugins."computer-use@openai-bundled"]
 enabled = true
