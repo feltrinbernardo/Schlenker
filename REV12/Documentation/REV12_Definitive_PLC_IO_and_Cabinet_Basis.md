@@ -102,10 +102,10 @@ Only photographs that identify the actual supplied or bench-tested component are
 | `%I12.1` | `DB_Global.Inp.CapHopperLow` | Cap hopper low | Level sensor |
 | `%I12.2` | `DB_Global.Inp.CapChannelDemand` | Cap channel demand | Digital sensor/status |
 | `%I12.3` | `DB_Global.Inp.CapsMissing` | Caps missing / chute empty | Digital sensor/status |
-| `%I12.4` | `DB_Global.Inp.HoodFilterAlarm` | Hood/filter alarm | Differential-pressure/status contact |
+| `%I12.4` | `DB_Global.Inp.Hood1FilterClogged` | Cappa 1 filter clogged | Differential-pressure/status contact |
 | `%I12.5` | `DB_Global.Inp.ControlPowerOK` | 24 VDC control power healthy | PSU/monitor auxiliary contact |
 | `%I12.6` | `DB_Global.Inp.AirFilterPressureOK` | Air-filter pressure proof | Pressure-switch contact |
-| `%I12.7` | `DB_Global.Inp.AirFilterChangeRequired24V` | Filter replacement required | Filter monitor contact |
+| `%I12.7` | `DB_Global.Inp.Hood2FilterClogged` | Cappa 2 filter clogged | Differential-pressure/status contact |
 | `%I13.0` | `DB_Global.Inp.RequestOpenDoorPanelPB` | Panel-door request pushbutton | 24 VDC pushbutton contact |
 | `%I13.1` | `DB_Global.Inp.RequestOpenDoorFrontPB` | Front-door request pushbutton | 24 VDC pushbutton contact |
 | `%I13.2` | `DB_Global.Inp.RequestOpenDoorRearPB` | Rear-door request pushbutton | 24 VDC pushbutton contact |
@@ -122,7 +122,7 @@ Only photographs that identify the actual supplied or bench-tested component are
 | PLC address | PLC signal | Field function | Electrical drawing requirement |
 |---|---|---|---|
 | `%Q4.0` | `DB_Global.Out.VacuumPump` | Vacuum-pump contactor command | Interposing relay/contactor circuit; protection and overload feedback per motor design |
-| `%Q4.1` | `DB_Global.Out.MachineLightsRelayCmd` | Machine-lights relay command | Interposing relay for lighting circuit |
+| `%Q4.1` | `DB_Global.Out.MachineLightsRelayCmd` | Machine-lights contactor command | Siemens SIRIUS 3RT2016-1KB41, 24 VDC PLC coil with integrated suppressor diode |
 | `%Q4.2` | `DB_Global.Out.AirFilterRelayCmd` | Air-filter relay command | Interposing relay/contactor for filter unit |
 | `%Q4.3` | `DB_Global.Out.GateOpen` | Gate-open solenoid command | Valve/relay circuit |
 | `%Q4.4` | `DB_Global.Out.GateClose` | Gate-close solenoid command | Valve/relay circuit |

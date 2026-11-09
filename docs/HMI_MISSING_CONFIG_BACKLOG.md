@@ -28,9 +28,10 @@ engineering information.
 | P6 | `LT-CIP` | CIP/process level | % | `ai_CIPLevel` | Not assigned | Physical IO-Link port/channel/address, PLC tag, HMI tag/binding, range and scaling |
 | P7 | `TT-PROCESS` | Process temperature | degC | `ai_ProcessTemperature` | Not assigned | Physical IO-Link port/channel/address, PLC tag, HMI tag/binding, range and scaling |
 
-P4 (`PT-SPARE`) and P8 (`SPARE-A102-08`) are intentional spare ports and are
-not backlog defects. They remain `NOT USED / SPARE` until an approved hardware
-change assigns them.
+P4 (`PT-SPARE`) is an intentional spare port and is not a backlog defect. It
+remains `NOT USED / SPARE` until an approved hardware change assigns it. P8 is
+assigned to the IFM AL2330 stack-light output hub and is not part of the
+missing-configuration backlog.
 
 ### Completion criteria
 

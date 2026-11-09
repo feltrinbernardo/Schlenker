@@ -122,9 +122,9 @@ BEGIN
     "DB_Global".InternalWash.Requested := FALSE;
     "DB_Global".ProductionVacuum.AttemptNumber := 0;
     "DB_Global".ProductionVacuum.LowVacuumAlarm := FALSE;
-    "DB_Global".Par.ProductPumpManualFrequencyHz := 15.0;
-    "DB_Global".Par.ConveyorManualFrequencyHz := 5.0;
-    "DB_Global".Par.CapDriveManualFrequencyHz := 0.0;
+    "DB_Global".Par.ProductPumpManualFrequencyHz := 10.0;
+    "DB_Global".Par.ConveyorManualFrequencyHz := 10.0;
+    "DB_Global".Par.CapDriveManualFrequencyHz := 10.0;
     "DB_Global".CIPRecipeControl.EngineeringAuthorized := FALSE;
     "DB_Global".CIPRecipeControl.ActiveSnapshotReady := FALSE;
     "DB_Global".CIPRecipeControl.StartRejectedInvalid := FALSE;

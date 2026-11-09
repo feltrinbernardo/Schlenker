@@ -251,7 +251,7 @@ def main():
         ("AL102", "P5", "LT-PRODUCT", "Product continuous level", "ai_ProductLevel", "TBC", "DEVICE TBC"),
         ("AL102", "P6", "LT-CIP", "CIP process level", "ai_CIPLevel", "TBC", "DEVICE TBC"),
         ("AL102", "P7", "TT-PROCESS", "Process temperature", "ai_ProcessTemperature", "TBC", "DEVICE TBC"),
-        ("AL102", "P8", "SPARE", "Future process instrument", "-", "-", "SPARE"),
+        ("AL102", "P8", "DO-HUB-TL100", "Tower light output hub", "TL100_OutputHub", "%QB156..%QB163", "CONFIGURED"),
         ("AL103", "P1-P4", "SEN-103-01..04", "Additional machine sensors", "io_AL103_P1..P4", "TBC", "RESERVED"),
         ("AL103", "P5-P8", "SPARE", "Future smart sensors", "-", "-", "SPARE"),
         ("AL104", "P1", "CIP-DO-01", "Cold Water Request", "CIP_REQ_COLD_WATER", "CIP_Req_Cold_Water", "FROZEN TBC"),

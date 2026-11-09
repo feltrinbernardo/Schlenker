@@ -58,13 +58,15 @@ namespace Schlenker.TiaV19
                     candidate.ProjectPath != null &&
                     Path.GetFullPath(candidate.ProjectPath.FullName)
                         .Equals(projectPath, StringComparison.OrdinalIgnoreCase));
-                if (process == null)
-                    throw new InvalidOperationException("The exact TIA project is not open.");
-
                 using (StreamWriter report = new StreamWriter(reportPath, false, Encoding.UTF8))
-                using (TiaPortal portal = process.Attach())
+                using (TiaPortal portal = process == null
+                    ? new TiaPortal(TiaPortalMode.WithoutUserInterface)
+                    : process.Attach())
                 {
-                    Project project = portal.Projects.Single();
+                    bool openedHeadless = process == null;
+                    Project project = openedHeadless
+                        ? portal.Projects.Open(new FileInfo(projectPath))
+                        : portal.Projects.Single();
                     if (!Path.GetFullPath(project.Path.FullName)
                         .Equals(projectPath, StringComparison.OrdinalIgnoreCase))
                         throw new InvalidOperationException("Attached project identity changed.");
@@ -80,10 +82,13 @@ namespace Schlenker.TiaV19
                     report.WriteLine("Source=" + csvPath);
                     report.WriteLine("OnlineApisUsed=NO");
                     report.WriteLine("DownloadOrTransferApisUsed=NO");
+                    report.WriteLine("OpenedHeadless=" + openedHeadless);
 
                     Dictionary<uint, AlarmBinding> requiredBindings =
                         new Dictionary<uint, AlarmBinding>
                         {
+                            { 1701U, new AlarmBinding { Name = "ALM_1701_Hood1FilterClogged", TriggerTag = "Alarm_Word1", Bit = 13U } },
+                            { 1703U, new AlarmBinding { Name = "ALM_1703_Hood2FilterClogged", TriggerTag = "Alarm_Word1", Bit = 16U } },
                             { 1202U, new AlarmBinding { Name = "ALM_1202_AutoGateSequenceFault", TriggerTag = "Alarm_Word1", Bit = 22U } },
                             { 1303U, new AlarmBinding { Name = "ALM_1303_ProductLevelNotReached", TriggerTag = "Alarm_Word1", Bit = 21U } },
                             { 2104U, new AlarmBinding { Name = "ALM_2104_CIPSequenceFault", TriggerTag = "Alarm_Word1", Bit = 26U } },

@@ -6,7 +6,7 @@ The project contains **six motorized functions**:
 
 - four machine drives intended to use SINAMICS G120C;
 - one vacuum-pump motor;
-- one ventilation/hood fan motor.
+- two ventilation/hood fan assemblies.
 
 Only five functions currently have confirmed electrical equipment codes,
 `M100` through `M104`. The cap-distributor drive is required by the PLC logic
@@ -27,7 +27,7 @@ PROFINET telegrams, addresses or motor nameplate data.
 | 3 | M102 | Product pump | SINAMICS G120C VFD | C-034 | Motor data and drive configuration pending |
 | 4 | TBC | Cap distributor | SINAMICS G120C VFD | Missing / TBC | Equipment code, motor data, cable and drive configuration pending |
 | 5 | M103 | Vacuum pump | Contactor or VFD — TBC | C-035 | Motor data and final starter architecture pending |
-| 6 | M104 | Ventilation / hood fan | Contactor or VFD — TBC | C-036 | Motor data and final starter architecture pending |
+| 6 | M104A / M104B | Hood fan 1 / hood fan 2 | 230 VAC single-phase assembly; brushless motor electronics associated/integrated | C-036A / C-036B | Previous 400 VAC three-phase representation rejected; assembly protection, terminals and control interface TBC |
 
 Planned G120C count: **4**. Configured G120C devices verified in the latest TIA
 hardware inventory: **0**.
@@ -47,7 +47,7 @@ signals are mapped and validated.
 | M102 Product pump | `DB_Global.Out.ProductPumpRun`, `ProductPumpSpeedPct` | `ProductPumpReady`, `ProductPumpFault` | `DO_ProductPump_Run`, `DI_ProductPump_Ready`, `DI_ProductPump_Fault`, `Pump_Speed_Pct` | Symbolic interface present; actual speed/running feedback and telegram mapping TBC |
 | Cap distributor, code TBC | `DB_Global.Out.CapDriveRun`, `CapDriveSpeedPct` | `CapDriveReady`, `CapDriveFault` | `DO_CapDrive_Run`, `DI_CapDrive_Ready`, `DI_CapDrive_Fault` | Symbolic interface present; equipment code, actual speed/running feedback and telegram mapping TBC |
 | M103 Vacuum pump | `DB_Global.Out.VacuumPump` | No dedicated ready, running or fault feedback identified | `DO_Vacuum_Pump`, `Vacuum_Pump_Run` | Boolean command only; contactor/VFD and feedback architecture TBC |
-| M104 Ventilation / hood fan | probable association: `DB_Global.Out.AirFilterRelayCmd` | `AirFilterPressureOK`, `AirFilterFault`, `HoodFilterAlarm` | `AirFilter_Relay`, `AirFilter_PressureOK`, `AirFilter_Fault`, `DI_Hood_Filter_Alarm` | Association with M104 must be confirmed from electrical drawings |
+| M104A / M104B Hood fans | probable common-enable association: `DB_Global.Out.AirFilterRelayCmd` | `AirFilterPressureOK`, `AirFilterFault`, `Hood1FilterClogged`, `Hood2FilterClogged` | `AirFilter_Relay`, `AirFilter_PressureOK`, `AirFilter_Fault`, `Hood1_FilterClogged`, `Hood2_FilterClogged` | `%Q4.2` is not approved as a direct motor connection; relay/interface and whether enable is common to both hoods remain TBC |
 
 The PLC contains separate drive-manager structures for the main machine,
 product pump, bottle conveyor and cap distributor. These structures must not be
@@ -63,7 +63,14 @@ signals are configured and tested.
 | C-034 | M102 Product pump | VFD output | VFD motor, `3P + PE` | Awaiting motor data |
 | TBC | Cap distributor | G120C output expected | VFD motor expected | No controlled cable row or motor code identified |
 | C-035 | M103 Vacuum pump | Contactor/VFD — TBC | `3P + PE` | Awaiting motor data |
-| C-036 | M104 Ventilation | Contactor/VFD — TBC | `3P + PE` | Awaiting motor data |
+| C-036A | M104A Hood 1 assembly | 230 VAC single-phase distribution | `L + N + PE`; size/protection TBC | Complete hood stated as 230 VAC single-phase; photographed motor is Nidec SIC-67FV-F15B-1, brushless, DC 310 V, 58 W, 8 poles, 1350 rpm |
+| C-036B | M104B Hood 2 assembly | 230 VAC single-phase distribution | `L + N + PE`; size/protection TBC | Same architecture stated for Hood 2; second nameplate must be verified before construction |
+
+The `DC 310 V` motor marking is an internal motor-bus rating, not permission to
+apply 230 VAC to its motor leads. The complete hood's 230 VAC input must feed
+the manufacturer's associated/integrated electronics. The five motor-interface
+leads visible on the plate must not be assigned to PLC or mains terminals until
+the hood controller and terminal documentation are identified.
 
 ## 5. Information required to complete the motor list
 
@@ -88,10 +95,10 @@ For every motor, confirm and record:
 Specific unresolved identification items:
 
 1. Assign and approve the cap-distributor motor code and cable reference.
-2. Confirm whether M103 and M104 use contactors or variable-frequency drives.
-3. Confirm that `AirFilterRelayCmd` is the command for M104.
+2. Confirm the M103 starter and identify the two hood assemblies' integral/associated brushless controller terminals and protective devices.
+3. Confirm whether `AirFilterRelayCmd` is a common enable for M104A and M104B and identify the required interposing relay/interface.
 4. Provide the actual M100 data currently described only as "known".
-5. Provide nameplate and sizing data for M101 through M104 and the cap distributor.
+5. Verify the second hood motor nameplate and provide remaining nameplate/sizing data for M101 and the cap distributor.
 
 ## 6. Source references
 

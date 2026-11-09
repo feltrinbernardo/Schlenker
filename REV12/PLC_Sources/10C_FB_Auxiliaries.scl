@@ -6,7 +6,7 @@ VAR_INPUT
     AirFilterOnPB         : Bool;
     AirFilterOffPB        : Bool;
     AirFilterPressureOK   : Bool;
-    AirFilterChangeRequired24V : Bool;
+    Hood2FilterClogged    : Bool;
     ResetAlarmPB          : Bool;
     AirFilterProofDelay   : Time;
 END_VAR
@@ -30,7 +30,7 @@ BEGIN
     END_IF;
 
     A.AirFilterPressureOK := AirFilterPressureOK;
-    A.AirFilterChangeWarning := AirFilterChangeRequired24V;
+    A.Hood2FilterCloggedWarning := Hood2FilterClogged;
 
     T_AirFilterProof(
         IN := A.AirFilterRelayCmd AND NOT AirFilterPressureOK,

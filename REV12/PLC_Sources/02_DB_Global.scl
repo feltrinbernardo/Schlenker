@@ -66,11 +66,11 @@ BEGIN
     Par.MainDriveJamMinCommandHz := 5.0;
     Par.MainDriveJamArmSpeedPct := 80.0;
     Par.MainDriveJamTripSpeedPct := 50.0;
-    Par.ProductPumpManualFrequencyHz := 15.0;
-    Par.ProductPumpManualMinHz := 15.0;
-    Par.ProductPumpManualMaxHz := 40.0;
-    Par.ConveyorManualFrequencyHz := 5.0;
-    Par.CapDriveManualFrequencyHz := 0.0;
+    Par.ProductPumpManualFrequencyHz := 10.0;
+    Par.ProductPumpManualMinHz := 10.0;
+    Par.ProductPumpManualMaxHz := 50.0;
+    Par.ConveyorManualFrequencyHz := 10.0;
+    Par.CapDriveManualFrequencyHz := 10.0;
     Par.CapDistributorDelayToStart := T#1s;
     Par.CapDistributorDelayToStop := T#1s;
     Par.CapDistributorNoPulseTimeout := T#3s;
@@ -240,7 +240,10 @@ BEGIN
     OpenPoints.SMC.MappingConfigured := TRUE;
     OpenPoints.PhysicalDoorMapConfigured := FALSE;
     Cmd.ProductPumpEnable := FALSE;
-    Cmd.ConveyorSyncEnable := TRUE;
+    // Safety default: every maintained HMI command starts de-energized.
+    // The operator must explicitly enable conveyor synchronisation after
+    // PLC/HMI communication and machine permissives are valid.
+    Cmd.ConveyorSyncEnable := FALSE;
     CIPRecipe.RecipeName := 'DEFAULT 10 STEP';
     CIPRecipe.Revision := UINT#1;
     CIPRecipe.StepCount := USINT#10;

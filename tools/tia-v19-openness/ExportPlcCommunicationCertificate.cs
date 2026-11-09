@@ -18,10 +18,14 @@ namespace Schlenker.TiaV19
             TiaPortalProcess process = TiaPortal.GetProcesses().SingleOrDefault(candidate =>
                 candidate.ProjectPath != null && candidate.ProjectPath.FullName.Equals(
                     projectPath, StringComparison.OrdinalIgnoreCase));
-            if (process == null) throw new InvalidOperationException("Exact project is not open.");
-            using (TiaPortal portal = process.Attach())
+            bool attached = process != null;
+            using (TiaPortal portal = attached
+                ? process.Attach()
+                : new TiaPortal(TiaPortalMode.WithoutUserInterface))
             {
-                Project project = portal.Projects.Single();
+                Project project = attached
+                    ? portal.Projects.Single()
+                    : portal.Projects.Open(new FileInfo(projectPath));
                 Device station = project.Devices.Single(device => device.Name.Equals(
                     "S7-1500/ET200MP station_1", StringComparison.OrdinalIgnoreCase));
                 DeviceItem cpu = FindItems(station.DeviceItems).Single(item =>
@@ -44,6 +48,7 @@ namespace Schlenker.TiaV19
                 Console.WriteLine("PRIVATE_KEY_EXPORTED=NO");
                 Console.WriteLine("OUTPUT=" + outputPath);
                 Console.WriteLine("STATUS=PASS");
+                if (!attached) project.Close();
             }
             return 0;
         }

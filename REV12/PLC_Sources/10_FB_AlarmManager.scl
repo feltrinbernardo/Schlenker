@@ -13,11 +13,11 @@ VAR_INPUT
     ConveyorFault       : Bool;
     ProductPumpFault    : Bool;
     CapDriveFault       : Bool;
-    HoodFilterAlarm     : Bool;
+    Hood1FilterClogged  : Bool;
     EStopChain24VHealthy: Bool;
     DoorAccessFault     : Bool;
     AirFilterFault      : Bool;
-    AirFilterChangeWarning : Bool;
+    Hood2FilterClogged  : Bool;
     SpeedParameterFault : Bool;
     PumpLowWarning      : Bool;
     CapperOutfeedCrash  : Bool;
@@ -74,10 +74,10 @@ BEGIN
     AlarmWord1.%X10 := ConveyorFault;        // 1602
     AlarmWord1.%X11 := ProductPumpFault;     // 1603
     AlarmWord1.%X12 := CapDriveFault;         // 1604
-    AlarmWord1.%X13 := HoodFilterAlarm;       // 1701 warning
+    AlarmWord1.%X13 := Hood1FilterClogged;    // 1701 Cappa 1 filter clogged
     AlarmWord1.%X14 := (NOT SafetyOK) AND EStopChain24VHealthy; // 1003 safety circuit not ready
     AlarmWord1.%X15 := AirFilterFault;         // 1702 warning
-    AlarmWord1.%X16 := AirFilterChangeWarning; // 1703 warning
+    AlarmWord1.%X16 := Hood2FilterClogged;     // 1703 Cappa 2 filter clogged
     AlarmWord1.%X17 := DoorAccessFault;        // 1801
     AlarmWord1.%X18 := SpeedParameterFault;    // 1901
     AlarmWord1.%X19 := PumpLowWarning;          // 1302 warning
@@ -131,7 +131,7 @@ BEGIN
                      OR MainDriveCommFault OR ConveyorDriveCommFault
                      OR ProductPumpCommFault OR CapDriveCommFault;
 
-    WarningAlarm := HoodFilterAlarm OR AirFilterFault OR AirFilterChangeWarning OR PumpLowWarning
+    WarningAlarm := Hood1FilterClogged OR AirFilterFault OR Hood2FilterClogged OR PumpLowWarning
                     OR ProductLevelNotReached OR CIPStartBlocked OR
                     CapHopperLow OR CapChannelDemand OR BottleShortage1Active OR Accumulation1Active OR
                     CIPNextRejected;

@@ -27,6 +27,7 @@ using Siemens.Engineering.HmiUnified.UI.Shapes;
 using Siemens.Engineering.HmiUnified.UI.Screens;
 using Siemens.Engineering.HmiUnified.UI.Widgets;
 using Siemens.Engineering.SW;
+using Siemens.Engineering.SW.Tags;
 
 namespace Schlenker.TiaV19
 {
@@ -226,6 +227,16 @@ namespace Schlenker.TiaV19
                 args[3].Equals("--io-link-al104-content-refinement", StringComparison.OrdinalIgnoreCase);
             bool ioLinkOverviewContentRefinement = args.Length > 3 &&
                 args[3].Equals("--io-link-overview-content-refinement", StringComparison.OrdinalIgnoreCase);
+            bool ioLinkConfiguredPages = args.Length > 3 &&
+                args[3].Equals("--io-link-configured-pages", StringComparison.OrdinalIgnoreCase);
+            bool ioLinkFooterOnly = args.Length > 3 &&
+                args[3].Equals("--io-link-footer-only", StringComparison.OrdinalIgnoreCase);
+            bool architectureTreeV12IoLinkReview = args.Length > 3 &&
+                args[3].Equals("--architecture-tree-v12-iolink-review", StringComparison.OrdinalIgnoreCase);
+            bool ioLinkAl102MatchAl100 = args.Length > 3 &&
+                args[3].Equals("--io-link-al102-match-al100", StringComparison.OrdinalIgnoreCase);
+            bool ioLinkAllMatchAl100 = args.Length > 3 &&
+                args[3].Equals("--io-link-all-match-al100", StringComparison.OrdinalIgnoreCase);
             bool liftWarningContentRefinement = args.Length > 3 &&
                 args[3].Equals("--lift-warning-content-refinement", StringComparison.OrdinalIgnoreCase);
             bool liftWarningLayoutCentering = args.Length > 3 &&
@@ -758,6 +769,53 @@ namespace Schlenker.TiaV19
                         Console.WriteLine("STEP=IO_LINK_OVERVIEW_CONTENT_REFINEMENT_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=io_link_overview");
                         Console.WriteLine("IO_LINK_OVERVIEW_COMMON_FRAME_MODIFIED=0");
+                    }
+                    else if (ioLinkConfiguredPages)
+                    {
+                        ApplyIoLinkConfiguredPages(project, hmi);
+                        project.Save();
+                        Console.WriteLine("STEP=IO_LINK_CONFIGURED_PAGES_READY");
+                        Console.WriteLine("PROJECT_SAVED_AFTER_SCREENS=io_link_al100|io_link_al101|io_link_al102|io_link_al103|io_link_overview|manual");
+                        Console.WriteLine("IO_LINK_CONFIGURED_PAGES_PLC_LOGIC_MODIFIED=0");
+                    }
+                    else if (ioLinkFooterOnly)
+                    {
+                        ApplyIoLinkFooterOnly(hmi);
+                        project.Save();
+                        Console.WriteLine("STEP=IO_LINK_FOOTER_ONLY_READY");
+                        Console.WriteLine("PROJECT_SAVED_AFTER_SCREENS=io_link_overview|io_link_al100|io_link_al101|io_link_al102|io_link_al103");
+                        Console.WriteLine("IO_LINK_FOOTER_ONLY_OTHER_OBJECTS_MODIFIED=0");
+                    }
+                    else if (architectureTreeV12IoLinkReview)
+                    {
+                        ApplyArchitectureTreeV12IoLinkReview(hmi);
+                        project.Save();
+                        Console.WriteLine("STEP=ARCHITECTURE_TREE_V12_IOLINK_REVIEW_READY");
+                        Console.WriteLine("PROJECT_SAVED_AFTER_SCREENS=io_link_overview|io_link_al100|io_link_al101|io_link_al102|io_link_al103|io_link_al104");
+                        Console.WriteLine("ARCHITECTURE_TREE_V12_CHANGED_SCREEN=io_link_al102");
+                        Console.WriteLine("ARCHITECTURE_TREE_V12_VERIFIED_UNCHANGED=io_link_al100|io_link_al101|io_link_al103|io_link_al104");
+                        Console.WriteLine("ARCHITECTURE_TREE_V12_PLC_LOGIC_MODIFIED=0");
+                        Console.WriteLine("ARCHITECTURE_TREE_V12_DOWNLOAD_PERFORMED=0");
+                    }
+                    else if (ioLinkAl102MatchAl100)
+                    {
+                        ApplyIoLinkAl102MatchAl100(hmi);
+                        project.Save();
+                        Console.WriteLine("STEP=IO_LINK_AL102_MATCH_AL100_READY");
+                        Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=io_link_al102");
+                        Console.WriteLine("IO_LINK_AL102_MAPPING_MODIFIED=0");
+                        Console.WriteLine("IO_LINK_AL102_NAVIGATION_MODIFIED=0");
+                        Console.WriteLine("IO_LINK_AL102_DOWNLOAD_PERFORMED=0");
+                    }
+                    else if (ioLinkAllMatchAl100)
+                    {
+                        ApplyIoLinkAllMatchAl100(hmi);
+                        project.Save();
+                        Console.WriteLine("STEP=IO_LINK_ALL_MATCH_AL100_READY");
+                        Console.WriteLine("PROJECT_SAVED_AFTER_SCREENS=io_link_al101|io_link_al102|io_link_al103|io_link_al104");
+                        Console.WriteLine("IO_LINK_ALL_MAPPING_MODIFIED=0");
+                        Console.WriteLine("IO_LINK_ALL_NAVIGATION_EVENTS_MODIFIED=0");
+                        Console.WriteLine("IO_LINK_ALL_DOWNLOAD_PERFORMED=0");
                     }
                     else if (liftWarningContentRefinement)
                     {
@@ -3844,8 +3902,8 @@ namespace Schlenker.TiaV19
                 screen,
                 "REV12_Filter_Warn_Field",
                 "REV57_Home_Filter_Service",
-                "AirFilter_ChangeRequired",
-                "SERVICE DUE",
+                "Hood2_FilterClogged",
+                "CLOGGED",
                 "OK",
                 Red,
                 Green,
@@ -3855,7 +3913,7 @@ namespace Schlenker.TiaV19
             HmiText serviceText = screen.ScreenItems.Find("REV12_Filter_Warn_Text") as HmiText;
             if (serviceText == null)
                 throw new InvalidOperationException("Home filter-service caption is missing.");
-            SetText(serviceText.Text, "FILTER CONDITION");
+            SetText(serviceText.Text, "HOOD 2 FILTER");
 
             HmiText legend = screen.ScreenItems.Find("REV12_Home_Process_Legend") as HmiText;
             if (legend == null)
@@ -4444,7 +4502,7 @@ namespace Schlenker.TiaV19
                 HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
             HmiIOField filterWarning = GetOrCreate<HmiIOField>(screen, "REV12_Filter_Warn_Field");
             ConfigureIOField(filterWarning, 1010, 560, 130, 40,
-                "AirFilter_ChangeRequired", true, "0");
+                "Hood2_FilterClogged", true, "0");
             filterWarning.ForeColor = Color.White;
             DynamizationBase oldWarningColor = filterWarning.Dynamizations.Find("BackColor");
             if (oldWarningColor != null) oldWarningColor.Delete();
@@ -4453,11 +4511,11 @@ namespace Schlenker.TiaV19
             warningColor.Async = false;
             warningColor.Trigger.Type = TriggerType.T500ms;
             warningColor.ScriptCode =
-                "let v=HMIRuntime.Tags(\"AirFilter_ChangeRequired\").Read();" +
+                "let v=HMIRuntime.Tags(\"Hood2_FilterClogged\").Read();" +
                 "if(v){return HMIRuntime.Math.RGB(195,45,55);}" +
                 "return HMIRuntime.Math.RGB(120,135,150);";
             ConfigureText(GetOrCreate<HmiText>(screen, "REV12_Filter_Warn_Text"),
-                995, 620, 160, 26, "CHANGE REQUIRED", Color.White, 12,
+                995, 620, 160, 26, "HOOD 2 CLOGGED", Color.White, 12,
                 HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
 
             string[] retiredPrefixes =
@@ -8978,11 +9036,11 @@ namespace Schlenker.TiaV19
             AddStatus(screen, "Machine lights relay", "Lights_Relay", 55, 532);
             AddStatus(screen, "Air filter relay", "AirFilter_Relay", 55, 568);
             AddStatus(screen, "Air pressure proof", "AirFilter_PressureOK", 55, 604);
-            AddStatus(screen, "Filter change required", "AirFilter_ChangeRequired", 55, 640);
+            AddStatus(screen, "Hood 2 filter clogged", "Hood2_FilterClogged", 55, 640);
             AddStatus(screen, "Network healthy", "Network_OK", 430, 532);
             AddStatus(screen, "Tank full 100%", "Tank_Full_100", 430, 568);
             AddStatus(screen, "Capper outfeed crash active", "Capper_Outfeed_Crash", 430, 604);
-            AddStatus(screen, "Warning active", "Alarm_Warning", 430, 640);
+            AddStatus(screen, "Hood 1 filter clogged", "Hood1_FilterClogged", 430, 640);
 
             ConfigureRectangle(GetOrCreate<HmiRectangle>(screen, "REV12_Function_Readiness"), 820, 140, 370, 575, Panel, Border, 1);
             ConfigureText(GetOrCreate<HmiText>(screen, "REV12_Function_Readiness_Title"), 840, 152, 330, 34,
@@ -9020,7 +9078,7 @@ namespace Schlenker.TiaV19
                 { "REV12_Value_LightsRelay", "Lights_Relay" },
                 { "REV12_Value_AirFilterRelay", "AirFilter_Relay" },
                 { "REV12_Value_AirFilterPressureOK", "AirFilter_PressureOK" },
-                { "REV12_Value_AirFilterChangeRequired", "AirFilter_ChangeRequired" },
+                { "REV12_Value_AirFilterChangeRequired", "Hood2_FilterClogged" },
                 { "REV12_Value_TankFull100", "Tank_Full_100" },
                 { "REV12_Value_CapperOutfeedCrash", "Capper_Outfeed_Crash" },
                 { "REV12_Value_MachineSafetyOK", "Machine_SafetyOK" },
@@ -9139,15 +9197,18 @@ namespace Schlenker.TiaV19
             ConfigureFunctionStatusRow(screen, "AirPressure", "REV12_Label_AirFilterPressureOK",
                 "REV12_Value_AirFilterPressureOK", "Air pressure proof", "AirFilter_PressureOK",
                 40, 567, 245, "PROVEN", "NOT PROVEN", Green, Red);
-            ConfigureFunctionStatusRow(screen, "FilterChange", "REV12_Label_AirFilterChangeRequired",
-                "REV12_Value_AirFilterChangeRequired", "Filter service", "AirFilter_ChangeRequired",
-                40, 607, 245, "CHANGE REQUIRED", "OK", Amber, Green);
+            ConfigureFunctionStatusRow(screen, "Hood2Filter", "REV12_Label_AirFilterChangeRequired",
+                "REV12_Value_AirFilterChangeRequired", "Hood 2 filter", "Hood2_FilterClogged",
+                40, 607, 245, "CLOGGED", "OK", Red, Green);
             ConfigureFunctionStatusRow(screen, "TankFull", "REV12_Label_TankFull100",
                 "REV12_Value_TankFull100", "Tank full 100%", "Tank_Full_100",
                 420, 487, 655, "FULL", "NOT FULL", Amber, Color.FromArgb(145, 155, 165));
             ConfigureFunctionStatusRow(screen, "CapperCrash", "REV12_Label_CapperOutfeedCrash",
                 "REV12_Value_CapperOutfeedCrash", "Capper outfeed crash", "Capper_Outfeed_Crash",
                 420, 527, 655, "CRASH", "CLEAR", Red, Green);
+            ConfigureFunctionStatusRow(screen, "Hood1Filter", "REV12_Label_Hood1FilterClogged",
+                "REV12_Value_Hood1FilterClogged", "Hood 1 filter", "Hood1_FilterClogged",
+                420, 567, 655, "CLOGGED", "OK", Red, Green);
 
             ConfigureRectangle(GetOrCreate<HmiRectangle>(screen, "REV12_Function_Readiness"),
                 812, 110, 386, 584, Panel, cardBorder, 1);
@@ -16768,6 +16829,344 @@ namespace Schlenker.TiaV19
             Console.WriteLine("IO_LINK_AL101_HARDWARE_ADDRESSES_INVENTED=0");
         }
 
+        private static void ApplyIoLinkAllMatchAl100(HmiSoftware hmi)
+        {
+            HmiScreen reference = hmi.Screens.Find("io_link_al100");
+            if (reference == null) throw new InvalidOperationException("AL100 reference screen is missing.");
+            string[] targets = { "io_link_al101", "io_link_al102", "io_link_al103", "io_link_al104" };
+            string[] commonNames =
+            {
+                "REV18_IOL_Detail_Summary", "REV18_IOL_Detail_Identity",
+                "REV18_IOL_Detail_Description", "REV18_IOL_Detail_CommLabel",
+                "REV18_IOL_Detail_Quality", "REV18_IOL_Detail_Header",
+                "REV18_IOL_Detail_HoldPoint", "REV18_IOL_Detail_Back",
+                "REV18_IOL_Detail_Previous", "REV18_IOL_Detail_Next"
+            };
+            string[] rowSuffixes =
+            {
+                "_Back", "_Number", "_Device", "_Description", "_Mode",
+                "_Unit", "_Quality", "_Mapping"
+            };
+
+            foreach (string targetName in targets)
+            {
+                HmiScreen target = hmi.Screens.Find(targetName);
+                if (target == null) throw new InvalidOperationException("Missing IO-Link screen: " + targetName);
+                Dictionary<string, string> navigationScripts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                foreach (string navName in new[] { "REV18_IOL_Detail_Back", "REV18_IOL_Detail_Previous", "REV18_IOL_Detail_Next" })
+                {
+                    HmiButton nav = target.ScreenItems.Find(navName) as HmiButton;
+                    HmiButtonEventHandler tapped = nav == null ? null : nav.EventHandlers.Find(HmiButtonEventType.Tapped);
+                    if (nav == null || tapped == null || String.IsNullOrWhiteSpace(tapped.Script.ScriptCode))
+                        throw new InvalidOperationException(targetName + " navigation is incomplete: " + navName);
+                    navigationScripts[navName] = tapped.Script.ScriptCode;
+                }
+
+                foreach (string name in commonNames)
+                    CopyIoLinkAl100Geometry(reference.ScreenItems.Find(name), target.ScreenItems.Find(name));
+                for (int column = 0; column < 8; column++)
+                {
+                    string name = "REV18_IOL_Detail_H" + column.ToString();
+                    CopyIoLinkAl100Geometry(reference.ScreenItems.Find(name), target.ScreenItems.Find(name));
+                }
+                for (int port = 1; port <= 8; port++)
+                {
+                    foreach (string suffix in rowSuffixes)
+                    {
+                        string name = "REV18_IOL_Port_" + port.ToString() + suffix;
+                        CopyIoLinkAl100Geometry(reference.ScreenItems.Find(name), target.ScreenItems.Find(name));
+                    }
+                }
+
+                foreach (HmiScreenItemBase item in target.ScreenItems)
+                {
+                    Match match = Regex.Match(item.Name,
+                        "(?:_X|_P|_Port_)([1-8])(?:_Live)?_(Back|Text)$",
+                        RegexOptions.IgnoreCase);
+                    if (!match.Success ||
+                        !(item.Name.StartsWith("REV70_IOL_", StringComparison.OrdinalIgnoreCase) ||
+                          item.Name.StartsWith("REV71_IOL_", StringComparison.OrdinalIgnoreCase) ||
+                          item.Name.StartsWith("REV3", StringComparison.OrdinalIgnoreCase))) continue;
+                    int port = Int32.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
+                    int top = 250 + (port - 1) * 51 + 7;
+                    if (match.Groups[2].Value.Equals("Back", StringComparison.OrdinalIgnoreCase))
+                        SetBounds(item, 506, top, 89, 33);
+                    else
+                        SetBounds(item, 508, top, 85, 33);
+                }
+
+                foreach (KeyValuePair<string, string> pair in navigationScripts)
+                {
+                    HmiButton nav = target.ScreenItems.Find(pair.Key) as HmiButton;
+                    HmiButtonEventHandler tapped = nav == null ? null : nav.EventHandlers.Find(HmiButtonEventType.Tapped);
+                    if (tapped == null || tapped.Script.ScriptCode != pair.Value)
+                        throw new InvalidOperationException(targetName + " navigation changed: " + pair.Key);
+                }
+                Console.WriteLine("IO_LINK_AL100_GEOMETRY_APPLIED=" + targetName);
+            }
+        }
+
+        private static void CopyIoLinkAl100Geometry(HmiScreenItemBase source, HmiScreenItemBase target)
+        {
+            if (source == null || target == null)
+                throw new InvalidOperationException("IO-Link AL100 geometry source/target object is missing.");
+            foreach (string property in new[] { "Left", "Top", "Width", "Height" })
+                CopyWritableProperty(source, target, property);
+            CopyNestedWritableProperties(source, target, "Font", new[] { "Name", "Size", "Weight" });
+            foreach (string property in new[] { "HorizontalTextAlignment", "VerticalTextAlignment" })
+                CopyWritableProperty(source, target, property);
+            CopyNestedWritableProperties(source, target, "Content",
+                new[] { "HorizontalTextAlignment", "VerticalTextAlignment" });
+        }
+
+        private static void ApplyIoLinkAl102MatchAl100(HmiSoftware hmi)
+        {
+            HmiScreen screen = hmi.Screens.Find("io_link_al102");
+            if (screen == null) throw new InvalidOperationException("Missing IO-Link screen: AL102");
+
+            HmiText identity = screen.ScreenItems.Find("REV18_IOL_Detail_Identity") as HmiText;
+            HmiText description = screen.ScreenItems.Find("REV18_IOL_Detail_Description") as HmiText;
+            HmiText holdPoint = screen.ScreenItems.Find("REV18_IOL_Detail_HoldPoint") as HmiText;
+            if (identity == null || description == null || holdPoint == null)
+                throw new InvalidOperationException("AL102 summary objects are incomplete.");
+            ConfigureText(identity, 34, 122, 360, 28,
+                "AL102  |  IFM AL1403", Navy, 18, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+            ConfigureText(description, 34, 154, 650, 24,
+                "PROCESS INSTRUMENTATION + STACK LIGHT OUTPUT HUB", Amber, 11,
+                HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+
+            string[] expectedDevices =
+            {
+                "PT-PRODUCT", "PT-AIR", "PT-CIP", "PT-SPARE",
+                "LT-PRODUCT", "LT-CIP", "TT-PROCESS", "AL2330"
+            };
+            string[] expectedDescriptions =
+            {
+                "Product Pressure", "Air / Process Pressure", "CIP / Service Pressure",
+                "Spare Pressure Measurement", "Product Continuous Level", "CIP / Process Level",
+                "Process Temperature", "Leuze stack light output hub"
+            };
+            for (int port = 1; port <= 8; port++)
+            {
+                int top = 250 + (port - 1) * 51;
+                string prefix = "REV18_IOL_Port_" + port.ToString();
+                HmiRectangle row = screen.ScreenItems.Find(prefix + "_Back") as HmiRectangle;
+                HmiText number = screen.ScreenItems.Find(prefix + "_Number") as HmiText;
+                HmiText device = screen.ScreenItems.Find(prefix + "_Device") as HmiText;
+                HmiText rowDescription = screen.ScreenItems.Find(prefix + "_Description") as HmiText;
+                HmiText mode = screen.ScreenItems.Find(prefix + "_Mode") as HmiText;
+                HmiText legacyLive = screen.ScreenItems.Find(prefix + "_LiveText") as HmiText;
+                HmiText unit = screen.ScreenItems.Find(prefix + "_Unit") as HmiText;
+                HmiText quality = screen.ScreenItems.Find(prefix + "_Quality") as HmiText;
+                HmiText mapping = screen.ScreenItems.Find(prefix + "_Mapping") as HmiText;
+                if (row == null || number == null || device == null || rowDescription == null ||
+                    mode == null || legacyLive == null || unit == null || quality == null || mapping == null)
+                    throw new InvalidOperationException("AL102 row presentation is incomplete: P" + port.ToString());
+                if (!PlainHmiText(device.Text.Items.First().Text).Equals(expectedDevices[port - 1], StringComparison.OrdinalIgnoreCase) ||
+                    !PlainHmiText(rowDescription.Text.Items.First().Text).Equals(expectedDescriptions[port - 1], StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException("AL102 mapping changed unexpectedly at P" + port.ToString());
+
+                ConfigureRectangle(row, 19, top, 1096, 47,
+                    port % 2 == 0 ? Color.FromArgb(232, 240, 247) : Color.White,
+                    Border, 1);
+                ConfigureText(number, 28, top + 10, 52, 25, "P" + port.ToString(), Navy, 10,
+                    HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+                ConfigureText(device, 84, top + 4, 117, 38, expectedDevices[port - 1], Navy, 8,
+                    HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+                ConfigureText(rowDescription, 206, top + 4, 201, 38, expectedDescriptions[port - 1], Dark, 8,
+                    HmiFontWeight.Normal, HmiHorizontalAlignment.Left);
+                ConfigureText(mode, 412, top + 10, 89, 25,
+                    PlainHmiText(mode.Text.Items.First().Text), Navy, 8,
+                    HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
+                ConfigureText(unit, 600, top + 10, 61, 25,
+                    PlainHmiText(unit.Text.Items.First().Text), Navy, 8,
+                    HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
+                ConfigureText(quality, 665, top + 7, 164, 31,
+                    PlainHmiText(quality.Text.Items.First().Text),
+                    port == 8 ? Green : Amber, 8, HmiFontWeight.Bold,
+                    HmiHorizontalAlignment.Center);
+                string mappingText = port == 8
+                    ? "%Q156.0/.1, %Q157.0/.1\nGREEN / ORANGE / RED / BUZZER"
+                    : PlainHmiText(mapping.Text.Items.First().Text);
+                ConfigureText(mapping, 834, top + 4, 267, 38,
+                    mappingText,
+                    port == 8 ? Navy : Amber, 8, HmiFontWeight.Bold,
+                    HmiHorizontalAlignment.Left);
+
+                if (port <= 7)
+                {
+                    SetBounds(legacyLive, 0, 900, 1, 1);
+                    legacyLive.Visible = false;
+                    legacyLive.Enabled = false;
+                    ConfigureIoLinkAl100Badge(screen, "REV71_IOL_AL102_P" + port.ToString(),
+                        506, top + 7, 89, 33, "NO DATA", Grey, 8);
+                }
+            }
+
+            ConfigureText(holdPoint, 23, 671, 1087, 29,
+                "AL102 PORT MAP VERIFIED AGAINST ARCHITECTURE TREE V.12 — live values are read-only diagnostics.",
+                Navy, 9, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+
+            string[] navigationNames =
+            {
+                "REV18_IOL_Detail_Back", "REV18_IOL_Detail_Previous", "REV18_IOL_Detail_Next"
+            };
+            foreach (string name in navigationNames)
+            {
+                HmiButton button = screen.ScreenItems.Find(name) as HmiButton;
+                HmiButtonEventHandler tapped = button == null ? null :
+                    button.EventHandlers.Find(HmiButtonEventType.Tapped);
+                if (button == null || tapped == null || String.IsNullOrWhiteSpace(tapped.Script.ScriptCode))
+                    throw new InvalidOperationException("AL102 navigation is incomplete: " + name);
+            }
+
+            for (int port = 1; port <= 7; port++)
+            {
+                HmiText badge = screen.ScreenItems.Find(
+                    "REV71_IOL_AL102_P" + port.ToString() + "_Text") as HmiText;
+                HmiText legacy = screen.ScreenItems.Find(
+                    "REV18_IOL_Port_" + port.ToString() + "_LiveText") as HmiText;
+                if (badge == null || legacy == null || legacy.Visible || legacy.Enabled ||
+                    legacy.Left != 0 || legacy.Top != 900 || legacy.Width != 1 || legacy.Height != 1)
+                    throw new InvalidOperationException("AL102 live badge validation failed at P" + port.ToString());
+            }
+            Console.WriteLine("IO_LINK_AL102_AL100_STYLE_BADGES=7");
+            Console.WriteLine("IO_LINK_AL102_LEGACY_LIVE_TEXT_PARKED=7");
+            Console.WriteLine("IO_LINK_AL102_PORT_MAPPING_PRESERVED=8");
+            Console.WriteLine("IO_LINK_AL102_NAVIGATION_PRESERVED=3");
+        }
+
+        private static void ApplyArchitectureTreeV12IoLinkReview(HmiSoftware hmi)
+        {
+            VerifyArchitectureTreeV12Page(hmi, "AL100", new[]
+            {
+                "O6P301|Bottle shortage 1", "O6P301|Bottle shortage 2",
+                "O6P301|Outfeed accumulation 1", "O6P301|Outfeed accumulation 2",
+                "IFS240|Capper cylinder", "IFS240|Cap distributor rotation",
+                "IFS240|Capper maximum height", "IFS240|Capper minimum height"
+            });
+            VerifyArchitectureTreeV12Page(hmi, "AL101", new[]
+            {
+                "O6P301|Cap present pick and place", "O6P301|Cap hopper low",
+                "O6P301|Cap channel request", "O6P301|Cap channel empty",
+                "PN7094|Machine air pressure OK", "IFS240|Machine zero",
+                "IFS240|Filler cylinder", "IFS240|Filler anti-rotation"
+            });
+            VerifyArchitectureTreeV12Page(hmi, "AL103", new[]
+            {
+                "LMT100|Product presence before pump", "IFS240|Filler maximum height",
+                "IFS240|Filler minimum height", "IFS240|Dummy bottle washing",
+                "SPARE-A103-05|Future smart sensor", "SPARE-A103-06|Future smart sensor",
+                "SPARE-A103-07|Future smart sensor", "SPARE-A103-08|Future smart sensor"
+            });
+            VerifyArchitectureTreeV12Page(hmi, "AL104", new[]
+            {
+                "CIP-DO-01|Cold Water Request", "CIP-DO-02|Hot Water Request",
+                "CIP-DO-03|Acid / Chemical Request", "CIP-DO-04|Citra / Neutralizer Request",
+                "CIP-DO-05|Discharge Request", "PROD-DO-01|Production / Product Request",
+                "CIP-DI-01|Customer CIP Ready / Accepted", "CIP-DI-02|Customer CIP Fault / Busy"
+            });
+
+            HmiScreen screen = hmi.Screens.Find("io_link_al102");
+            if (screen == null) throw new InvalidOperationException("Missing IO-Link screen: AL102");
+
+            string[,] rows =
+            {
+                { "PT-PRODUCT", "Product Pressure", "IO-Link", "bar", "ASSIGN DEVICE AT BUILD", "ai_ProductPressure | AL102/P1 | HW ADDR N/A" },
+                { "PT-AIR", "Air / Process Pressure", "IO-Link", "bar", "ASSIGN DEVICE AT BUILD", "ai_AirPressure | AL102/P2 | HW ADDR N/A" },
+                { "PT-CIP", "CIP / Service Pressure", "IO-Link", "bar", "ASSIGN DEVICE AT BUILD", "ai_CIPPressure | AL102/P3 | HW ADDR N/A" },
+                { "PT-SPARE", "Spare Pressure Measurement", "IO-Link", "bar", "SPARE INSTRUMENT / NOT CONFIGURED", "ai_SparePressure | AL102/P4 | HW ADDR N/A" },
+                { "LT-PRODUCT", "Product Continuous Level", "IO-Link", "%", "ASSIGN DEVICE AT BUILD", "ai_ProductLevel | AL102/P5 | HW ADDR N/A" },
+                { "LT-CIP", "CIP / Process Level", "IO-Link", "%", "ASSIGN DEVICE AT BUILD", "ai_CIPLevel | AL102/P6 | HW ADDR N/A" },
+                { "TT-PROCESS", "Process Temperature", "IO-Link", "degC", "ASSIGN DEVICE AT BUILD", "ai_ProcessTemperature | AL102/P7 | HW ADDR N/A" }
+            };
+
+            HmiText identity = screen.ScreenItems.Find("REV18_IOL_Detail_Identity") as HmiText;
+            HmiText description = screen.ScreenItems.Find("REV18_IOL_Detail_Description") as HmiText;
+            HmiText holdPoint = screen.ScreenItems.Find("REV18_IOL_Detail_HoldPoint") as HmiText;
+            if (identity == null || description == null || holdPoint == null)
+                throw new InvalidOperationException("AL102 summary objects are incomplete.");
+            SetText(identity.Text, "AL102  |  IFM AL1403 MASTER 3");
+            SetText(description.Text, "PROCESS INSTRUMENTATION + STACK LIGHT OUTPUT HUB");
+
+            for (int port = 1; port <= 7; port++)
+            {
+                string prefix = "REV18_IOL_Port_" + port.ToString();
+                HmiText device = screen.ScreenItems.Find(prefix + "_Device") as HmiText;
+                HmiText rowDescription = screen.ScreenItems.Find(prefix + "_Description") as HmiText;
+                HmiText mode = screen.ScreenItems.Find(prefix + "_Mode") as HmiText;
+                HmiText live = screen.ScreenItems.Find(prefix + "_LiveText") as HmiText;
+                HmiText unit = screen.ScreenItems.Find(prefix + "_Unit") as HmiText;
+                HmiText quality = screen.ScreenItems.Find(prefix + "_Quality") as HmiText;
+                HmiText mapping = screen.ScreenItems.Find(prefix + "_Mapping") as HmiText;
+                if (device == null || rowDescription == null || mode == null || live == null ||
+                    unit == null || quality == null || mapping == null)
+                    throw new InvalidOperationException("AL102 row presentation is incomplete: P" + port.ToString());
+
+                SetText(device.Text, rows[port - 1, 0]);
+                SetText(rowDescription.Text, rows[port - 1, 1]);
+                SetText(mode.Text, rows[port - 1, 2]);
+                SetText(live.Text, "NO DATA");
+                SetText(unit.Text, rows[port - 1, 3]);
+                SetText(quality.Text, rows[port - 1, 4]);
+                SetText(mapping.Text, rows[port - 1, 5]);
+                device.ForeColor = Navy;
+                mode.ForeColor = Navy;
+                live.ForeColor = Color.FromArgb(90, 105, 118);
+                quality.ForeColor = Amber;
+                mapping.ForeColor = Amber;
+            }
+
+            SetText(holdPoint.Text,
+                "AL102 P1-P7 follow Architecture Tree v.12 and remain NOT CONFIGURED; P8 is the AL2330 stack-light output hub.");
+            holdPoint.ForeColor = Amber;
+
+            HmiScreen overview = hmi.Screens.Find("io_link_overview");
+            HmiText overviewDescription = overview == null ? null :
+                overview.ScreenItems.Find("REV18_IOL_AL102_Description") as HmiText;
+            if (overviewDescription != null)
+                SetText(overviewDescription.Text, "PROCESS INSTRUMENTATION + STACK LIGHT OUTPUT");
+
+            VerifyArchitectureTreeV12Page(hmi, "AL102", new[]
+            {
+                "PT-PRODUCT|Product Pressure", "PT-AIR|Air / Process Pressure",
+                "PT-CIP|CIP / Service Pressure", "PT-SPARE|Spare Pressure Measurement",
+                "LT-PRODUCT|Product Continuous Level", "LT-CIP|CIP / Process Level",
+                "TT-PROCESS|Process Temperature", "AL2330|Leuze stack light output hub"
+            });
+        }
+
+        private static void VerifyArchitectureTreeV12Page(HmiSoftware hmi, string master, string[] expected)
+        {
+            HmiScreen screen = hmi.Screens.Find("io_link_" + master.ToLowerInvariant());
+            if (screen == null) throw new InvalidOperationException("Missing IO-Link screen: " + master);
+            if (expected.Length != 8) throw new ArgumentException("Eight ports are required for " + master);
+            for (int port = 1; port <= 8; port++)
+            {
+                string prefix = "REV18_IOL_Port_" + port.ToString();
+                HmiText device = screen.ScreenItems.Find(prefix + "_Device") as HmiText;
+                HmiText description = screen.ScreenItems.Find(prefix + "_Description") as HmiText;
+                if (device == null || description == null)
+                    throw new InvalidOperationException(master + " is missing row P" + port.ToString());
+                string[] parts = expected[port - 1].Split('|');
+                string actualDevice = PlainHmiText(device.Text.Items.First().Text);
+                string actualDescription = PlainHmiText(description.Text.Items.First().Text);
+                if (!actualDevice.Equals(parts[0], StringComparison.OrdinalIgnoreCase) ||
+                    !actualDescription.Equals(parts[1], StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException(master + "/P" + port.ToString() +
+                        " differs from Architecture Tree v.12. Actual=" + actualDevice + "|" + actualDescription +
+                        "; Expected=" + expected[port - 1]);
+            }
+            Console.WriteLine("ARCHITECTURE_TREE_V12_VERIFIED=" + master + "_P1_P8");
+        }
+
+        private static string PlainHmiText(string value)
+        {
+            if (String.IsNullOrWhiteSpace(value)) return String.Empty;
+            string withoutMarkup = Regex.Replace(value, "<[^>]+>", String.Empty);
+            return System.Net.WebUtility.HtmlDecode(withoutMarkup).Trim();
+        }
+
         private static void ApplyIoLinkAl102ContentRefinement(HmiSoftware hmi)
         {
             HmiScreen screen = hmi.Screens.Find("io_link_al102");
@@ -17731,6 +18130,570 @@ namespace Schlenker.TiaV19
             Console.WriteLine("IO_LINK_AL104_PLC_LOGIC_MODIFIED=0");
             Console.WriteLine("IO_LINK_AL104_PROCESS_TAGS_MODIFIED=0");
             Console.WriteLine("IO_LINK_AL104_HARDWARE_ADDRESSES_INVENTED=0");
+        }
+
+        private sealed class IoLinkPortView
+        {
+            internal string Master;
+            internal int Port;
+            internal string Device;
+            internal string Description;
+            internal string Mode;
+            internal string HmiTag;
+            internal string PlcTag;
+            internal string PlcType;
+            internal string Address;
+            internal IoLinkPortView(string master, int port, string device, string description,
+                string mode, string hmiTag, string plcTag, string plcType, string address)
+            {
+                Master = master; Port = port; Device = device; Description = description;
+                Mode = mode; HmiTag = hmiTag; PlcTag = plcTag; PlcType = plcType; Address = address;
+            }
+        }
+
+        private static void ApplyIoLinkFooterOnly(HmiSoftware hmi)
+        {
+            HmiScreen home = hmi.Screens.Find("home");
+            if (home == null) throw new InvalidOperationException("Home footer reference screen is missing.");
+            string[] footerNames =
+            {
+                "REV14_ProductPressure_Label",
+                "REV14_ProductPressure_Value_1",
+                "REV14_M103_MissingFeedback",
+                "REV14_ProductPressure_Value",
+                "REV14_SPL100_SensorSvg",
+                "REF01_FooterIcon_TREND",
+                "REV14_Production_BottleSvg",
+                "REV14_TLS100_SensorSvg"
+            };
+            string[] targetNames =
+            {
+                "io_link_overview", "io_link_al100", "io_link_al101", "io_link_al102", "io_link_al103"
+            };
+            foreach (string targetName in targetNames)
+            {
+                HmiScreen target = hmi.Screens.Find(targetName);
+                if (target == null) throw new InvalidOperationException("Missing IO-Link screen: " + targetName);
+                foreach (string footerName in footerNames)
+                {
+                    HmiScreenItemBase source = home.ScreenItems.Find(footerName);
+                    if (source == null) throw new InvalidOperationException("Missing Home footer item: " + footerName);
+                    DeleteItem(target, footerName);
+                    HmiScreenItemBase copy = CreateRevision25FrameItem(target, source);
+                    CopyRevision25FrameProperties(source, copy);
+                    CopyNavigationSpecificProperties(source, copy);
+                    CopyScreenItemEventsByReflection(source, copy);
+                }
+                int copied = footerNames.Count(name => target.ScreenItems.Find(name) != null);
+                if (copied != footerNames.Length)
+                    throw new InvalidOperationException(targetName + " footer copy is incomplete.");
+                Console.WriteLine("IO_LINK_FOOTER_ITEMS_COPIED screen=" + targetName + " count=" + copied);
+            }
+        }
+
+        private static void CopyScreenItemEventsByReflection(HmiScreenItemBase source, HmiScreenItemBase target)
+        {
+            PropertyInfo sourceProperty = source.GetType().GetProperty("EventHandlers");
+            PropertyInfo targetProperty = target.GetType().GetProperty("EventHandlers");
+            if (sourceProperty == null || targetProperty == null) return;
+            object sourceHandlers = sourceProperty.GetValue(source, null);
+            object targetHandlers = targetProperty.GetValue(target, null);
+            System.Collections.IEnumerable enumerable = sourceHandlers as System.Collections.IEnumerable;
+            if (sourceHandlers == null || targetHandlers == null || enumerable == null) return;
+            MethodInfo create = targetHandlers.GetType().GetMethods().FirstOrDefault(method =>
+                method.Name == "Create" && method.GetParameters().Length == 1);
+            if (create == null) return;
+            foreach (object sourceHandler in enumerable)
+            {
+                PropertyInfo eventTypeProperty = sourceHandler.GetType().GetProperty("EventType");
+                if (eventTypeProperty == null) continue;
+                object eventType = eventTypeProperty.GetValue(sourceHandler, null);
+                object targetHandler = create.Invoke(targetHandlers, new[] { eventType });
+                PropertyInfo sourceScriptProperty = sourceHandler.GetType().GetProperty("Script");
+                PropertyInfo targetScriptProperty = targetHandler.GetType().GetProperty("Script");
+                object sourceScript = sourceScriptProperty == null ? null : sourceScriptProperty.GetValue(sourceHandler, null);
+                object targetScript = targetScriptProperty == null ? null : targetScriptProperty.GetValue(targetHandler, null);
+                if (sourceScript == null || targetScript == null) continue;
+                PropertyInfo sourceCode = sourceScript.GetType().GetProperty("ScriptCode");
+                PropertyInfo targetCode = targetScript.GetType().GetProperty("ScriptCode");
+                if (sourceCode != null && targetCode != null && targetCode.CanWrite)
+                    targetCode.SetValue(targetScript, sourceCode.GetValue(sourceScript, null), null);
+            }
+        }
+
+        private static void ApplyIoLinkConfiguredPages(Project project, HmiSoftware hmi)
+        {
+            RebuildFourIoLinkPagesClean(hmi);
+            EnsureUnifiedConnectionEnabled(hmi);
+            IoLinkPortView[] ports =
+            {
+                new IoLinkPortView("AL100",1,"O6P301","Bottle shortage 1","SIO DI","IOL_AL100_X1","AL100_X1_BottleShortage1","Bool","%I306.0"),
+                new IoLinkPortView("AL100",2,"O6P301","Bottle shortage 2","SIO DI","IOL_AL100_X2","AL100_X2_BottleShortage2","Bool","%I307.0"),
+                new IoLinkPortView("AL100",3,"O6P301","Outfeed accumulation 1","SIO DI","IOL_AL100_X3","AL100_X3_Accumulation1","Bool","%I327.0"),
+                new IoLinkPortView("AL100",4,"O6P301","Outfeed accumulation 2","SIO DI","IOL_AL100_X4","AL100_X4_Accumulation2","Bool","%I328.0"),
+                new IoLinkPortView("AL100",5,"IFS240","Capper cylinder","SIO DI","IOL_AL100_X5","AL100_X5_CapperCylinder","Bool","%I329.0"),
+                new IoLinkPortView("AL100",6,"IFS240","Cap distributor rotation","SIO DI","IOL_AL100_X6","AL100_X6_CapDistributorRotation","Bool","%I330.0"),
+                new IoLinkPortView("AL100",7,"IFS240","Capper maximum height","SIO DI","IOL_AL100_X7","AL100_X7_CapperMaximumHeight","Bool","%I331.0"),
+                new IoLinkPortView("AL100",8,"IFS240","Capper minimum height","SIO DI","IOL_AL100_X8","AL100_X8_CapperMinimumHeight","Bool","%I332.0"),
+                new IoLinkPortView("AL101",1,"O6P301","Cap present pick and place","SIO DI","IOL_AL101_X1","AL101_X1_CapPresent","Bool","%I333.0"),
+                new IoLinkPortView("AL101",2,"O6P301","Cap hopper low","SIO DI","IOL_AL101_X2","AL101_X2_CapHopperLow","Bool","%I334.0"),
+                new IoLinkPortView("AL101",3,"O6P301","Cap channel request","SIO DI","IOL_AL101_X3","AL101_X3_CapChannelRequest","Bool","%I335.0"),
+                new IoLinkPortView("AL101",4,"O6P301","Cap channel empty","SIO DI","IOL_AL101_X4","AL101_X4_CapChannelEmpty","Bool","%I336.0"),
+                new IoLinkPortView("AL101",5,"PN7094","Machine air pressure OK","IO-Link 2I","DI_AirPressure_OK","DB_Global.Inp.AirPressureOK","Bool","%IW337"),
+                new IoLinkPortView("AL101",6,"IFS240","Machine zero","SIO DI","IOL_AL101_X6","AL101_X6_MachineZero","Bool","%I340.0"),
+                new IoLinkPortView("AL101",7,"IFS240","Filler cylinder","SIO DI","IOL_AL101_X7","AL101_X7_FillerCylinder","Bool","%I341.0"),
+                new IoLinkPortView("AL101",8,"IFS240","Filler anti-rotation","SIO DI","IOL_AL101_X8","AL101_X8_FillerAntiRotation","Bool","%I342.0"),
+                new IoLinkPortView("AL103",1,"LMT100","Product presence before pump","IO-Link 2I","Product_Present_At_Pump","DB_Global.Inp.ProductPresentAtPump","Bool","%IW324.%X0"),
+                new IoLinkPortView("AL103",2,"IFS240","Filler maximum height","SIO DI","IOL_AL103_X2","AL103_X2_FillerMaximumHeight","Bool","%I352.0"),
+                new IoLinkPortView("AL103",3,"IFS240","Filler minimum height","SIO DI","IOL_AL103_X3","AL103_X3_FillerMinimumHeight","Bool","%I353.0"),
+                new IoLinkPortView("AL103",4,"IFS240","Dummy bottle washing","SIO DI","IOL_AL103_X4","AL103_X4_DummyBottleWashing","Bool","%I354.0")
+            };
+            IoLinkPortView[] stackOutputs =
+            {
+                new IoLinkPortView("AL102",8,"AL2330","Stack green","PNP DO","IOL_AL102_GREEN","AL102_X8_StackGreen","Bool","%Q156.0"),
+                new IoLinkPortView("AL102",8,"AL2330","Stack orange","PNP DO","IOL_AL102_ORANGE","AL102_X8_StackOrange","Bool","%Q156.1"),
+                new IoLinkPortView("AL102",8,"AL2330","Stack red","PNP DO","IOL_AL102_RED","AL102_X8_StackRed","Bool","%Q157.0"),
+                new IoLinkPortView("AL102",8,"AL2330","Stack buzzer","PNP DO","IOL_AL102_BUZZER","AL102_X8_StackBuzzer","Bool","%Q157.1")
+            };
+
+            PlcSoftware plc = FindPlcSoftware(project);
+            if (plc == null) throw new InvalidOperationException("PLC software was not found.");
+            PlcTagTable plcTable = plc.TagTableGroup.TagTables.Find("IO-Link Sensors") ??
+                plc.TagTableGroup.TagTables.Create("IO-Link Sensors");
+            HmiTagTable hmiTable = hmi.TagTables.Find("REV12") ?? hmi.TagTables.Create("REV12");
+            int plcTagsCreated = 0;
+            int hmiTagsCreated = 0;
+            foreach (IoLinkPortView port in ports.Concat(stackOutputs).Where(p =>
+                p.PlcTag.StartsWith("AL", StringComparison.OrdinalIgnoreCase)))
+            {
+                PlcTag plcTag = plcTable.Tags.Find(port.PlcTag);
+                if (plcTag == null)
+                {
+                    plcTag = plcTable.Tags.Create(port.PlcTag, port.PlcType, port.Address);
+                    plcTagsCreated++;
+                }
+                else if (!plcTag.DataTypeName.Equals(port.PlcType, StringComparison.OrdinalIgnoreCase) ||
+                    !plcTag.LogicalAddress.Equals(port.Address, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException("PLC diagnostic tag mismatch: " + port.PlcTag);
+                }
+                HmiTag hmiTag = hmiTable.Tags.Find(port.HmiTag);
+                if (hmiTag == null) { hmiTag = hmiTable.Tags.Create(port.HmiTag); hmiTagsCreated++; }
+                hmiTag.Connection = "HMI_Connection_1";
+                hmiTag.PlcTag = port.PlcTag;
+                hmiTag.AcquisitionMode = HmiAcquisitionMode.CyclicOnUse;
+                hmiTag.AcquisitionCycle = "T500ms";
+            }
+
+            ConfigureMappedIoLinkPage(hmi, "AL100", ports.Where(p => p.Master == "AL100").ToArray());
+            ConfigureMappedIoLinkPage(hmi, "AL101", ports.Where(p => p.Master == "AL101").ToArray());
+            ConfigureStackLightPage(hmi);
+            ConfigureMappedIoLinkPage(hmi, "AL103", ports.Where(p => p.Master == "AL103").ToArray());
+            ConfigureFourMasterIoLinkNavigation(hmi);
+            ConfigureProductPresenceOnManual(hmi);
+
+            Console.WriteLine("IO_LINK_RAW_PLC_TAGS_CREATED=" + plcTagsCreated);
+            Console.WriteLine("IO_LINK_HMI_TAGS_CREATED=" + hmiTagsCreated);
+            Console.WriteLine("IO_LINK_PORTS_CONFIGURED=" + ports.Length);
+            Console.WriteLine("IO_LINK_STACK_OUTPUTS_CONFIGURED=" + stackOutputs.Length);
+            Console.WriteLine("PRODUCT_PRESENCE_SOURCE=%IW324.%X0");
+        }
+
+        private static void ConfigureMappedIoLinkPage(HmiSoftware hmi, string master, IoLinkPortView[] ports)
+        {
+            HmiScreen screen = hmi.Screens.Find("io_link_" + master.ToLowerInvariant());
+            if (screen == null) throw new InvalidOperationException("Missing IO-Link screen: " + master);
+            HmiText qualitySummary = screen.ScreenItems.Find("REV18_IOL_Detail_Quality") as HmiText;
+            HmiText holdPoint = screen.ScreenItems.Find("REV18_IOL_Detail_HoldPoint") as HmiText;
+            ConfigureText(qualitySummary, 986, 127, 115, 33, "CONFIGURED", Green, 8,
+                HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
+            foreach (IoLinkPortView port in ports)
+            {
+                int top = 250 + (port.Port - 1) * 51;
+                string prefix = "REV18_IOL_Port_" + port.Port;
+                HmiText device = screen.ScreenItems.Find(prefix + "_Device") as HmiText;
+                HmiText description = screen.ScreenItems.Find(prefix + "_Description") as HmiText;
+                HmiText mode = screen.ScreenItems.Find(prefix + "_Mode") as HmiText;
+                HmiText unit = screen.ScreenItems.Find(prefix + "_Unit") as HmiText;
+                HmiText quality = screen.ScreenItems.Find(prefix + "_Quality") as HmiText;
+                HmiText mapping = screen.ScreenItems.Find(prefix + "_Mapping") as HmiText;
+                if (device == null || description == null || mode == null || unit == null || quality == null || mapping == null)
+                    throw new InvalidOperationException(master + "/X" + port.Port + " presentation is incomplete.");
+                ConfigureText(device, 84, top + 4, 117, 38, port.Device, Navy, 8,
+                    HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+                ConfigureText(description, 206, top + 4, 201, 38, port.Description, Dark, 8,
+                    HmiFontWeight.Normal, HmiHorizontalAlignment.Left);
+                ConfigureText(mode, 412, top + 10, 89, 25, port.Mode, Navy, 8,
+                    HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
+                ConfigureText(unit, 600, top + 10, 61, 25, "BOOL", Navy, 8,
+                    HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
+                ConfigureText(quality, 665, top + 7, 164, 31, "CONFIGURED", Green, 8,
+                    HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
+                ConfigureText(mapping, 834, top + 4, 267, 38,
+                    port.Address + "\n" + port.HmiTag, Navy, 8,
+                    HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+
+                string badgePrefix = "REV70_IOL_" + master + "_X" + port.Port;
+                ConfigureIoLinkAl100Badge(screen, badgePrefix, 506, top + 7, 89, 33,
+                    "NO DATA", Grey, 8);
+                HmiRectangle back = screen.ScreenItems.Find(badgePrefix + "_Back") as HmiRectangle;
+                HmiText text = screen.ScreenItems.Find(badgePrefix + "_Text") as HmiText;
+                ConfigureNumericDynamization(text, "Text", port.HmiTag,
+                    "let t=HMIRuntime.Tags(\"" + port.HmiTag + "\");let v=Boolean(t.Read());" +
+                    "let q=Number(t.QualityCode);if(t.LastError!==0||(q&192)<128){return \"NO DATA\";}" +
+                    "return v?\"ON\":\"OFF\";");
+                ConfigureNumericDynamization(back, "BackColor", port.HmiTag,
+                    "let t=HMIRuntime.Tags(\"" + port.HmiTag + "\");let v=Boolean(t.Read());" +
+                    "let q=Number(t.QualityCode);if(t.LastError!==0||(q&192)<128){return HMIRuntime.Math.RGB(145,155,165);}" +
+                    "return v?HMIRuntime.Math.RGB(28,145,82):HMIRuntime.Math.RGB(145,155,165);");
+            }
+            for (int port = ports.Length + 1; port <= 8; port++)
+            {
+                if (ports.Any(p => p.Port == port)) continue;
+                int top = 250 + (port - 1) * 51;
+                string prefix = "REV18_IOL_Port_" + port;
+                HmiText quality = screen.ScreenItems.Find(prefix + "_Quality") as HmiText;
+                HmiText mapping = screen.ScreenItems.Find(prefix + "_Mapping") as HmiText;
+                if (quality != null) ConfigureText(quality, 665, top + 7, 164, 31,
+                    "SPARE / NOT USED", Grey, 8, HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
+                if (mapping != null) ConfigureText(mapping, 834, top + 10, 267, 25,
+                    "NO ASSIGNMENT", Dark, 8, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+            }
+            ConfigureText(holdPoint, 23, 671, 1087, 29,
+                master + " PORT MAP VERIFIED AGAINST TIA HARDWARE — live values are read-only diagnostics.",
+                Navy, 9, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+        }
+
+        private static void ConfigureStackLightPage(HmiSoftware hmi)
+        {
+            HmiScreen screen = hmi.Screens.Find("io_link_al102");
+            if (screen == null) throw new InvalidOperationException("Missing IO-Link screen: AL102");
+            HmiText summary = screen.ScreenItems.Find("REV18_IOL_Detail_Quality") as HmiText;
+            HmiText hold = screen.ScreenItems.Find("REV18_IOL_Detail_HoldPoint") as HmiText;
+            ConfigureText(summary, 986, 127, 115, 33, "CONFIGURED", Green, 8,
+                HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
+            for (int port = 1; port <= 7; port++)
+            {
+                int spareTop = 250 + (port - 1) * 51;
+                string sparePrefix = "REV18_IOL_Port_" + port;
+                DeleteItem(screen, sparePrefix + "_LiveValue");
+                ConfigureText(GetOrCreate<HmiText>(screen, sparePrefix + "_Device"),
+                    84, spareTop + 10, 117, 25, "SPARE", Dark, 8,
+                    HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+                ConfigureText(GetOrCreate<HmiText>(screen, sparePrefix + "_Description"),
+                    206, spareTop + 10, 201, 25, "Not used", Dark, 8,
+                    HmiFontWeight.Normal, HmiHorizontalAlignment.Left);
+                ConfigureText(GetOrCreate<HmiText>(screen, sparePrefix + "_Mode"),
+                    412, spareTop + 10, 89, 25, "NOT USED", Dark, 8,
+                    HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
+                ConfigureText(GetOrCreate<HmiText>(screen, sparePrefix + "_LiveText"),
+                    506, spareTop + 10, 89, 25, "—", Dark, 9,
+                    HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
+                ConfigureText(GetOrCreate<HmiText>(screen, sparePrefix + "_Unit"),
+                    600, spareTop + 10, 61, 25, "—", Dark, 9,
+                    HmiFontWeight.Normal, HmiHorizontalAlignment.Center);
+                ConfigureText(GetOrCreate<HmiText>(screen, sparePrefix + "_Quality"),
+                    665, spareTop + 7, 164, 31, "SPARE / NOT USED", Dark, 8,
+                    HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+                ConfigureText(GetOrCreate<HmiText>(screen, sparePrefix + "_Mapping"),
+                    834, spareTop + 10, 267, 25, "NO ASSIGNMENT", Dark, 8,
+                    HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+            }
+            int top = 250 + 7 * 51;
+            string prefix = "REV18_IOL_Port_8";
+            ConfigureText(screen.ScreenItems.Find(prefix + "_Device") as HmiText, 84, top + 4, 117, 38,
+                "AL2330", Navy, 8, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+            ConfigureText(screen.ScreenItems.Find(prefix + "_Description") as HmiText, 206, top + 4, 201, 38,
+                "Leuze stack light output hub", Dark, 8, HmiFontWeight.Normal, HmiHorizontalAlignment.Left);
+            ConfigureText(screen.ScreenItems.Find(prefix + "_Mode") as HmiText, 412, top + 10, 89, 25,
+                "IO-Link 8I/8O", Navy, 8, HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
+            ConfigureText(screen.ScreenItems.Find(prefix + "_Unit") as HmiText, 600, top + 10, 61, 25,
+                "4 x DO", Navy, 8, HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
+            ConfigureText(screen.ScreenItems.Find(prefix + "_Quality") as HmiText, 665, top + 7, 164, 31,
+                "CONFIGURED", Green, 8, HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
+            ConfigureText(screen.ScreenItems.Find(prefix + "_Mapping") as HmiText, 834, top + 2, 267, 42,
+                "%Q156.0/.1, %Q157.0/.1\nGREEN / ORANGE / RED / BUZZER", Navy, 7,
+                HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+            ConfigureIoLinkAl100Badge(screen, "REV70_IOL_AL102_X8", 506, top + 7, 89, 33,
+                "ALL OFF", Grey, 7);
+            HmiRectangle liveBack = screen.ScreenItems.Find("REV70_IOL_AL102_X8_Back") as HmiRectangle;
+            HmiText liveText = screen.ScreenItems.Find("REV70_IOL_AL102_X8_Text") as HmiText;
+            ConfigureNumericDynamization(liveText, "Text", "IOL_AL102_GREEN",
+                "let g=Boolean(HMIRuntime.Tags(\"IOL_AL102_GREEN\").Read());" +
+                "let o=Boolean(HMIRuntime.Tags(\"IOL_AL102_ORANGE\").Read());" +
+                "let r=Boolean(HMIRuntime.Tags(\"IOL_AL102_RED\").Read());" +
+                "let b=Boolean(HMIRuntime.Tags(\"IOL_AL102_BUZZER\").Read());" +
+                "return (g||o||r||b)?\"ACTIVE\":\"ALL OFF\";");
+            ConfigureNumericDynamization(liveBack, "BackColor", "IOL_AL102_GREEN",
+                "let g=Boolean(HMIRuntime.Tags(\"IOL_AL102_GREEN\").Read());" +
+                "let o=Boolean(HMIRuntime.Tags(\"IOL_AL102_ORANGE\").Read());" +
+                "let r=Boolean(HMIRuntime.Tags(\"IOL_AL102_RED\").Read());" +
+                "let b=Boolean(HMIRuntime.Tags(\"IOL_AL102_BUZZER\").Read());" +
+                "return (g||o||r||b)?HMIRuntime.Math.RGB(28,145,82):HMIRuntime.Math.RGB(145,155,165);");
+            ConfigureText(hold, 23, 671, 1087, 29,
+                "AL102/X8 — AL2330 output hub configured at %QB156..%QB163; four stack-light commands allocated.",
+                Navy, 9, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+        }
+
+        private static void ConfigureProductPresenceOnManual(HmiSoftware hmi)
+        {
+            HmiScreen manual = hmi.Screens.Find("manual");
+            if (manual == null) throw new InvalidOperationException("Manual screen was not found.");
+            ConfigureText(GetOrCreate<HmiText>(manual, "REV70_Manual_ProductPresenceLabel"),
+                788, 696, 168, 24, "PRODUCT PRESENCE", Navy, 9,
+                HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+            HmiRectangle stateBack = GetOrCreate<HmiRectangle>(manual,
+                "REV70_Manual_ProductPresenceStateBack");
+            ConfigureRectangle(stateBack, 960, 696, 138, 24, Grey, Grey, 0);
+            HmiText state = GetOrCreate<HmiText>(manual, "REV70_Manual_ProductPresenceState");
+            ConfigureText(state, 962, 696, 134, 24, "NO DATA", Color.White, 8,
+                HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
+            ConfigureNumericDynamization(state, "Text", "Product_Present_At_Pump",
+                "let t=HMIRuntime.Tags(\"Product_Present_At_Pump\");let v=Boolean(t.Read());" +
+                "let q=Number(t.QualityCode);if(t.LastError!==0||(q&192)<128){return \"NO DATA\";}" +
+                "return v?\"PRODUCT PRESENT\":\"NO PRODUCT\";");
+            ConfigureNumericDynamization(stateBack, "BackColor", "Product_Present_At_Pump",
+                "let t=HMIRuntime.Tags(\"Product_Present_At_Pump\");let v=Boolean(t.Read());" +
+                "let q=Number(t.QualityCode);if(t.LastError!==0||(q&192)<128){return HMIRuntime.Math.RGB(145,155,165);}" +
+                "return v?HMIRuntime.Math.RGB(28,145,82):HMIRuntime.Math.RGB(195,45,55);");
+        }
+
+        private static void ConfigureFourMasterIoLinkNavigation(HmiSoftware hmi)
+        {
+            HmiScreen overview = hmi.Screens.Find("io_link_overview");
+            if (overview == null) throw new InvalidOperationException("Missing IO-Link overview screen.");
+
+            HmiText instruction = overview.ScreenItems.Find("REV18_IOL_Overview_Instruction") as HmiText;
+            if (instruction != null)
+                ConfigureText(instruction, 25, 112, 1160, 34,
+                    "FOUR IFM AL1403 MASTERS — SELECT A MASTER FOR PORT DIAGNOSTICS",
+                    Navy, 18, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+
+            string[] pages = { "io_link_al100", "io_link_al101", "io_link_al102", "io_link_al103" };
+            for (int index = 0; index < pages.Length; index++)
+            {
+                HmiScreen detail = hmi.Screens.Find(pages[index]);
+                if (detail == null) throw new InvalidOperationException("Missing IO-Link screen: " + pages[index]);
+                ConfigureNavigateButton(GetOrCreate<HmiButton>(detail, "REV18_IOL_Detail_Previous"),
+                    553, 702, 159, 38, "PREVIOUS", Color.FromArgb(78, 102, 125),
+                    pages[(index + pages.Length - 1) % pages.Length], "DIAGNOSTICS");
+                ConfigureNavigateButton(GetOrCreate<HmiButton>(detail, "REV18_IOL_Detail_Next"),
+                    731, 702, 159, 38, "NEXT", Blue,
+                    pages[(index + 1) % pages.Length], "DIAGNOSTICS");
+            }
+        }
+
+        private static void RebuildFourIoLinkPagesClean(HmiSoftware hmi)
+        {
+            string[] pages = { "io_link_al100", "io_link_al101", "io_link_al102", "io_link_al103" };
+            HmiScreen overview = hmi.Screens.Find("io_link_overview");
+            if (overview == null) throw new InvalidOperationException("Missing IO-Link overview screen.");
+            foreach (HmiScreenItemBase item in overview.ScreenItems.ToList()) item.Delete();
+            overview.BackColor = Color.FromArgb(239, 244, 248);
+            ConfigureRectangle(overview.ScreenItems.Create<HmiRectangle>("REV70_IOL_Content_Back"),
+                0, 104, 1141, 640, Color.FromArgb(244, 247, 250), Color.FromArgb(244, 247, 250), 0);
+            ApplyHomeReferenceFrameExact(hmi, overview, "IO-LINK DIAGNOSTICS");
+            ConfigureText(GetOrCreate<HmiText>(overview, "REV18_IOL_Overview_Instruction"),
+                25, 112, 1090, 34,
+                "FOUR IFM AL1403 MASTERS — SELECT A MASTER FOR PORT DIAGNOSTICS",
+                Navy, 18, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+            AddRevision18MasterCard(overview, "AL100", 215, 158,
+                "BOTTLE INFEED / OUTFEED DETECTION", "Network_AL100_OK", pages[0], false);
+            AddRevision18MasterCard(overview, "AL101", 600, 158,
+                "CAP HANDLING / PNEUMATIC UTILITY", "Network_AL101_OK", pages[1], false);
+            AddRevision18MasterCard(overview, "AL102", 215, 405,
+                "STACK LIGHT OUTPUT HUB", "Network_AL102_OK", pages[2], false);
+            AddRevision18MasterCard(overview, "AL103", 600, 405,
+                "PRODUCT PRESENCE / MACHINE SENSORS", "Network_AL103_OK", pages[3], false);
+            ConfigureNavigateButton(GetOrCreate<HmiButton>(overview, "REV27_IOL_Overview_Back"),
+                895, 625, 220, 30, "BACK TO DIAGNOSTICS", Navy, "diagnostics", "DIAGNOSTICS");
+            ConfigureText(GetOrCreate<HmiText>(overview, "REV18_IOL_Overview_HoldPoint"),
+                25, 660, 910, 38,
+                "FOUR PHYSICAL AL1403 MASTERS — live values are read-only diagnostics.",
+                Navy, 10, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+
+            string[] descriptions =
+            {
+                "BOTTLE INFEED / OUTFEED DETECTION",
+                "CAP HANDLING / PNEUMATIC UTILITY",
+                "STACK LIGHT OUTPUT HUB",
+                "PRODUCT PRESENCE / MACHINE SENSORS"
+            };
+            for (int index = 0; index < pages.Length; index++)
+            {
+                HmiScreen detail = hmi.Screens.Find(pages[index]);
+                if (detail == null) throw new InvalidOperationException("Missing IO-Link screen: " + pages[index]);
+                foreach (HmiScreenItemBase item in detail.ScreenItems.ToList()) item.Delete();
+                string id = "AL" + (100 + index).ToString();
+                ConfigureRectangle(detail.ScreenItems.Create<HmiRectangle>("REV70_IOL_Content_Back"),
+                    0, 104, 1141, 640, Color.FromArgb(244, 247, 250), Color.FromArgb(244, 247, 250), 0);
+                ApplyHomeReferenceFrameExact(hmi, detail, id + " IO-LINK DETAIL");
+                BuildRevision18IoLinkDetail(detail, id, descriptions[index],
+                    "Network_" + id + "_OK",
+                    pages[(index + pages.Length - 1) % pages.Length],
+                    pages[(index + 1) % pages.Length], false, "header");
+                BuildRevision18IoLinkDetail(detail, id, descriptions[index],
+                    "Network_" + id + "_OK",
+                    pages[(index + pages.Length - 1) % pages.Length],
+                    pages[(index + 1) % pages.Length], false, "ports12");
+                BuildRevision18IoLinkDetail(detail, id, descriptions[index],
+                    "Network_" + id + "_OK",
+                    pages[(index + pages.Length - 1) % pages.Length],
+                    pages[(index + 1) % pages.Length], false, "ports34");
+                BuildRevision18IoLinkDetail(detail, id, descriptions[index],
+                    "Network_" + id + "_OK",
+                    pages[(index + pages.Length - 1) % pages.Length],
+                    pages[(index + 1) % pages.Length], false, "ports56");
+                BuildRevision18IoLinkDetail(detail, id, descriptions[index],
+                    "Network_" + id + "_OK",
+                    pages[(index + pages.Length - 1) % pages.Length],
+                    pages[(index + 1) % pages.Length], false, "ports78");
+                BuildRevision18IoLinkDetail(detail, id, descriptions[index],
+                    "Network_" + id + "_OK",
+                    pages[(index + pages.Length - 1) % pages.Length],
+                    pages[(index + 1) % pages.Length], false, "navigation");
+                ConfigureRectangle(GetOrCreate<HmiRectangle>(detail, "REV18_IOL_Detail_Summary"),
+                    19, 117, 1096, 85, Panel, Border, 1);
+                ConfigureText(GetOrCreate<HmiText>(detail, "REV18_IOL_Detail_Identity"),
+                    32, 127, 394, 29, id + "  |  IFM AL1403", Navy, 18,
+                    HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+                ConfigureText(GetOrCreate<HmiText>(detail, "REV18_IOL_Detail_Description"),
+                    32, 160, 609, 25, descriptions[index], Amber, 11,
+                    HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+                ConfigureText(GetOrCreate<HmiText>(detail, "REV18_IOL_Detail_CommLabel"),
+                    656, 131, 201, 25, "PROFINET COMMUNICATION", Dark, 10,
+                    HmiFontWeight.Bold, HmiHorizontalAlignment.Right);
+                DeleteItem(detail, "REV18_IOL_Detail_Comm");
+                ConfigureIoLinkAl100Badge(detail, "REV70_IOL_" + id + "_Comm",
+                    869, 127, 108, 33, "NO DATA", Grey, 8);
+                HmiRectangle commBack = detail.ScreenItems.Find("REV70_IOL_" + id + "_Comm_Back") as HmiRectangle;
+                HmiText commText = detail.ScreenItems.Find("REV70_IOL_" + id + "_Comm_Text") as HmiText;
+                ConfigureNumericDynamization(commText, "Text", "Network_" + id + "_OK",
+                    "let t=HMIRuntime.Tags(\"Network_" + id + "_OK\");let v=Boolean(t.Read());" +
+                    "let q=Number(t.QualityCode);if(t.LastError!==0||(q&192)<128){return \"NO DATA\";}" +
+                    "return v?\"ONLINE\":\"OFFLINE\";");
+                ConfigureNumericDynamization(commBack, "BackColor", "Network_" + id + "_OK",
+                    "let t=HMIRuntime.Tags(\"Network_" + id + "_OK\");let v=Boolean(t.Read());" +
+                    "let q=Number(t.QualityCode);if(t.LastError!==0||(q&192)<128){return HMIRuntime.Math.RGB(145,155,165);}" +
+                    "return v?HMIRuntime.Math.RGB(28,145,82):HMIRuntime.Math.RGB(195,45,55);");
+                ConfigureText(GetOrCreate<HmiText>(detail, "REV18_IOL_Detail_Quality"),
+                    986, 127, 115, 33, "CONFIGURED", Green, 9,
+                    HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
+            }
+        }
+
+        private static void ApplyHomeReferenceFrameExact(
+            HmiSoftware hmi, HmiScreen target, string pageTitle)
+        {
+            HmiScreen home = hmi.Screens.Find("home");
+            if (home == null) throw new InvalidOperationException("Home reference screen is missing.");
+            string[] frameNames = home.ScreenItems.Where(item =>
+                item.Name.StartsWith("REV13_Common_", StringComparison.OrdinalIgnoreCase) ||
+                item.Name.StartsWith("REV21_Common_", StringComparison.OrdinalIgnoreCase) ||
+                item.Name.StartsWith("REV12_Exact_Status_Box_", StringComparison.OrdinalIgnoreCase) ||
+                item.Name.StartsWith("REV13_Nav_", StringComparison.OrdinalIgnoreCase) ||
+                item.Name.StartsWith("REV14_Nav_Icon_", StringComparison.OrdinalIgnoreCase) ||
+                item.Name.StartsWith("REF05_", StringComparison.OrdinalIgnoreCase) ||
+                item.Name.Equals("REV12_Nav_Back", StringComparison.OrdinalIgnoreCase) ||
+                item.Name.Equals("REV54_Common_User_Login", StringComparison.OrdinalIgnoreCase) ||
+                item.Name.Equals("REV28_Home_HmiLinkLamp", StringComparison.OrdinalIgnoreCase) ||
+                item.Name.Equals("REV12_Production_User_Header_1", StringComparison.OrdinalIgnoreCase) ||
+                item.Name.Equals("Line_1", StringComparison.OrdinalIgnoreCase) ||
+                item.Name.Equals("Line_2", StringComparison.OrdinalIgnoreCase))
+                .Select(item => item.Name).ToArray();
+            foreach (string name in frameNames)
+            {
+                HmiScreenItemBase source = home.ScreenItems.Find(name);
+                HmiScreenItemBase copy = CreateRevision25FrameItem(target, source);
+                CopyRevision25FrameProperties(source, copy);
+                CopyNavigationSpecificProperties(source, copy);
+                HmiButton sourceButton = source as HmiButton;
+                HmiButton targetButton = copy as HmiButton;
+                if (sourceButton != null && targetButton != null)
+                {
+                    foreach (HmiButtonEventHandler handler in targetButton.EventHandlers.ToArray()) handler.Delete();
+                    foreach (HmiButtonEventHandler handler in sourceButton.EventHandlers)
+                    {
+                        HmiButtonEventHandler created = targetButton.EventHandlers.Create(handler.EventType);
+                        created.Script.ScriptCode = handler.Script.ScriptCode;
+                    }
+                }
+            }
+
+            HmiText page = target.ScreenItems.Find("REV13_Common_Page") as HmiText;
+            if (page != null) SetText(page.Text, pageTitle + "  |  FBS GLOBAL");
+            HmiSymbolicIOField state = target.ScreenItems.Find("REV13_Common_State") as HmiSymbolicIOField;
+            if (state != null)
+            {
+                state.ProcessValue = "0";
+                BindTag(state.Dynamizations, "ProcessValue", "Machine_State", true);
+                state.ResourceList = "MachineStateText";
+                state.IOFieldType = HmiIOFieldType.Output;
+            }
+
+            string[] labels =
+            {
+                "HOME", "SAFETY", "OPERATE", "PRODUCTION", "CIP", "FUNCTION",
+                "ALARMS", "RECIPE", "SETUP", "MANUAL", "EFFICIENCY", "DIAGNOSTICS"
+            };
+            Dictionary<string, string> destinations = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "HOME", "home" }, { "SAFETY", "safety" }, { "OPERATE", "operate" },
+                { "PRODUCTION", "production" }, { "CIP", "cip" }, { "FUNCTION", "function" },
+                { "ALARMS", "alarms" }, { "RECIPE", "recipe" }, { "SETUP", "setup" },
+                { "MANUAL", "manual" }, { "EFFICIENCY", "efficiency" },
+                { "DIAGNOSTICS", "diagnostics" }
+            };
+            HmiButton homeActive = home.ScreenItems.Find("REV13_Nav_Button_HOME") as HmiButton;
+            HmiButton homeNormal = home.ScreenItems.Find("REV13_Nav_Button_SAFETY") as HmiButton;
+            foreach (string label in labels)
+            {
+                HmiButton button = target.ScreenItems.Find("REV13_Nav_Button_" + label) as HmiButton;
+                if (button == null) continue;
+                CopyNavigationButtonVisualState(label == "DIAGNOSTICS" ? homeActive : homeNormal, button);
+                HmiButtonEventHandler tapped = button.EventHandlers.Find(HmiButtonEventType.Tapped);
+                if (tapped != null) tapped.Delete();
+                button.Enabled = label != "DIAGNOSTICS";
+                if (button.Enabled) ConfigureScreenNavigation(button, destinations[label], "DIAGNOSTICS");
+            }
+            HmiRectangle activeBar = target.ScreenItems.Find("REF05_NavActiveBar") as HmiRectangle;
+            HmiButton activeButton = target.ScreenItems.Find("REV13_Nav_Button_DIAGNOSTICS") as HmiButton;
+            if (activeBar != null && activeButton != null) activeBar.Top = activeButton.Top;
+        }
+
+        private static void EnsureUnifiedConnectionEnabled(HmiSoftware hmi)
+        {
+            object connection = hmi.Connections.Cast<object>().Single(item =>
+                String.Equals(Convert.ToString(item.GetType().GetProperty("Name").GetValue(item, null)),
+                    "HMI_Connection_1", StringComparison.OrdinalIgnoreCase));
+            PropertyInfo disabled = connection.GetType().GetProperty("DisabledAtStartup");
+            if (disabled == null || !disabled.CanWrite)
+                throw new InvalidOperationException("HMI connection startup state is not writable.");
+            disabled.SetValue(connection, false, null);
+            Console.WriteLine("HMI_CONNECTION_DISABLED_AT_STARTUP=" + disabled.GetValue(connection, null));
+        }
+
+        private static PlcSoftware FindPlcSoftware(Project project)
+        {
+            foreach (Device device in project.Devices.Concat(project.UngroupedDevicesGroup.Devices))
+            {
+                PlcSoftware plc = FindPlcSoftware(device.DeviceItems);
+                if (plc != null) return plc;
+            }
+            return null;
+        }
+
+        private static PlcSoftware FindPlcSoftware(DeviceItemComposition items)
+        {
+            foreach (DeviceItem item in items)
+            {
+                SoftwareContainer container = item.GetService<SoftwareContainer>();
+                PlcSoftware plc = container == null ? null : container.Software as PlcSoftware;
+                if (plc != null) return plc;
+                plc = FindPlcSoftware(item.DeviceItems);
+                if (plc != null) return plc;
+            }
+            return null;
         }
 
         private static void ApplyManualContentRefinement(HmiSoftware hmi)
@@ -19557,33 +20520,33 @@ namespace Schlenker.TiaV19
             if (Revision18Stage(stage, "header"))
             {
                 ConfigureRectangle(GetOrCreate<HmiRectangle>(screen, "REV18_IOL_Detail_Header"),
-                    20, 204, 1170, 32, Navy, Navy, 0);
+                    19, 212, 1096, 33, Navy, Navy, 0);
                 string[] headings = { "PORT", "DEVICE ID", "DESCRIPTION", "MODE", "LIVE", "UNIT", "QUALITY / DIAG", "PLC / HMI MAPPING" };
-                int[] x = { 30, 90, 220, 440, 540, 640, 710, 890 };
-                int[] w = { 55, 125, 215, 95, 95, 65, 175, 285 };
+                int[] x = { 28, 84, 206, 412, 506, 600, 665, 834 };
+                int[] w = { 52, 117, 201, 89, 89, 61, 164, 267 };
                 for (int column = 0; column < headings.Length; column++)
                 {
                     ConfigureText(GetOrCreate<HmiText>(screen, "REV18_IOL_Detail_H" + column.ToString()),
-                        x[column], 208, (uint)w[column], 24, headings[column], Color.White, 9,
+                        x[column], 217, (uint)w[column], 25, headings[column], Color.White, 9,
                         HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
                 }
             }
-            if (Revision18Stage(stage, "ports12")) { AddRevision18PortRow(screen, engineeringId, 1, 240, cipMaster); AddRevision18PortRow(screen, engineeringId, 2, 289, cipMaster); }
-            if (Revision18Stage(stage, "ports34")) { AddRevision18PortRow(screen, engineeringId, 3, 338, cipMaster); AddRevision18PortRow(screen, engineeringId, 4, 387, cipMaster); }
-            if (Revision18Stage(stage, "ports56")) { AddRevision18PortRow(screen, engineeringId, 5, 436, cipMaster); AddRevision18PortRow(screen, engineeringId, 6, 485, cipMaster); }
-            if (Revision18Stage(stage, "ports78")) { AddRevision18PortRow(screen, engineeringId, 7, 534, cipMaster); AddRevision18PortRow(screen, engineeringId, 8, 583, cipMaster); }
+            if (Revision18Stage(stage, "ports12")) { AddRevision18PortRow(screen, engineeringId, 1, 250, cipMaster); AddRevision18PortRow(screen, engineeringId, 2, 301, cipMaster); }
+            if (Revision18Stage(stage, "ports34")) { AddRevision18PortRow(screen, engineeringId, 3, 352, cipMaster); AddRevision18PortRow(screen, engineeringId, 4, 403, cipMaster); }
+            if (Revision18Stage(stage, "ports56")) { AddRevision18PortRow(screen, engineeringId, 5, 454, cipMaster); AddRevision18PortRow(screen, engineeringId, 6, 505, cipMaster); }
+            if (Revision18Stage(stage, "ports78")) { AddRevision18PortRow(screen, engineeringId, 7, 556, cipMaster); AddRevision18PortRow(screen, engineeringId, 8, 607, cipMaster); }
             if (Revision18Stage(stage, "navigation"))
             {
                 ConfigureText(GetOrCreate<HmiText>(screen, "REV18_IOL_Detail_HoldPoint"),
-                    25, 644, 1160, 28,
+                    23, 671, 1087, 29,
                     "No port/channel/address is shown until confirmed by TIA hardware configuration and customer wiring records.",
                     Red, 10, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
                 ConfigureNavigateButton(GetOrCreate<HmiButton>(screen, "REV18_IOL_Detail_Back"),
-                    350, 674, 220, 36, "BACK TO IO-LINK OVERVIEW", Navy, "io_link_overview", "DIAGNOSTICS");
+                    328, 702, 206, 38, "BACK TO IO-LINK OVERVIEW", Navy, "io_link_overview", "DIAGNOSTICS");
                 ConfigureNavigateButton(GetOrCreate<HmiButton>(screen, "REV18_IOL_Detail_Previous"),
-                    590, 674, 170, 36, "PREVIOUS", Navy, previousPage, "DIAGNOSTICS");
+                    553, 702, 159, 38, "PREVIOUS", Navy, previousPage, "DIAGNOSTICS");
                 ConfigureNavigateButton(GetOrCreate<HmiButton>(screen, "REV18_IOL_Detail_Next"),
-                    780, 674, 170, 36, "NEXT", Blue, nextPage, "DIAGNOSTICS");
+                    731, 702, 159, 38, "NEXT", Blue, nextPage, "DIAGNOSTICS");
             }
         }
 
@@ -19594,34 +20557,34 @@ namespace Schlenker.TiaV19
             string prefix = "REV18_IOL_Port_" + port.ToString();
             Color back = (port % 2 == 0) ? Color.FromArgb(232, 240, 247) : Color.White;
             ConfigureRectangle(GetOrCreate<HmiRectangle>(screen, prefix + "_Back"),
-                20, top, 1170, 45, back, Border, 1);
-            ConfigureText(GetOrCreate<HmiText>(screen, prefix + "_Number"), 30, top + 10, 55, 24,
+                19, top, 1096, 47, back, Border, 1);
+            ConfigureText(GetOrCreate<HmiText>(screen, prefix + "_Number"), 28, top + 10, 52, 25,
                 "P" + port.ToString(), Navy, 10, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
-            ConfigureText(GetOrCreate<HmiText>(screen, prefix + "_Device"), 90, top + 10, 125, 24,
+            ConfigureText(GetOrCreate<HmiText>(screen, prefix + "_Device"), 84, top + 10, 117, 25,
                 allocation.DeviceId, allocation.Status == "SPARE" ? Dark : Navy, 9, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
-            ConfigureText(GetOrCreate<HmiText>(screen, prefix + "_Description"), 220, top + 10, 215, 24,
+            ConfigureText(GetOrCreate<HmiText>(screen, prefix + "_Description"), 206, top + 10, 201, 25,
                 allocation.Description, Dark, 8, HmiFontWeight.Normal, HmiHorizontalAlignment.Left);
-            ConfigureText(GetOrCreate<HmiText>(screen, prefix + "_Mode"), 440, top + 10, 95, 24,
+            ConfigureText(GetOrCreate<HmiText>(screen, prefix + "_Mode"), 412, top + 10, 89, 25,
                 allocation.Mode, allocation.Status == "SPARE" ? Dark : Navy, 8, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
             DeleteItem(screen, prefix + "_Live");
             if (String.IsNullOrWhiteSpace(allocation.HmiTag))
             {
-                ConfigureText(GetOrCreate<HmiText>(screen, prefix + "_LiveText"), 540, top + 10, 95, 24,
+                ConfigureText(GetOrCreate<HmiText>(screen, prefix + "_LiveText"), 506, top + 10, 89, 25,
                     "N/A", Amber, 9, HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
                 DeleteItem(screen, prefix + "_LiveValue");
             }
             else
             {
                 DeleteItem(screen, prefix + "_LiveText");
-                ConfigureIOField(GetOrCreate<HmiIOField>(screen, prefix + "_LiveValue"), 545, top + 6, 82, 32,
+                ConfigureIOField(GetOrCreate<HmiIOField>(screen, prefix + "_LiveValue"), 510, top + 7, 81, 33,
                     allocation.HmiTag, true, allocation.Format);
             }
-            ConfigureText(GetOrCreate<HmiText>(screen, prefix + "_Unit"), 640, top + 10, 65, 24,
+            ConfigureText(GetOrCreate<HmiText>(screen, prefix + "_Unit"), 600, top + 10, 61, 25,
                 allocation.Unit, Dark, 9, HmiFontWeight.Normal, HmiHorizontalAlignment.Center);
-            ConfigureText(GetOrCreate<HmiText>(screen, prefix + "_Quality"), 710, top + 10, 175, 24,
+            ConfigureText(GetOrCreate<HmiText>(screen, prefix + "_Quality"), 665, top + 7, 164, 31,
                 allocation.Status, allocation.Status == "SPARE" ? Dark : (allocation.Status.Contains("RESERVED") ? Amber : Blue),
                 8, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
-            ConfigureText(GetOrCreate<HmiText>(screen, prefix + "_Mapping"), 890, top + 10, 285, 24,
+            ConfigureText(GetOrCreate<HmiText>(screen, prefix + "_Mapping"), 834, top + 4, 267, 38,
                 allocation.LogicalTag + " | " + engineeringId + "/P" + port.ToString() + " | HW ADDR N/A", Amber, 8,
                 HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
         }
@@ -19666,7 +20629,7 @@ namespace Schlenker.TiaV19
                 new[] { "AL102/P5", "LT-PRODUCT", "Product Continuous Level", "ai_ProductLevel", "", "IO-Link", "ASSIGN DEVICE AT BUILD", "%", "0.0" },
                 new[] { "AL102/P6", "LT-CIP", "CIP / Process Level", "ai_CIPLevel", "", "IO-Link", "ASSIGN DEVICE AT BUILD", "%", "0.0" },
                 new[] { "AL102/P7", "TT-PROCESS", "Process Temperature", "ai_ProcessTemperature", "", "IO-Link", "ASSIGN DEVICE AT BUILD", "degC", "0.0" },
-                new[] { "AL102/P8", "SPARE-A102-08", "Future process instrument", "-", "", "SPARE", "SPARE", "N/A", "" },
+                new[] { "AL102/P8", "DO-HUB-TL100", "Tower light output hub", "IOL_AL102_GREEN/ORANGE/RED/BUZZER", "", "IO-Link 8I/8O", "CONFIGURED", "%QB156..%QB163", "" },
                 new[] { "AL103/P1", "SEN-103-01", "Additional machine sensor 1", "io_AL103_P1", "", "IO-Link/SIO", "RESERVED / NOT INSTALLED", "N/A", "" },
                 new[] { "AL103/P2", "SEN-103-02", "Additional machine sensor 2", "io_AL103_P2", "", "IO-Link/SIO", "RESERVED / NOT INSTALLED", "N/A", "" },
                 new[] { "AL103/P3", "SEN-103-03", "Additional machine sensor 3", "io_AL103_P3", "", "IO-Link/SIO", "RESERVED / NOT INSTALLED", "N/A", "" },
@@ -21687,11 +22650,11 @@ namespace Schlenker.TiaV19
             filterService.AlternateBackColor = Color.FromArgb(8, 58, 105);
             filterService.BackFillPattern = HmiFillPattern.GradientVertical;
             ConfigureText(GetOrCreate<HmiText>(screen, "REV12_Filter_Warn_Title"), 652, 526, 120, 36,
-                "FILTER SERVICE", Color.White, 15, HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
+                "HOOD 2 FILTER", Color.White, 15, HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
             ConfigureIOField(GetOrCreate<HmiIOField>(screen, "REV12_Filter_Warn_Field"), 662, 574, 100, 40,
-                "AirFilter_ChangeRequired", true, "");
+                "Hood2_FilterClogged", true, "");
             ConfigureText(GetOrCreate<HmiText>(screen, "REV12_Filter_Warn_Text"), 652, 634, 120, 26,
-                "CHANGE REQUIRED", Color.White, 12, HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
+                "CLOGGED", Color.White, 12, HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
         }
 
         private static void AddAlarmPanel(HmiScreen screen)

@@ -37,7 +37,7 @@ namespace Schlenker.TiaV19
                     if (disabled == null || !disabled.CanWrite)
                         throw new InvalidOperationException("DisabledAtStartup is not writable.");
                     report.WriteLine("Before.DisabledAtStartup=" + disabled.GetValue(connection, null));
-                    disabled.SetValue(connection, true, null);
+                    disabled.SetValue(connection, false, null);
                     report.WriteLine("After.DisabledAtStartup=" + disabled.GetValue(connection, null));
 
                     ICompilable compilable = location.Item.GetService<ICompilable>() ??

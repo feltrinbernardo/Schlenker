@@ -237,7 +237,7 @@ namespace Schlenker.TiaV19
             ConfigureText(GetOrCreate<HmiText>(manual, "REV52_Manual_Conveyor_Hz_Unit"),
                 395, 684, 28, 22, "Hz", Dark, 10);
             ConfigureText(GetOrCreate<HmiText>(manual, "REV52_Manual_Conveyor_Hz_Range"),
-                316, 647, 95, 16, "5–15 Hz", Grey, 8);
+                316, 647, 95, 16, "10–50 Hz", Grey, 8);
 
             ConfigureText(GetOrCreate<HmiText>(manual, "REV53_MANUAL_CapDriveGroup"),
                 409, 644, 250, 18, "CAP DISTRIBUTOR", Blue, 9);
@@ -251,7 +251,7 @@ namespace Schlenker.TiaV19
             ConfigureText(Require<HmiText>(manual, "REV52_Manual_Conveyor_Hz_Label_1"),
                 683, 635, 72, 22, "SETPOINT", Dark, 9);
             ConfigureText(Require<HmiText>(manual, "REV52_Manual_Conveyor_Hz_Range_1"),
-                674, 649, 95, 16, "0–BASE Hz", Grey, 8);
+                674, 649, 95, 16, "10–50 Hz", Grey, 8);
             ConfigureIOField(Require<HmiIOField>(manual,
                 "REV52_Manual_Conveyor_Hz_Value_1"), 662, 669, 76, 34,
                 "CapDrive_Manual_Frequency_Hz", false, "{F1}");
@@ -396,10 +396,10 @@ namespace Schlenker.TiaV19
             report.WriteLine("ProductPumpRuntimeColors=ON_GREEN_WHEN_COMMAND_SELECTED_OTHERWISE_GREY;OFF_RED_WHEN_COMMAND_NOT_SELECTED_OTHERWISE_GREY");
             report.WriteLine("ProductPumpRunIndicationRemainsSeparate=Product_Pump_Run");
             report.WriteLine("ConveyorManualCommand=Cmd_ConveyorManualEnable");
-            report.WriteLine("ConveyorManualFrequency=Conveyor_Manual_Frequency_Hz;LIMIT=5.0..15.0Hz");
+            report.WriteLine("ConveyorManualFrequency=Conveyor_Manual_Frequency_Hz;STARTUP=10.0Hz;LIMIT=10.0..50.0Hz");
             report.WriteLine("ConveyorManualControlsBounds=52,628..696,696");
             report.WriteLine("CapDriveManualCommand=Cmd_CapDriveManualEnable");
-            report.WriteLine("CapDriveManualFrequency=CapDrive_Manual_Frequency_Hz;STARTUP=0.0Hz;MAX=DriveBaseFrequencyHz");
+            report.WriteLine("CapDriveManualFrequency=CapDrive_Manual_Frequency_Hz;STARTUP=10.0Hz;LIMIT=10.0..50.0Hz");
             report.WriteLine("CapDriveCommandSelectionColors=Cmd_CapDriveManualEnable");
             report.WriteLine("CapDriveRunIndicationRemainsSeparate=VSD_Cap_Running");
             report.WriteLine("ManualDriveControlsBounds=52,628..730,706");

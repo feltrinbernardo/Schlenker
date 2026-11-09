@@ -69,9 +69,7 @@ namespace Schlenker.TiaV19
                                 Console.WriteLine(indent + "    TARGET=" + target.Name);
                                 foreach (ConfigurationAddress address in target.Addresses)
                                     Console.WriteLine(indent + "      ADDRESS=" + address.Name + "; VALUE=" + address.Address);
-                                if (pc.Name.Equals("Intel(R) Ethernet Connection (2) I219-LM",
-                                        StringComparison.OrdinalIgnoreCase) &&
-                                    target.Name.EndsWith("X1", StringComparison.OrdinalIgnoreCase))
+                                if (target.Name.EndsWith("X1", StringComparison.OrdinalIgnoreCase))
                                 {
                                     configuration.ApplyConfiguration(target);
                                     Console.WriteLine(indent + "      SELECTED_FOR_PREFLIGHT=YES");

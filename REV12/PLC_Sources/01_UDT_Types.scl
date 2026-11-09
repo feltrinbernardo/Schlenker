@@ -92,10 +92,16 @@ STRUCT
     SafetyReady           : Bool; // Aggregate, valid only while DataValid = TRUE
     GeneralFault          : Bool; // Aggregate, valid only while DataValid = TRUE
     ResetRequired         : Bool; // Standard diagnostic indication only
+    EdmK1K2Healthy        : Bool; // PNOZ virtual output o2
+    SafeOutputO0On        : Bool; // PNOZ virtual output o3
+    SafeOutputO1On        : Bool; // PNOZ virtual output o4
+    GuardHealthy          : Array[1..11] of Bool; // PNOZ virtual outputs o5..o15
     EStopChainHealthy     : Bool; // Aggregate chain; no individual device identity
     AllGuardsClosed       : Bool; // Aggregate status for all 11 doors
     AllGuardsUnlocked     : Bool; // Aggregate status; locking topology unverified
+    ResetInputActive      : Bool; // PNOZ physical reset a5.i6 mirrored on o17
     SafetyCircuitClosed   : Bool; // Aggregate closed safety-circuit indication
+    ProgramRunning        : Bool; // Optional PNOZ payload watchdog on o19
     StandstillConfirmed   : Bool; // Aggregate zero-speed indication
     ThreePhaseOffConfirmed: Bool; // Aggregate power-off indication
 END_STRUCT;
@@ -251,7 +257,7 @@ STRUCT
     CapHopperLow        : Bool;
     CapChannelDemand    : Bool;
     CapsMissing         : Bool;
-    HoodFilterAlarm     : Bool;
+    Hood1FilterClogged  : Bool;
     SMCCommOK           : Bool;
     PilzDeviceOK        : Bool;
     // REV18 permanent engineering IDs: legacy Master1..5 symbols map in order
@@ -288,7 +294,7 @@ STRUCT
     PanelModeAuto           : Bool;
     ControlPowerOK         : Bool;
     AirFilterPressureOK    : Bool;
-    AirFilterChangeRequired24V : Bool;
+    Hood2FilterClogged  : Bool;
     BottleCountInMachine       : DInt;
     BottleAdmissionComplete    : Bool;
     ProductPresentAtPump       : Bool;
@@ -692,7 +698,7 @@ STRUCT
     AirFilterRelayCmd       : Bool;
     AirFilterPressureOK     : Bool;
     AirFilterFault          : Bool;
-    AirFilterChangeWarning  : Bool;
+    Hood2FilterCloggedWarning : Bool;
 END_STRUCT;
 END_TYPE
 

@@ -15,6 +15,7 @@ VAR
     AL102Diagnostics    : "FB_ProfinetDeviceDiagnostics";
     AL103Diagnostics    : "FB_ProfinetDeviceDiagnostics";
     AL104Diagnostics    : "FB_ProfinetDeviceDiagnostics";
+    PilzDiagnostics     : "FB_ProfinetDeviceDiagnostics";
     Alarms              : "FB_AlarmManager";
     DoorAccess          : "FB_DoorAccess";
     ManualGate          : "FB_ManualValveOverride";
@@ -64,6 +65,8 @@ VAR
     AL102DiagnosticRetVal : Int;
     AL103DiagnosticRetVal : Int;
     AL104DiagnosticRetVal : Int;
+    PilzProfinetOK      : Bool;
+    PilzDiagnosticRetVal: Int;
     ManualSMCTestActive : Bool;
     SMCProductInletCmd  : Bool;
     SMCProductCloseCmd  : Bool;
@@ -107,6 +110,10 @@ VAR
     ProductPumpStatusWord: Word;
     CapDriveStatusWord   : Word;
     LMT100ProcessData    : Word;
+    AL102VacuumProcessData : Word;
+    AL102VacuumCounts    : Int;
+    AL102ProductLevelProcessData : Word;
+    AL102ProductLevelMm  : Int;
     MainDriveControlWord : Word;
     ConveyorControlWord  : Word;
     ProductPumpControlWord : Word;
@@ -123,7 +130,9 @@ BEGIN
     // PLC terminal/LED tests. Do not reassign an address without revising the
     // master I/O schedule and electrical drawings.
     "DB_Global".Inp.SafetyOK := %I10.0;
-    "DB_Global".Inp.AirPressureOK := %I10.1;
+    // IFM PN pressure switch on AL101/X5. OUT2 is the commissioned
+    // low-pressure permissive used by machine status and alarm 1002.
+    "DB_Global".Inp.AirPressureOK := "IOL_AL101_X5_OUT2";
     "DB_Global".Inp.EncoderHealthy := %I10.2;
     "DB_Global".Inp.MachineZero := %I10.3;
     "DB_Global".Inp.BottleInfeed := %I10.4;
@@ -142,10 +151,11 @@ BEGIN
     "DB_Global".Inp.CapHopperLow := %I12.1;
     "DB_Global".Inp.CapChannelDemand := %I12.2;
     "DB_Global".Inp.CapsMissing := %I12.3;
-    "DB_Global".Inp.HoodFilterAlarm := %I12.4;
+    // Two independent 24 VDC clogged-filter contacts, one per hood.
+    "DB_Global".Inp.Hood1FilterClogged := %I12.4;
     "DB_Global".Inp.ControlPowerOK := %I12.5;
     "DB_Global".Inp.AirFilterPressureOK := %I12.6;
-    "DB_Global".Inp.AirFilterChangeRequired24V := %I12.7;
+    "DB_Global".Inp.Hood2FilterClogged := %I12.7;
     "DB_Global".Inp.RequestOpenDoorPanelPB := %I13.0;
     "DB_Global".Inp.RequestOpenDoorFrontPB := %I13.1;
     "DB_Global".Inp.RequestOpenDoorRearPB := %I13.2;
@@ -184,6 +194,32 @@ BEGIN
     // submodule assigned to AL103/P1; no inferred absolute address is used.
     LMT100ProcessData := "SPL100_LMT100_ProcessData";
     "DB_Global".Inp.ProductPresentAtPump := LMT100ProcessData.%X0;
+
+    // IFM PN7094 on AL102/X1. The cyclic word contains two switching bits
+    // at %X0..%X1 and a signed 14-bit pressure value at %X2..%X15.
+    AL102VacuumProcessData := "IOL_AL102_P1_RAW";
+    AL102VacuumCounts := WORD_TO_INT(SHR(IN := AL102VacuumProcessData, N := 2));
+    IF AL102VacuumCounts >= 8192 THEN
+        AL102VacuumCounts := AL102VacuumCounts - 16384;
+    END_IF;
+    "DB_Global".Inp.VacuumActualMbar := INT_TO_REAL(AL102VacuumCounts) * 10.0;
+    "DB_Global".Inp.VacuumSignalValid :=
+        AL102ProfinetOK
+        AND (AL102VacuumCounts >= -100)
+        AND (AL102VacuumCounts <= 1000);
+
+    // IFM LR2050 on AL102/X5. OUT1/OUT2 occupy bits 0..1; bits 2..15
+    // contain the unsigned level in millimetres. Tank length = 600 mm.
+    AL102ProductLevelProcessData := "IOL_AL102_P5_RAW";
+    AL102ProductLevelMm := WORD_TO_INT(SHR(IN := AL102ProductLevelProcessData, N := 2));
+    IF (AL102ProductLevelMm >= 0) AND (AL102ProductLevelMm <= 600) THEN
+        "DB_Global".Inp.TankLevelPct := LIMIT(
+            MN := 0.0,
+            IN := INT_TO_REAL(AL102ProductLevelMm) * 100.0 / 600.0,
+            MX := 100.0);
+    ELSE
+        "DB_Global".Inp.TankLevelPct := -1.0;
+    END_IF;
 
     "DB_Global".Inp.MainDriveReady :=
         MainDriveStatusWord.%X0 OR MainDriveStatusWord.%X1;
@@ -274,6 +310,12 @@ BEGIN
         DeviceOK => AL104ProfinetOK,
         DiagnosticRetVal => AL104DiagnosticRetVal
     );
+    PilzDiagnostics(
+        DeviceLaddr := "mes-profinet~IODevice",
+        DeviceOK => PilzProfinetOK,
+        DiagnosticRetVal => PilzDiagnosticRetVal
+    );
+    "DB_Global".Inp.PilzDeviceOK := PilzProfinetOK;
     "DB_Global".Inp.IOLinkMaster1OK := AL100ProfinetOK;
     "DB_Global".Inp.IOLinkMaster2OK := AL101ProfinetOK;
     "DB_Global".Inp.IOLinkMaster3OK := AL102ProfinetOK;
@@ -375,7 +417,7 @@ BEGIN
     "DB_Global".Par.ExternalWashOffDelay := LIMIT(MN := T#0s, IN := "DB_Global".Par.ExternalWashOffDelay, MX := T#10s);
     "DB_Global".Par.ConveyorBaseSpeedPct := LIMIT(MN := 0.0, IN := "DB_Global".Par.ConveyorBaseSpeedPct, MX := 100.0);
     "DB_Global".Par.ConveyorManualFrequencyHz :=
-        LIMIT(MN := 5.0, IN := "DB_Global".Par.ConveyorManualFrequencyHz, MX := 15.0);
+        LIMIT(MN := 10.0, IN := "DB_Global".Par.ConveyorManualFrequencyHz, MX := 50.0);
     "DB_Global".Par.ConveyorSpeedOffsetPct := LIMIT(MN := 0.0, IN := "DB_Global".Par.ConveyorSpeedOffsetPct, MX := 50.0);
     "DB_Global".Par.ConveyorPrestartTime := LIMIT(MN := T#0s, IN := "DB_Global".Par.ConveyorPrestartTime, MX := T#10s);
     "DB_Global".Par.ConveyorRunOnTime := LIMIT(MN := T#0s, IN := "DB_Global".Par.ConveyorRunOnTime, MX := T#60s);
@@ -432,8 +474,8 @@ BEGIN
                            OR ("DB_Global".Par.DriveBaseFrequencyHz <= 0.0)
                            OR ("DB_Global".Par.MainJogMaxFrequencyHz < 0.0)
                            OR ("DB_Global".Par.MainJogMaxFrequencyHz > 15.0)
-                           OR ("DB_Global".Par.ProductPumpManualMinHz < 15.0)
-                           OR ("DB_Global".Par.ProductPumpManualMaxHz > 40.0)
+                           OR ("DB_Global".Par.ProductPumpManualMinHz < 10.0)
+                           OR ("DB_Global".Par.ProductPumpManualMaxHz > 50.0)
                            OR ("DB_Global".Par.ProductPumpManualMinHz >
                                "DB_Global".Par.ProductPumpManualMaxHz);
     ProductionMediaReady := "DB_Global".Inp.ProductPresentAtPump
@@ -466,34 +508,67 @@ BEGIN
         D := "DB_Global".DoorAccess
     );
 
-    // REV23: non-safety Pilz diagnostic view. These assignments do not alter
-    // machine permissives or the validated Pilz safety authority. The current
-    // TIA project contains no Pilz device/GSDML/process-image map, therefore
-    // PhysicalMapConfigured remains FALSE and no absolute address is invented.
+    // Non-safety Pilz diagnostic view. TIA assigns the four input bytes from
+    // PNOZ virtual outputs o0..o31 to %IB156..%IB159. These values never
+    // command or bypass the Pilz safety authority.
     "DB_Global".PilzDiag.CommunicationOK := "DB_Global".Inp.PilzDeviceOK;
+    // Commissioning hold point: set TRUE only after o0..o19 have been wired in
+    // the PNOZ project, downloaded under the site procedure and bit-tested.
     "DB_Global".PilzDiag.PhysicalMapConfigured := FALSE;
     "DB_Global".PilzDiag.DataValid := "DB_Global".PilzDiag.CommunicationOK
                                       AND "DB_Global".PilzDiag.PhysicalMapConfigured;
     IF "DB_Global".PilzDiag.DataValid THEN
-        "DB_Global".PilzDiag.SafetyReady := "DB_Global".Inp.SafetyOK;
-        "DB_Global".PilzDiag.GeneralFault := "DB_Global".Inp.SafetySystemFault;
-        "DB_Global".PilzDiag.ResetRequired := "DB_Global".DoorAccess.AlarmResetRequired;
-        "DB_Global".PilzDiag.EStopChainHealthy := "DB_Global".Inp.EStopChain24VHealthy;
-        "DB_Global".PilzDiag.AllGuardsClosed := "DB_Global".Inp.AllDoorsClosed;
-        "DB_Global".PilzDiag.AllGuardsUnlocked := "DB_Global".Inp.AllDoorsUnlocked;
-        "DB_Global".PilzDiag.SafetyCircuitClosed := "DB_Global".Inp.SafetyCircuitClosed;
-        "DB_Global".PilzDiag.StandstillConfirmed := "DB_Global".Inp.ZeroSpeedConfirmed;
-        "DB_Global".PilzDiag.ThreePhaseOffConfirmed := "DB_Global".Inp.ThreePhaseOffConfirmed;
+        "DB_Global".PilzDiag.SafetyReady := %I156.0;
+        "DB_Global".PilzDiag.GeneralFault := FALSE;
+        "DB_Global".PilzDiag.ResetRequired := %I156.1;
+        "DB_Global".PilzDiag.EdmK1K2Healthy := %I156.2;
+        "DB_Global".PilzDiag.SafeOutputO0On := %I156.3;
+        "DB_Global".PilzDiag.SafeOutputO1On := %I156.4;
+        "DB_Global".PilzDiag.GuardHealthy[1] := %I156.5;
+        "DB_Global".PilzDiag.GuardHealthy[2] := %I156.6;
+        "DB_Global".PilzDiag.GuardHealthy[3] := %I156.7;
+        "DB_Global".PilzDiag.GuardHealthy[4] := %I157.0;
+        "DB_Global".PilzDiag.GuardHealthy[5] := %I157.1;
+        "DB_Global".PilzDiag.GuardHealthy[6] := %I157.2;
+        "DB_Global".PilzDiag.GuardHealthy[7] := %I157.3;
+        "DB_Global".PilzDiag.GuardHealthy[8] := %I157.4;
+        "DB_Global".PilzDiag.GuardHealthy[9] := %I157.5;
+        "DB_Global".PilzDiag.GuardHealthy[10] := %I157.6;
+        "DB_Global".PilzDiag.GuardHealthy[11] := %I157.7;
+        "DB_Global".PilzDiag.EStopChainHealthy := FALSE;
+        "DB_Global".PilzDiag.AllGuardsClosed := %I158.0;
+        "DB_Global".PilzDiag.AllGuardsUnlocked := FALSE;
+        "DB_Global".PilzDiag.ResetInputActive := %I158.1;
+        "DB_Global".PilzDiag.SafetyCircuitClosed := %I158.2;
+        "DB_Global".PilzDiag.ProgramRunning := %I158.3;
+        "DB_Global".PilzDiag.StandstillConfirmed := FALSE;
+        "DB_Global".PilzDiag.ThreePhaseOffConfirmed := FALSE;
     ELSE
         // Values are deliberately cleared while DataValid is FALSE. HMI logic
         // must display COMMUNICATION FAULT / DATA INVALID, never a false normal.
         "DB_Global".PilzDiag.SafetyReady := FALSE;
         "DB_Global".PilzDiag.GeneralFault := FALSE;
         "DB_Global".PilzDiag.ResetRequired := FALSE;
+        "DB_Global".PilzDiag.EdmK1K2Healthy := FALSE;
+        "DB_Global".PilzDiag.SafeOutputO0On := FALSE;
+        "DB_Global".PilzDiag.SafeOutputO1On := FALSE;
+        "DB_Global".PilzDiag.GuardHealthy[1] := FALSE;
+        "DB_Global".PilzDiag.GuardHealthy[2] := FALSE;
+        "DB_Global".PilzDiag.GuardHealthy[3] := FALSE;
+        "DB_Global".PilzDiag.GuardHealthy[4] := FALSE;
+        "DB_Global".PilzDiag.GuardHealthy[5] := FALSE;
+        "DB_Global".PilzDiag.GuardHealthy[6] := FALSE;
+        "DB_Global".PilzDiag.GuardHealthy[7] := FALSE;
+        "DB_Global".PilzDiag.GuardHealthy[8] := FALSE;
+        "DB_Global".PilzDiag.GuardHealthy[9] := FALSE;
+        "DB_Global".PilzDiag.GuardHealthy[10] := FALSE;
+        "DB_Global".PilzDiag.GuardHealthy[11] := FALSE;
         "DB_Global".PilzDiag.EStopChainHealthy := FALSE;
         "DB_Global".PilzDiag.AllGuardsClosed := FALSE;
         "DB_Global".PilzDiag.AllGuardsUnlocked := FALSE;
+        "DB_Global".PilzDiag.ResetInputActive := FALSE;
         "DB_Global".PilzDiag.SafetyCircuitClosed := FALSE;
+        "DB_Global".PilzDiag.ProgramRunning := FALSE;
         "DB_Global".PilzDiag.StandstillConfirmed := FALSE;
         "DB_Global".PilzDiag.ThreePhaseOffConfirmed := FALSE;
     END_IF;
@@ -716,11 +791,11 @@ BEGIN
         ConveyorFault := "DB_Global".Inp.ConveyorFault,
         ProductPumpFault := "DB_Global".Inp.ProductPumpFault,
         CapDriveFault := "DB_Global".Inp.CapDriveFault,
-        HoodFilterAlarm := "DB_Global".Inp.HoodFilterAlarm,
+        Hood1FilterClogged := "DB_Global".Inp.Hood1FilterClogged,
         EStopChain24VHealthy := "DB_Global".Inp.EStopChain24VHealthy,
         DoorAccessFault := "DB_Global".DoorAccess.Fault,
         AirFilterFault := "DB_Global".Auxiliaries.AirFilterFault,
-        AirFilterChangeWarning := "DB_Global".Auxiliaries.AirFilterChangeWarning,
+        Hood2FilterClogged := "DB_Global".Auxiliaries.Hood2FilterCloggedWarning,
         SpeedParameterFault := SpeedParameterFault,
         PumpLowWarning := PumpLowWarning,
         CapperOutfeedCrash := "DB_Global".Inp.CapperOutfeedCrash,
@@ -795,7 +870,7 @@ BEGIN
         AirFilterOnPB := "DB_Global".Cmd.AirFilterOn,
         AirFilterOffPB := "DB_Global".Cmd.AirFilterOff,
         AirFilterPressureOK := "DB_Global".Inp.AirFilterPressureOK,
-        AirFilterChangeRequired24V := "DB_Global".Inp.AirFilterChangeRequired24V,
+        Hood2FilterClogged := "DB_Global".Inp.Hood2FilterClogged,
         ResetAlarmPB := "DB_Global".Inp.ResetAlarmPanelPB OR "DB_Global".Cmd.Reset,
         AirFilterProofDelay := "DB_Global".Par.AirFilterProofDelay,
         A := "DB_Global".Auxiliaries
@@ -1120,16 +1195,16 @@ BEGIN
     "DB_Global".Out.ConveyorRunOnActive := ConveyorRunOnActive;
 
     // Isolated bench/manual cap-distributor request. The operator supplies the
-    // frequency from Unified; startup is zero and the PLC clamps it to the
-    // configured drive base frequency. Automatic Production demand is not
+    // frequency from Unified; startup is 10 Hz and the PLC clamps it to the
+    // approved 10..50 Hz range. Automatic Production demand is not
     // enabled by this exception.
     IF NOT "DB_Global".Machine.ManualActive THEN
         "DB_Global".Cmd.CapDriveManualEnable := FALSE;
     END_IF;
     "DB_Global".Par.CapDriveManualFrequencyHz :=
-        LIMIT(MN := 0.0,
+        LIMIT(MN := 10.0,
               IN := "DB_Global".Par.CapDriveManualFrequencyHz,
-              MX := "DB_Global".Par.DriveBaseFrequencyHz);
+              MX := 50.0);
     CapDriveBenchPermit :=
         "DB_Global".Machine.ManualActive
         AND "DB_Global".Cmd.CapDriveManualEnable
@@ -1389,7 +1464,7 @@ BEGIN
     );
 
     // Manual conveyor commissioning path. ConveyorBenchPermit proves bench
-    // mode, Manual, drive Ready and no drive fault. Apply the bounded 5..15 Hz
+    // mode, Manual, drive Ready and no drive fault. Apply the bounded 10..50 Hz
     // request after the generic manager so commissioning state cannot suppress
     // Telegram 1 during the isolated-bench test.
     IF ConveyorBenchPermit AND

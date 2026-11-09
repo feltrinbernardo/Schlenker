@@ -99,7 +99,7 @@ namespace Schlenker.TiaV19
                 { "home|REV12_Speed_Field", "Speed_Setpoint_BPH" },
                 { "home|REV12_Actual_Field", "Speed_Actual_Pct" },
                 { "home|REV12_Tank_Field", "Tank_Level_Pct" },
-                { "home|REV12_Filter_Warn_Field", "AirFilter_ChangeRequired" },
+                { "home|REV12_Filter_Warn_Field", "Hood2_FilterClogged" },
                 { "home|REV12_Active_Mode_Code", "Mode_ActiveCode" },
                 { "home|REV12_Home_Vacuum_Status", "Vacuum_Pump_Run" },
                 { "home|REV12_Home_Wash_Status", "External_Wash_Active" },

@@ -105,7 +105,7 @@ The final field-sensor models, IODDs, port modes, physical addresses, and polari
 | P5 | LT-PRODUCT | Product Continuous Level | IFM LR2050 candidate | `ai_ProductLevel` | Missing | IO-Link | ASSIGN DEVICE AT BUILD / NOT CONFIGURED |
 | P6 | LT-CIP | CIP/Process Level | IFM LR2050 candidate | `ai_CIPLevel` | Missing | IO-Link | ASSIGN DEVICE AT BUILD / NOT CONFIGURED |
 | P7 | TT-PROCESS | Process Temperature | IFM TA2405 candidate | `ai_ProcessTemperature` | Missing | IO-Link | ASSIGN DEVICE AT BUILD / NOT CONFIGURED |
-| P8 | SPARE-A102-08 | Future process instrument | — | — | — | Spare | SPARE |
+| P8 | DO-HUB-TL100 | Tower light output hub | IFM AL2330 | TL100_OutputHub | %QB156..%QB163 | IO-Link 8I/8O | CONFIGURED |
 
 The IFM PN7094, LR2050, and TA2405 references are candidates only. Installed models, measuring ranges, IODDs, units, scaling, filtering, process-data sizes, and HMI bindings require confirmation.
 

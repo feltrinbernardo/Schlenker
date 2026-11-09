@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Siemens.Engineering;
 using Siemens.Engineering.Compiler;
 using Siemens.Engineering.HW;
@@ -28,10 +29,21 @@ namespace Schlenker.TiaV19
 
             try
             {
+                TiaPortalProcess selected = TiaPortal.GetProcesses().SingleOrDefault(process =>
+                    process.ProjectPath != null && process.ProjectPath.FullName.Equals(
+                        projectPath, StringComparison.OrdinalIgnoreCase));
+                bool openedHeadless = selected == null;
                 using (StreamWriter report = new StreamWriter(reportPath, false))
-                using (TiaPortal portal = new TiaPortal(TiaPortalMode.WithoutUserInterface))
+                using (TiaPortal portal = openedHeadless
+                    ? new TiaPortal(TiaPortalMode.WithoutUserInterface)
+                    : selected.Attach())
                 {
-                    Project project = portal.Projects.Open(new FileInfo(projectPath));
+                    Project project = openedHeadless
+                        ? portal.Projects.Open(new FileInfo(projectPath))
+                        : portal.Projects.Single();
+                    if (!Path.GetFullPath(project.Path.FullName).Equals(projectPath,
+                            StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidOperationException("Exact project identity changed.");
                     Device hmiDevice;
                     DeviceItem hmiItem;
                     HmiSoftware hmi = FindUnifiedHmi(project, out hmiDevice, out hmiItem);
@@ -72,7 +84,7 @@ namespace Schlenker.TiaV19
                         report.WriteLine("STATUS=FAIL_NOT_SAVED");
                     }
                     report.Flush();
-                    project.Close();
+                    if (openedHeadless) project.Close();
 
                     Console.WriteLine("CREATED=" + created);
                     Console.WriteLine("UPDATED=" + updated);

@@ -19,10 +19,10 @@ Input,%I12.0,DB_Global.Inp.CapPresent,Cap present,DEFINITIVE BASELINE
 Input,%I12.1,DB_Global.Inp.CapHopperLow,Cap hopper low,DEFINITIVE BASELINE
 Input,%I12.2,DB_Global.Inp.CapChannelDemand,Cap channel demand,DEFINITIVE BASELINE
 Input,%I12.3,DB_Global.Inp.CapsMissing,Caps missing,DEFINITIVE BASELINE
-Input,%I12.4,DB_Global.Inp.HoodFilterAlarm,Hood filter alarm,DEFINITIVE BASELINE
+Input,%I12.4,DB_Global.Inp.Hood1FilterClogged,Hood 1 clogged-filter alarm,DEFINITIVE BASELINE
 Input,%I12.5,DB_Global.Inp.ControlPowerOK,Control power healthy,DEFINITIVE BASELINE
 Input,%I12.6,DB_Global.Inp.AirFilterPressureOK,Air filter pressure proof,DEFINITIVE BASELINE
-Input,%I12.7,DB_Global.Inp.AirFilterChangeRequired24V,Air filter change request,DEFINITIVE BASELINE
+Input,%I12.7,DB_Global.Inp.Hood2FilterClogged,Hood 2 clogged-filter alarm,DEFINITIVE BASELINE
 Input,%I13.0,DB_Global.Inp.RequestOpenDoorPanelPB,Panel door access request,DEFINITIVE BASELINE
 Input,%I13.1,DB_Global.Inp.RequestOpenDoorFrontPB,Front door access request,DEFINITIVE BASELINE
 Input,%I13.2,DB_Global.Inp.RequestOpenDoorRearPB,Rear door access request,DEFINITIVE BASELINE
@@ -32,7 +32,7 @@ Input,%I13.5,DB_Global.Inp.ThreePhaseOffConfirmed,Three phase power isolated,DEF
 Input,%I13.6,DB_Global.Inp.AllDoorsClosed,All guards closed,DEFINITIVE BASELINE
 Input,%I13.7,DB_Global.Inp.ResetAlarmPanelPB,Panel alarm reset pushbutton,DEFINITIVE BASELINE
 Output,%Q4.0,DB_Global.Out.VacuumPump,Vacuum pump contactor,DEFINITIVE BASELINE
-Output,%Q4.1,DB_Global.Out.MachineLightsRelayCmd,Machine lights relay,DEFINITIVE BASELINE
+Output,%Q4.1,DB_Global.Out.MachineLightsRelayCmd,Machine lights contactor - Siemens SIRIUS 3RT2016-1KB41 24VDC PLC coil,DEFINITIVE BASELINE
 Output,%Q4.2,DB_Global.Out.AirFilterRelayCmd,Air filter or ventilation relay,DEFINITIVE BASELINE
 Output,%Q4.3,DB_Global.Out.GateOpen,Infeed gate open solenoid,DEFINITIVE BASELINE
 Output,%Q4.4,DB_Global.Out.GateClose,Infeed gate close solenoid,DEFINITIVE BASELINE

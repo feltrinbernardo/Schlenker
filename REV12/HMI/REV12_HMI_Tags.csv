@@ -95,7 +95,9 @@ AirFilter_On,DB_Global.Cmd.AirFilterOn,Bool,ReadWrite,Home,Momentary air-filter 
 AirFilter_Off,DB_Global.Cmd.AirFilterOff,Bool,ReadWrite,Home,Momentary air-filter OFF command
 AirFilter_Relay,DB_Global.Out.AirFilterRelayCmd,Bool,Read,Home,24 VDC PLC command to dedicated filter relay
 AirFilter_PressureOK,DB_Global.Inp.AirFilterPressureOK,Bool,Read,Maintenance,24 VDC pressure proof input
-AirFilter_ChangeRequired,DB_Global.Inp.AirFilterChangeRequired24V,Bool,Read,Maintenance,Dedicated filter-change input
+AirFilter_ChangeRequired,DB_Global.Inp.Hood2FilterClogged,Bool,Read,Maintenance,Legacy HMI tag retained for binding compatibility - Cappa 2 clogged-filter input at %I12.7
+Hood1_FilterClogged,DB_Global.Inp.Hood1FilterClogged,Bool,Read,Maintenance,Cappa 1 clogged-filter input at %I12.4
+Hood2_FilterClogged,DB_Global.Inp.Hood2FilterClogged,Bool,Read,Maintenance,Cappa 2 clogged-filter input at %I12.7
 AirFilter_Fault,DB_Global.Auxiliaries.AirFilterFault,Bool,Read,Alarms,Delayed air-filter proof failure
 Door_Request_Combined,DB_Global.DoorAccess.RequestCombined,Bool,Read,Door Access,Combined request from the three physical stations
 Door_Sequence_Active,DB_Global.DoorAccess.SequenceActive,Bool,Read,Door Access,Controlled door-access sequence active
@@ -115,10 +117,26 @@ PilzDiag_PhysicalMapConfigured,DB_Global.PilzDiag.PhysicalMapConfigured,Bool,Rea
 PilzDiag_SafetyReady,DB_Global.PilzDiag.SafetyReady,Bool,Read,Safety Diagnostics,Aggregate safety-ready diagnostic valid only with PilzDiag_DataValid
 PilzDiag_GeneralFault,DB_Global.PilzDiag.GeneralFault,Bool,Read,Safety Diagnostics,Aggregate Pilz or safety-system fault diagnostic
 PilzDiag_ResetRequired,DB_Global.PilzDiag.ResetRequired,Bool,Read,Safety Diagnostics,Diagnostic indication only and never a safety reset command
+PilzDiag_EdmK1K2Healthy,DB_Global.PilzDiag.EdmK1K2Healthy,Bool,Read,Safety Diagnostics,PNOZ virtual output o2; valid only with PilzDiag_DataValid
+PilzDiag_SafeOutputO0On,DB_Global.PilzDiag.SafeOutputO0On,Bool,Read,Safety Diagnostics,PNOZ safe output a1.O0 mirrored on virtual output o3
+PilzDiag_SafeOutputO1On,DB_Global.PilzDiag.SafeOutputO1On,Bool,Read,Safety Diagnostics,PNOZ safe output a1.O1 mirrored on virtual output o4
+PilzDiag_Guard01Healthy,DB_Global.PilzDiag.GuardHealthy[1],Bool,Read,Safety Diagnostics,PNOZ GS1 diagnostic on virtual output o5
+PilzDiag_Guard02Healthy,DB_Global.PilzDiag.GuardHealthy[2],Bool,Read,Safety Diagnostics,PNOZ GS2 diagnostic on virtual output o6
+PilzDiag_Guard03Healthy,DB_Global.PilzDiag.GuardHealthy[3],Bool,Read,Safety Diagnostics,PNOZ GS3 diagnostic on virtual output o7
+PilzDiag_Guard04Healthy,DB_Global.PilzDiag.GuardHealthy[4],Bool,Read,Safety Diagnostics,PNOZ GS4 diagnostic on virtual output o8
+PilzDiag_Guard05Healthy,DB_Global.PilzDiag.GuardHealthy[5],Bool,Read,Safety Diagnostics,PNOZ GS5 diagnostic on virtual output o9
+PilzDiag_Guard06Healthy,DB_Global.PilzDiag.GuardHealthy[6],Bool,Read,Safety Diagnostics,PNOZ GS6 diagnostic on virtual output o10
+PilzDiag_Guard07Healthy,DB_Global.PilzDiag.GuardHealthy[7],Bool,Read,Safety Diagnostics,PNOZ GS7 diagnostic on virtual output o11
+PilzDiag_Guard08Healthy,DB_Global.PilzDiag.GuardHealthy[8],Bool,Read,Safety Diagnostics,PNOZ GS8 diagnostic on virtual output o12
+PilzDiag_Guard09Healthy,DB_Global.PilzDiag.GuardHealthy[9],Bool,Read,Safety Diagnostics,PNOZ GS9 diagnostic on virtual output o13
+PilzDiag_Guard10Healthy,DB_Global.PilzDiag.GuardHealthy[10],Bool,Read,Safety Diagnostics,PNOZ GS10 diagnostic on virtual output o14
+PilzDiag_Guard11Healthy,DB_Global.PilzDiag.GuardHealthy[11],Bool,Read,Safety Diagnostics,PNOZ GS11 diagnostic on virtual output o15
 PilzDiag_EStopChainHealthy,DB_Global.PilzDiag.EStopChainHealthy,Bool,Read,Safety Diagnostics,Aggregate four-device E-stop chain
 PilzDiag_AllGuardsClosed,DB_Global.PilzDiag.AllGuardsClosed,Bool,Read,Safety Diagnostics,Aggregate status for 11 guarded doors
 PilzDiag_AllGuardsUnlocked,DB_Global.PilzDiag.AllGuardsUnlocked,Bool,Read,Safety Diagnostics,Aggregate status with unverified lock topology
+PilzDiag_ResetInputActive,DB_Global.PilzDiag.ResetInputActive,Bool,Read,Safety Diagnostics,Physical reset input a5.i6 mirrored on PNOZ virtual output o17
 PilzDiag_SafetyCircuitClosed,DB_Global.PilzDiag.SafetyCircuitClosed,Bool,Read,Safety Diagnostics,Aggregate closed safety-circuit diagnostic
+PilzDiag_ProgramRunning,DB_Global.PilzDiag.ProgramRunning,Bool,Read,Safety Diagnostics,Optional payload watchdog on PNOZ virtual output o19
 PilzDiag_StandstillConfirmed,DB_Global.PilzDiag.StandstillConfirmed,Bool,Read,Safety Diagnostics,Aggregate zero-speed diagnostic
 PilzDiag_ThreePhaseOffConfirmed,DB_Global.PilzDiag.ThreePhaseOffConfirmed,Bool,Read,Safety Diagnostics,Aggregate three-phase-off diagnostic
 Network_IOLink1_OK,DB_Global.Inp.IOLinkMaster1OK,Bool,Read,Diagnostics,IFM AL1403 number 1 station status
@@ -181,9 +199,9 @@ Cmd_ProductPumpManualEnable,DB_Global.Cmd.ProductPumpManualEnable,Bool,ReadWrite
 Cmd_VacuumPumpManualEnable,DB_Global.Cmd.VacuumPumpManualEnable,Bool,ReadWrite,Manual,Maintained M103 vacuum-pump contactor request accepted only in Manual with safety valid and no critical alarm
 Cmd_ConveyorManualEnable,DB_Global.Cmd.ConveyorManualEnable,Bool,ReadWrite,Manual,Isolated bench/manual bottle-conveyor request limited by PLC to 5-15 Hz
 Cmd_CapDriveManualEnable,DB_Global.Cmd.CapDriveManualEnable,Bool,ReadWrite,Manual,Isolated bench/manual cap-distributor drive request qualified by PLC permissives
-Product_Pump_Manual_Frequency_Hz,DB_Global.Par.ProductPumpManualFrequencyHz,Real,ReadWrite,Manual,Manual product-pump frequency clamped by PLC to 15.0-40.0 Hz
-Conveyor_Manual_Frequency_Hz,DB_Global.Par.ConveyorManualFrequencyHz,Real,ReadWrite,Manual,Manual bottle-conveyor bench frequency clamped by PLC to 5.0-15.0 Hz
-CapDrive_Manual_Frequency_Hz,DB_Global.Par.CapDriveManualFrequencyHz,Real,ReadWrite,Manual,Manual cap-distributor frequency; startup zero and PLC-clamped to configured drive base frequency
+Product_Pump_Manual_Frequency_Hz,DB_Global.Par.ProductPumpManualFrequencyHz,Real,ReadWrite,Manual,Manual product-pump frequency clamped by PLC to 10.0-50.0 Hz; startup 10.0 Hz
+Conveyor_Manual_Frequency_Hz,DB_Global.Par.ConveyorManualFrequencyHz,Real,ReadWrite,Manual,Manual bottle-conveyor bench frequency clamped by PLC to 10.0-50.0 Hz; startup 10.0 Hz
+CapDrive_Manual_Frequency_Hz,DB_Global.Par.CapDriveManualFrequencyHz,Real,ReadWrite,Manual,Manual cap-distributor frequency clamped by PLC to 10.0-50.0 Hz; startup 10.0 Hz
 Product_Pump_Run,DB_Global.Out.ProductPumpRun,Bool,Read,Production,Product pump run output
 Cap_Distributor_Delay_Start,DB_Global.Par.CapDistributorDelayToStart,Time,ReadWrite,VSD,Cap distributor delay to start
 Cap_Distributor_Delay_Stop,DB_Global.Par.CapDistributorDelayToStop,Time,ReadWrite,VSD,Cap distributor delay to stop
@@ -253,7 +271,7 @@ DI_Cap_Present,DB_Global.Inp.CapPresent,Bool,Read,Settings Inputs,CS103 - Cap pr
 DI_Cap_Hopper_Low,DB_Global.Inp.CapHopperLow,Bool,Read,Settings Inputs,CS100 - Low cap level - Cap hopper - I/O port TBC
 DI_Cap_Channel_Demand,DB_Global.Inp.CapChannelDemand,Bool,Read,Settings Inputs,CS101 - Orienter demand sensor - Cap chute - I/O port TBC
 DI_Caps_Missing,DB_Global.Inp.CapsMissing,Bool,Read,Settings Inputs,CS102 - Cap chute empty sensor - Cap chute - I/O port TBC
-DI_Hood_Filter_Alarm,DB_Global.Inp.HoodFilterAlarm,Bool,Read,Settings Inputs,PSH100 - Hood filter service input - Ventilation - I/O port TBC
+DI_Hood_Filter_Alarm,DB_Global.Inp.Hood1FilterClogged,Bool,Read,Settings Inputs,Legacy HMI tag retained for binding compatibility - Cappa 1 clogged-filter input at %I12.4
 DO_Main_Run,DB_Global.Out.MainRun,Bool,Read,Settings Outputs,M100 - Main machine run command - Main drive
 DO_Conveyor_Run,DB_Global.Out.ConveyorRun,Bool,Read,Settings Outputs,M101 - Bottle conveyor run command - Outfeed
 DO_ProductPump_Run,DB_Global.Out.ProductPumpRun,Bool,Read,Settings Outputs,M102 - Product pump run command - Product circuit

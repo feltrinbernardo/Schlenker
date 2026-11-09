@@ -17,7 +17,7 @@ namespace Schlenker.TiaV19
     {
         private const string ExpectedProject =
             @"C:\TIA Projects\Schlenkers 36-10 190036-7-8v2.12-MTP1200-DeployWorking-20260918\Backup Schlenkers 36-10 190036-7-8v2.12.ap19";
-        private const string ExpectedPcInterface = "Intel(R) Ethernet Connection (2) I219-LM";
+        private const string ExpectedPcInterface = "Intel(R) I210 Gigabit Network Connection";
 
         private sealed class AuthorizedTarget
         {
@@ -70,7 +70,10 @@ namespace Schlenker.TiaV19
                     args[0].Equals("--authorized-plc-hardware-software-download", StringComparison.Ordinal);
                 bool hmiChangesAuthorized =
                     args[0].Equals("--authorized-hmi-changes-download", StringComparison.Ordinal);
-                if (!fullAuthorized && !plcOnlyAuthorized && !plcHardwareSoftwareAuthorized && !hmiChangesAuthorized)
+                bool hmiSoftwareAuthorized =
+                    args[0].Equals("--authorized-hmi-software-download", StringComparison.Ordinal);
+                if (!fullAuthorized && !plcOnlyAuthorized && !plcHardwareSoftwareAuthorized &&
+                    !hmiChangesAuthorized && !hmiSoftwareAuthorized)
                     throw new InvalidOperationException("Explicit authorization switch is required.");
 
                 TiaPortalProcess selected = TiaPortal.GetProcesses().SingleOrDefault(process =>
@@ -96,9 +99,11 @@ namespace Schlenker.TiaV19
                             fullAuthorized ||
                             (plcOnlyAuthorized && item.ProviderItemName.Equals("PLC_1", StringComparison.OrdinalIgnoreCase)) ||
                             (plcHardwareSoftwareAuthorized && item.ProviderItemName.Equals("PLC_1", StringComparison.OrdinalIgnoreCase)) ||
-                            (hmiChangesAuthorized && item.ProviderItemName.Equals("HMI_RT_1", StringComparison.OrdinalIgnoreCase))))
+                            ((hmiChangesAuthorized || hmiSoftwareAuthorized) &&
+                                item.ProviderItemName.Equals("HMI_RT_1", StringComparison.OrdinalIgnoreCase))))
                             DownloadTarget(project, target,
                                 hmiChangesAuthorized ? DownloadOptions.SoftwareOnlyChanges :
+                                hmiSoftwareAuthorized ? DownloadOptions.Software :
                                 plcHardwareSoftwareAuthorized ? DownloadOptions.Hardware | DownloadOptions.Software :
                                 DownloadOptions.Software);
                     }
@@ -255,6 +260,9 @@ namespace Schlenker.TiaV19
                 case "WaitOnReboot": SetSelection(configuration, "WaitForReboot"); return;
                 case "TargetForSoftware": SetSelection(configuration, "AcceptAll"); return;
                 case "UserManagementDownload": SetSelection(configuration, "ConsistentDownload"); return;
+                case "HmiScsDownloadFeedback":
+                    SetSelection(configuration, "HMI_TRANSFER_STOP_RUNTIME_FULL_DOWNLOAD_MODE");
+                    return;
 
                 // These conditions would broaden the authorized operation or indicate a target mismatch.
                 case "DifferentTargetConfiguration":

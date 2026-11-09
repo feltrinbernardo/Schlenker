@@ -8,8 +8,11 @@ using Siemens.Engineering.HW;
 using Siemens.Engineering.HW.Features;
 using Siemens.Engineering.HmiUnified;
 using Siemens.Engineering.Hmi.Globalization;
+using Siemens.Engineering.HmiUnified.HmiTags;
 using Siemens.Engineering.HmiUnified.UI.Base;
 using Siemens.Engineering.HmiUnified.UI.Controls;
+using Siemens.Engineering.HmiUnified.UI.Dynamization;
+using Siemens.Engineering.HmiUnified.UI.Dynamization.Script;
 using Siemens.Engineering.HmiUnified.UI.Parts;
 using Siemens.Engineering.HmiUnified.UI.Screens;
 using Siemens.Engineering.SW;
@@ -169,6 +172,13 @@ namespace Schlenker.TiaV19
                 {
                     Console.WriteLine("HMI device={0} item={1}", deviceName, item.Name);
                     Console.WriteLine("SCREENS=" + hmi.Screens.Count);
+                    foreach (HmiTag tag in hmi.TagTables.SelectMany(table => table.Tags).Where(tag =>
+                        tag.Name.Equals("HMI_Heartbeat", StringComparison.OrdinalIgnoreCase) ||
+                        tag.Name.Equals("Network_HMI_OK", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        Console.WriteLine("HMI_TAG name={0}; plc={1}; type={2}; connection={3}",
+                            tag.Name, tag.PlcTag, tag.DataType, tag.Connection);
+                    }
                     foreach (HmiScreen screen in hmi.Screens)
                     {
                         Console.WriteLine(
@@ -187,6 +197,23 @@ namespace Schlenker.TiaV19
                                     "ITEM type={0} {1}",
                                     screenItem.GetType().FullName,
                                     FormatProperties(screenItem));
+
+                                if (screenItem.Name.Equals(
+                                    "REV13_Common_BottomInfo",
+                                    StringComparison.OrdinalIgnoreCase))
+                                {
+                                    foreach (object dynamic in screenItem.Dynamizations)
+                                    {
+                                        DynamizationBase dynamicBase = dynamic as DynamizationBase;
+                                        ScriptDynamization script = dynamic as ScriptDynamization;
+                                        Console.WriteLine(
+                                            "DYNAMIZATION item={0}; type={1}; property={2}; script={3}",
+                                            screenItem.Name,
+                                            dynamic.GetType().FullName,
+                                            dynamicBase == null ? "" : dynamicBase.PropertyName,
+                                            script == null ? "" : script.ScriptCode);
+                                    }
+                                }
 
                                 HmiAlarmControl alarmControl = screenItem as HmiAlarmControl;
                                 if (alarmControl != null)
