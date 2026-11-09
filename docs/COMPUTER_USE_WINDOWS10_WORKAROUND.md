@@ -31,3 +31,7 @@ TIA compatibility, reboot persistence, long-duration operation and cancellation/
 5. For TIA, retain all root AGENTS.md rules: current isolated-test-network confirmation, unique observed target, fresh observations and explicit operation-specific authority for writes. This workaround grants no additional device permissions.
 
 Detailed local evidence: `runs/2026-11-10-computer-use-runtime-recovery/report.md` (ignored). Git preserves this procedure and hashes, not the local binary.
+
+## Subsequent TIA verification
+
+On 2026-11-10, TIA Portal V19 capture and coordinate input succeeded during read-only discovery of 12 workshop devices. See [network discovery record](TIA_NETWORK_DISCOVERY_2026-11-10.md) for observed addresses and limitations. This establishes the tested TIA capture/navigation path, not full engineering validation or reboot persistence.
