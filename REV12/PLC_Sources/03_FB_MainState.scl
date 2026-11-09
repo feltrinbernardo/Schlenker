@@ -16,6 +16,12 @@ VAR_INPUT
     StartupSafeStateOK  : Bool;
     ProductionStartPermitted : Bool;
     RunOutComplete      : Bool;
+    ImmediateStopRequest: Bool;
+    RotationInhibited   : Bool;
+    CIPStartPermitted   : Bool;
+    CIPReferenceReached : Bool;
+    ZeroSpeedConfirmed  : Bool;
+    CIPReady            : Bool;
 END_VAR
 VAR_IN_OUT
     M                   : "UDT_Machine";
@@ -34,6 +40,8 @@ BEGIN
         M.State := 50; // MANUAL — BENCH TEST ONLY
     ELSIF NOT SafetyOK THEN
         M.State := 130; // EMERGENCY_STOP
+    ELSIF ImmediateStopRequest THEN
+        M.State := 120; // ALARM_STOP; X4 anti-rotation protection
     ELSIF DoorAccessFault OR CriticalAlarm THEN
         M.State := 120; // ALARM_STOP
     ELSIF DoorAccessActive THEN
@@ -68,8 +76,8 @@ BEGIN
                     M.State := 60;
                 ELSIF Cmd.CapperHeightEnable THEN
                     M.State := 70;
-                ELSIF Cmd.CIPStart THEN
-                    M.State := 80;
+                ELSIF Cmd.CIPStart AND CIPStartPermitted THEN
+                    M.State := 75; // CIP_POSITIONING to valve #1 reference
                 ELSIF Cmd.EmptyingStart THEN
                     M.State := 90;
                 ELSIF Cmd.ManualSelect THEN
@@ -117,6 +125,20 @@ BEGIN
             70: // CAPPER_HEIGHT
                 IF NOT Cmd.CapperHeightEnable THEN M.State := 50; END_IF;
 
+            75: // CIP_POSITIONING
+                IF Cmd.Stop OR Cmd.CIPStop THEN
+                    M.State := 100;
+                ELSIF CIPReferenceReached AND ZeroSpeedConfirmed THEN
+                    M.State := 77; // CIP_WAIT_CONNECTION
+                END_IF;
+
+            77: // CIP_WAIT_CONNECTION
+                IF Cmd.Stop OR Cmd.CIPStop THEN
+                    M.State := 100;
+                ELSIF CIPReady THEN
+                    M.State := 80;
+                END_IF;
+
             80: // CIP
                 IF Cmd.Stop OR Cmd.CIPStop THEN M.State := 100; END_IF;
 
@@ -158,6 +180,10 @@ BEGIN
     M.ManualActive := M.State = 50;
     M.FillerHeightActive := M.State = 60;
     M.CapperHeightActive := M.State = 70;
+    M.OffProductionActive := M.State = 20;
+    M.CIPPositioningActive := M.State = 75;
+    M.CIPWaitingConnection := M.State = 77;
+    M.CIPReady := CIPReady;
     M.CIPActive := M.State = 80;
     M.EmptyingActive := M.State = 90;
     M.AlarmStopActive := (M.State = 120) OR (M.State = 130);
@@ -179,7 +205,9 @@ BEGIN
         SafetyOK
         AND M.HomeValid
         AND EncoderHealthy
+        AND NOT RotationInhibited
         AND NOT M.FillerHeightActive
         AND NOT M.CapperHeightActive
-        AND ((M.State = 30) OR (M.State = 50) OR (M.State = 10) OR (M.State = 95));
+        AND ((M.State = 30) OR (M.State = 50) OR (M.State = 10)
+             OR (M.State = 75) OR (M.State = 95));
 END_FUNCTION_BLOCK

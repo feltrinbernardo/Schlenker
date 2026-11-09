@@ -1,0 +1,39 @@
+FUNCTION_BLOCK "FB_SMC125ProductionMatrix"
+VAR_INPUT
+    ProductionActive        : Bool;
+    ProductPumpRunRequest   : Bool;
+    ProductPumpRunning      : Bool;
+    ProductPumpFeedbackValid: Bool;
+END_VAR
+VAR_IN_OUT
+    S                       : "UDT_SMC125ValveState";
+END_VAR
+
+BEGIN
+    // Confirmed pneumatic production positions. These are logical targets,
+    // not coil states; no Anybus address or energisation polarity is assumed.
+    S.Y1OpenRequest := ProductionActive;
+    S.Y2OpenRequest := ProductionActive;
+    S.Y3OpenRequest := FALSE;
+    S.Y4OpenRequest := FALSE;
+    S.Y5OpenRequest := FALSE;
+    S.Y7OpenRequest := FALSE;
+
+    IF ProductionActive THEN
+        IF ProductPumpRunRequest THEN
+            S.Y6OpenRequest := TRUE;
+            S.Y6HeldForPumpStop := FALSE;
+        ELSIF NOT ProductPumpFeedbackValid OR ProductPumpRunning THEN
+            // Level-pause sequence: retain Y6 OPEN until stopped feedback is
+            // valid. No time-based assumption is used.
+            S.Y6OpenRequest := TRUE;
+            S.Y6HeldForPumpStop := TRUE;
+        ELSE
+            S.Y6OpenRequest := FALSE;
+            S.Y6HeldForPumpStop := FALSE;
+        END_IF;
+    ELSE
+        S.Y6OpenRequest := FALSE;
+        S.Y6HeldForPumpStop := FALSE;
+    END_IF;
+END_FUNCTION_BLOCK

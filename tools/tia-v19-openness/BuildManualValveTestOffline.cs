@@ -16,6 +16,7 @@ using Siemens.Engineering.HmiUnified.UI.Screens;
 using Siemens.Engineering.HmiUnified.UI.Shapes;
 using Siemens.Engineering.HmiUnified.UI.Widgets;
 using Siemens.Engineering.SW;
+using Siemens.Engineering.SW.ExternalSources;
 
 namespace Schlenker.TiaV19
 {
@@ -23,39 +24,49 @@ namespace Schlenker.TiaV19
     {
         private static readonly string[] CommandTags =
         {
-            "SMC_EV001_Open_Manual", "SMC_EV001_Close_Manual",
+            "SMC_EV001_Open_Manual",
             "SMC_EV010_Manual", "SMC_EV011_Manual", "SMC_EV210_Manual",
             "SMC_EV211_Manual", "SMC_EV212_Manual", "SMC_EV220_Manual",
-            "SMC_EV221_Manual", "SMC_Bottle_External_Wash_Manual"
+            "SMC_Bottle_External_Wash_Manual"
         };
 
         private static int Main(string[] args)
         {
-            if (args.Length != 3)
+            if (args.Length != 5)
             {
-                Console.Error.WriteLine("Usage: BuildManualValveTestOffline <exact-ap19> <tag-csv> <report>");
+                Console.Error.WriteLine("Usage: BuildManualValveTestOffline <exact-ap19> <tag-csv> <report> <valve-manager-source> <application-source>");
                 return 2;
             }
             string projectPath = Path.GetFullPath(args[0]);
             string csvPath = Path.GetFullPath(args[1]);
             string reportPath = Path.GetFullPath(args[2]);
+            string[] plcSources = { Path.GetFullPath(args[3]), Path.GetFullPath(args[4]) };
             Directory.CreateDirectory(Path.GetDirectoryName(reportPath));
             try
             {
                 TiaPortalProcess process = TiaPortal.GetProcesses().SingleOrDefault(candidate =>
                     candidate.ProjectPath != null &&
                     candidate.ProjectPath.FullName.Equals(projectPath, StringComparison.OrdinalIgnoreCase));
-                if (process == null) throw new InvalidOperationException("Exact project is not open.");
+                bool ownsProject = process == null;
                 using (StreamWriter report = new StreamWriter(reportPath, false))
-                using (TiaPortal portal = process.Attach())
+                using (TiaPortal portal = ownsProject
+                    ? new TiaPortal(TiaPortalMode.WithoutUserInterface)
+                    : process.Attach())
                 {
-                    Project project = portal.Projects.Single();
+                    Project project = ownsProject
+                        ? portal.Projects.Open(new FileInfo(projectPath))
+                        : portal.Projects.Single();
+                    if (!project.Path.FullName.Equals(projectPath, StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidOperationException("Exact project identity changed.");
                     Device hmiDevice;
                     DeviceItem hmiItem;
                     HmiSoftware hmi = FindUnifiedHmi(project, out hmiDevice, out hmiItem);
                     if (hmi == null || hmiItem == null) throw new InvalidOperationException("Unified HMI not found.");
+                    PlcSoftware plc = FindPlc(project);
+                    if (plc == null) throw new InvalidOperationException("PLC software not found.");
                     report.WriteLine("SCHLENKER MANUAL VALVE TEST OFFLINE BUILD");
                     report.WriteLine("Project=" + project.Path.FullName);
+                    report.WriteLine("PortalMode=" + (ownsProject ? "WITHOUT_USER_INTERFACE" : "ATTACHED_EXACT_PROJECT"));
                     report.WriteLine("OnlineApisUsed=NO");
                     report.WriteLine("DownloadOrTransferApisUsed=NO");
 
@@ -66,9 +77,17 @@ namespace Schlenker.TiaV19
                     report.WriteLine("TagsRefreshedFromCsv=YES");
 
                     MethodInfo builder = typeof(BuildUnifiedHomeScreen).GetMethod(
-                        "BuildManualValveTestScreenOnly", BindingFlags.NonPublic | BindingFlags.Static);
-                    if (builder == null) throw new MissingMethodException("BuildManualValveTestScreenOnly not found.");
+                        "BuildManualValveTest", BindingFlags.NonPublic | BindingFlags.Static);
+                    if (builder == null) throw new MissingMethodException("BuildManualValveTest not found.");
                     builder.Invoke(null, new object[] { hmi });
+
+                    MethodInfo alarmCounter = typeof(BuildUnifiedHomeScreen).GetMethod(
+                        "ApplyCommonAlarmCountOnly", BindingFlags.NonPublic | BindingFlags.Static);
+                    if (alarmCounter == null) throw new MissingMethodException("ApplyCommonAlarmCountOnly not found.");
+                    int alarmHeadersUpdated = Convert.ToInt32(alarmCounter.Invoke(null, new object[] { hmi }));
+                    if (alarmHeadersUpdated < 1)
+                        throw new InvalidOperationException("No common alarm header was available for live-count correction.");
+                    report.WriteLine("LiveAlarmHeadersUpdated=" + alarmHeadersUpdated);
                     foreach (HmiScreen candidateScreen in hmi.Screens)
                     {
                         foreach (HmiButton candidateButton in candidateScreen.ScreenItems.OfType<HmiButton>())
@@ -100,12 +119,30 @@ namespace Schlenker.TiaV19
                     report.WriteLine("RetiredFillerWashTagsDeleted=3_OR_ALREADY_ABSENT");
                     Audit(hmi, report);
 
+                    foreach (string sourcePath in plcSources)
+                    {
+                        if (!File.Exists(sourcePath))
+                            throw new FileNotFoundException("PLC source not found.", sourcePath);
+                        string sourceName = Path.GetFileName(sourcePath);
+                        PlcExternalSource existing = plc.ExternalSourceGroup.ExternalSources.Find(sourceName);
+                        if (existing != null) existing.Delete();
+                        PlcExternalSource source = plc.ExternalSourceGroup.ExternalSources.CreateFromFile(
+                            sourceName, sourcePath);
+                        source.GenerateBlocksFromSource();
+                        report.WriteLine("PLCSourceGenerated=" + sourceName);
+                    }
+
+                    CompilerResult plcResult = plc.GetService<ICompilable>().Compile();
+                    report.WriteLine("PlcRootErrors=" + plcResult.ErrorCount);
+                    report.WriteLine("PlcRootWarnings=" + plcResult.WarningCount);
+                    WriteMessages(plcResult.Messages, report, "  ");
+
                     ICompilable compilable = hmiItem.GetService<ICompilable>() ?? hmiDevice.GetService<ICompilable>();
                     CompilerResult result = compilable.Compile();
                     report.WriteLine("RootErrors=" + result.ErrorCount);
                     report.WriteLine("RootWarnings=" + result.WarningCount);
                     WriteMessages(result.Messages, report, "  ");
-                    if (result.ErrorCount == 0)
+                    if (plcResult.ErrorCount == 0 && result.ErrorCount == 0)
                     {
                         project.Save();
                         report.WriteLine("SaveInvoked=YES");
@@ -118,9 +155,13 @@ namespace Schlenker.TiaV19
                     }
                     Console.WriteLine("ERRORS=" + result.ErrorCount);
                     Console.WriteLine("WARNINGS=" + result.WarningCount);
+                    Console.WriteLine("PLC_ERRORS=" + plcResult.ErrorCount);
+                    Console.WriteLine("PLC_WARNINGS=" + plcResult.WarningCount);
                     Console.WriteLine("REPORT=" + reportPath);
-                    Console.WriteLine("STATUS=" + (result.ErrorCount == 0 ? "PASS" : "FAIL_NOT_SAVED"));
-                    return result.ErrorCount == 0 ? 0 : 1;
+                    Console.WriteLine("STATUS=" + (plcResult.ErrorCount == 0 && result.ErrorCount == 0
+                        ? "PASS" : "FAIL_NOT_SAVED"));
+                    if (ownsProject) project.Close();
+                    return plcResult.ErrorCount == 0 && result.ErrorCount == 0 ? 0 : 1;
                 }
             }
             catch (TargetInvocationException exception)
@@ -155,6 +196,21 @@ namespace Schlenker.TiaV19
                     throw new InvalidOperationException("Momentary command audit failed for " + tag + ".");
             }
 
+            string[] retiredCommands =
+            {
+                "SMC_EV001_Close_Manual", "SMC_EV221_Manual"
+            };
+            foreach (string retiredTag in retiredCommands)
+            {
+                HmiButton retiredButton = screen.ScreenItems.OfType<HmiButton>().FirstOrDefault(candidate =>
+                    candidate.EventHandlers.Any(handler =>
+                        handler.Script.ScriptCode.Contains("\"" + retiredTag + "\"") &&
+                        handler.Script.ScriptCode.Contains("Write(true)")));
+                if (retiredButton != null && retiredButton.Visible && retiredButton.Enabled)
+                    throw new InvalidOperationException(
+                        "Retired manual command is still operable: " + retiredTag + ".");
+            }
+
             HmiButton openPage = manual.ScreenItems.Find("REV50_Manual_OpenValveTest") as HmiButton;
             HmiButtonEventHandler openEvent = openPage == null ? null : openPage.EventHandlers.Find(HmiButtonEventType.Tapped);
             if (openEvent == null || !openEvent.Script.ScriptCode.Contains("manual_valves"))
@@ -176,9 +232,9 @@ namespace Schlenker.TiaV19
             string[] requiredStatusSuffixes =
             {
                 "ValveSafety", "ValveManual", "ValveComm", "ValveEnable",
-                "ValveOutputEV001Open", "ValveOutputEV001Close", "ValveOutputEV010",
+                "ValveOutputEV001Open", "ValveOutputEV010",
                 "ValveOutputEV011", "ValveOutputEV210", "ValveOutputEV211",
-                "ValveOutputEV212", "ValveOutputEV220", "ValveOutputEV221",
+                "ValveOutputEV212", "ValveOutputEV220",
                 "ValveOutputBottleExternalWash"
             };
             foreach (string suffix in requiredStatusSuffixes)
@@ -241,19 +297,22 @@ namespace Schlenker.TiaV19
 
             HmiButton gateOpen = manual.ScreenItems.Find("REV12_Manual_Gate_Open") as HmiButton;
             HmiButton gateClose = manual.ScreenItems.Find("REV12_Manual_Gate_Close") as HmiButton;
+            HmiButton testEnable = manual.ScreenItems.Find("REV12_Manual_Test_Enable") as HmiButton;
             Siemens.Engineering.HmiUnified.UI.Shapes.HmiRectangle pageBadge =
                 manual.ScreenItems.Find("REV41_MANUAL_PageActive_Back") as
                     Siemens.Engineering.HmiUnified.UI.Shapes.HmiRectangle;
             Siemens.Engineering.HmiUnified.UI.Shapes.HmiRectangle testBadge =
                 manual.ScreenItems.Find("REV41_MANUAL_TestEnabled_Back") as
                     Siemens.Engineering.HmiUnified.UI.Shapes.HmiRectangle;
-            if (gateOpen == null || gateClose == null || pageBadge == null || testBadge == null ||
+            if (gateOpen == null || gateClose == null || testEnable == null ||
+                pageBadge == null || testBadge == null ||
                 gateOpen.Top != 190 || gateOpen.Height != 60 ||
-                gateClose.Top != 190 || gateClose.Height != 60 ||
+                gateClose.Visible || gateClose.Enabled ||
+                testEnable.Top != 190 || testEnable.Height != 60 ||
                 gateOpen.Top + gateOpen.Height >= pageBadge.Top ||
-                gateClose.Top + gateClose.Height >= testBadge.Top)
+                testEnable.Top + testEnable.Height >= testBadge.Top)
                 throw new InvalidOperationException(
-                    "Manual gate command/status vertical separation audit failed.");
+                    "Single-coil manual gate command/status audit failed.");
 
             foreach (HmiScreen navigationScreen in new[] { screen })
             {
@@ -285,6 +344,10 @@ namespace Schlenker.TiaV19
             report.WriteLine("Screen=manual_valves");
             report.WriteLine("MomentaryCommands=" + CommandTags.Length);
             report.WriteLine("PhysicalStationNumbersVisible=0");
+            report.WriteLine("Physical125YMapping=MISSING_CONFIG_BLOCKED");
+            report.WriteLine("InfeedGate=SINGLE_OPENING_COIL_COMMAND_ONLY");
+            report.WriteLine("GateCloseCommand=RETIRED");
+            report.WriteLine("CapChannelAirCommand=RETIRED");
             report.WriteLine("BottleExternalWash=PASS_Q129.6");
             report.WriteLine("Station125Y10=SPARE_Q130.2_Q130.3_FORCED_OFF");
             report.WriteLine("NavigationAndExitClearing=PASS");
@@ -292,7 +355,7 @@ namespace Schlenker.TiaV19
             report.WriteLine("ManualNavigation=12_BUTTONS_12_ICONS_SINGLE_LAYER");
             report.WriteLine("NavigationBounds=1141,120..1280,744");
             report.WriteLine("FooterBounds=0,744,1280,56_SOLID");
-            report.WriteLine("GateCommandStatusSeparation=14PX_PASS");
+            report.WriteLine("GateSingleCoilCommandStatusSeparation=PASS");
             report.WriteLine("ValveTestContentBounds=0,120,1141,624_PASS");
             report.WriteLine("ValveTestRightColumnClipping=0");
             report.WriteLine("ValveTestTitleNavigationGap=26PX_PASS");
@@ -313,6 +376,29 @@ namespace Schlenker.TiaV19
                 DeviceItem candidate;
                 HmiSoftware hmi = FindUnifiedHmi(device.DeviceItems, out candidate);
                 if (hmi != null) { hmiDevice = device; hmiItem = candidate; return hmi; }
+            }
+            return null;
+        }
+
+        private static PlcSoftware FindPlc(Project project)
+        {
+            foreach (Device device in project.Devices)
+            {
+                PlcSoftware plc = FindPlc(device.DeviceItems);
+                if (plc != null) return plc;
+            }
+            return null;
+        }
+
+        private static PlcSoftware FindPlc(DeviceItemComposition items)
+        {
+            foreach (DeviceItem item in items)
+            {
+                SoftwareContainer container = item.GetService<SoftwareContainer>();
+                PlcSoftware plc = container == null ? null : container.Software as PlcSoftware;
+                if (plc != null) return plc;
+                plc = FindPlc(item.DeviceItems);
+                if (plc != null) return plc;
             }
             return null;
         }

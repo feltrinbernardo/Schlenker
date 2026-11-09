@@ -11,8 +11,57 @@ END_TYPE
 TYPE "UDT_IOLinkMasterMapping" :
 STRUCT
     CommunicationOK     : Bool;       // Verified AL1403 PROFINET communication
-    HardwareConfigured  : Bool;       // FALSE until the real AL1403 exists in TIA HW
+    HardwareConfigured  : Bool;       // TRUE only after the process image and port parameters are verified
     Port                : Array[1..8] of "UDT_IOLinkPortMapping";
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_AL102Process" :
+STRUCT
+    // Functional allocation confirmed 2026-11-10. LiveBool/LiveReal values
+    // must already be normalised by the commissioned hardware mapping; this
+    // structure deliberately contains no address, polarity, scale or timing.
+    FunctionalMapConfirmed       : Bool;
+    SafetyInterlockValidated     : Bool; // X7 independent safety validation hold point
+    X1ProductPresenceValid       : Bool;
+    X1ProductPresence            : Bool;
+    X2ProductTemperatureValid    : Bool;
+    X2ProductTemperature         : Real;
+    X3VacuumValid                : Bool;
+    X3Vacuum                     : Real;
+    X4AntiRotationValid          : Bool;
+    X4AntiRotationHealthy        : Bool;
+    X5TankLevelValid             : Bool;
+    X5TankLevel                  : Real;
+    X6Valve1ReferenceValid       : Bool;
+    X6Valve1Reference            : Bool;
+    X7CIPPresenceValid           : Bool;
+    X7CIPPresenceEngaged         : Bool;
+    X8SpareValid                 : Bool;
+    AntiRotationFaultLatched     : Bool;
+    CIPConnectedBeforePosition   : Bool;
+    CIPPresenceLostLatched       : Bool;
+    CIPReferenceReachedLatched   : Bool;
+    ImmediateStopRequest         : Bool;
+    RotationInhibited            : Bool;
+    CIPStartPermitted            : Bool;
+    CIPReady                     : Bool;
+END_STRUCT;
+END_TYPE
+
+TYPE "UDT_SMC125ValveState" :
+STRUCT
+    // Pneumatic target positions only. Physical Anybus bits and coil
+    // energisation polarity remain outside this structure until verified.
+    Y1OpenRequest       : Bool;
+    Y2OpenRequest       : Bool;
+    Y3OpenRequest       : Bool;
+    Y4OpenRequest       : Bool;
+    Y5OpenRequest       : Bool;
+    Y6OpenRequest       : Bool;
+    Y7OpenRequest       : Bool;
+    Y6HeldForPumpStop   : Bool;
+    PhysicalMapValidated: Bool;
 END_STRUCT;
 END_TYPE
 
@@ -121,6 +170,10 @@ STRUCT
     StandbyActive       : Bool;
     FillerHeightActive  : Bool;
     CapperHeightActive  : Bool;
+    OffProductionActive : Bool;
+    CIPPositioningActive: Bool;
+    CIPWaitingConnection: Bool;
+    CIPReady            : Bool;
     CIPActive           : Bool;
     EmptyingActive      : Bool;
     AlarmStopActive     : Bool;
@@ -167,11 +220,11 @@ STRUCT
     PendantUp           : Bool;
     PendantDown         : Bool;
     GateManualOpen      : Bool;
-    GateManualClose     : Bool;
+    GateManualClose     : Bool; // Legacy compatibility; forced FALSE, gate spring-closes
     GateManualPageActive: Bool;
     ManualTestEnable    : Bool;
     CapDistributorAirManual : Bool;
-    CapChannelAirManual : Bool;
+    CapChannelAirManual : Bool; // Legacy compatibility; forced FALSE, valve does not exist
     SMCEV010Manual      : Bool;
     SMCEV011Manual      : Bool;
     SMCEV210Manual      : Bool;
@@ -298,6 +351,15 @@ STRUCT
     BottleCountInMachine       : DInt;
     BottleAdmissionComplete    : Bool;
     ProductPresentAtPump       : Bool;
+    ProductPresenceValid       : Bool;
+    ProductTemperature         : Real;
+    ProductTemperatureValid    : Bool;
+    DistributorAntiRotationHealthy : Bool;
+    DistributorAntiRotationValid   : Bool;
+    FillerValve1Reference      : Bool;
+    FillerValve1ReferenceValid : Bool;
+    CIPPresenceEngaged         : Bool;
+    CIPPresenceValid           : Bool;
     MainSpeedActualPct         : Real;
     MainSpeedActualValid       : Bool;
     VacuumActualMbar           : Real;
@@ -330,7 +392,7 @@ STRUCT
     CapDriveSpeedPct    : Real;
     CapDriveFrequencyHz : Real;
     GateOpen            : Bool;
-    GateClose           : Bool;
+    GateClose           : Bool; // Legacy compatibility; forced FALSE, no close coil
     FillerUp            : Bool;
     FillerDown          : Bool;
     CapperUp            : Bool;
@@ -340,18 +402,18 @@ STRUCT
     EV211               : Bool;
     EV212               : Bool;
     EV220               : Bool;
-    EV221               : Bool;
+    EV221               : Bool; // Legacy compatibility; forced FALSE, valve does not exist
     EV230FastRelease    : Bool;
     ValveBits           : DWORD;
     SMCEV001OpenActive  : Bool;
-    SMCEV001CloseActive : Bool;
+    SMCEV001CloseActive : Bool; // Legacy compatibility; always FALSE
     SMCEV010Active      : Bool;
     SMCEV011Active      : Bool;
     SMCEV210Active      : Bool;
     SMCEV211Active      : Bool;
     SMCEV212Active      : Bool;
     SMCEV220Active      : Bool;
-    SMCEV221Active      : Bool;
+    SMCEV221Active      : Bool; // Legacy compatibility; always FALSE
     SMCBottleExternalWashActive : Bool;
     SMCFillerExternalWashActive : Bool; // Legacy compatibility; forced FALSE
     UnlockAllDoorsRequest : Bool;

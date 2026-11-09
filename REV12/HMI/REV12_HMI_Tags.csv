@@ -60,7 +60,7 @@ Cmd_ManualSelect,DB_Global.Cmd.ManualSelect,Bool,ReadWrite,Home,Manual mode requ
 Gate_Manual_PageActive,DB_Global.Cmd.GateManualPageActive,Bool,ReadWrite,Manual Gate,TRUE only while the manual gate page is visible
 Gate_Manual_TestEnable,DB_Global.Cmd.ManualTestEnable,Bool,ReadWrite,Manual Gate,Engineer-level manual test permission
 SMC_EV220_Manual,DB_Global.Cmd.CapDistributorAirManual,Bool,ReadWrite,Manual SMC,Momentary EV220 cap distributor air request through PLC permissives
-SMC_EV221_Manual,DB_Global.Cmd.CapChannelAirManual,Bool,ReadWrite,Manual SMC,Momentary EV221 cap channel air request through PLC permissives
+SMC_EV221_Manual,DB_Global.Cmd.CapChannelAirManual,Bool,Read,Legacy compatibility,Retired - no Cap Channel Air valve exists; PLC forces FALSE and no HMI command is exposed
 SMC_EV010_Manual,DB_Global.Cmd.SMCEV010Manual,Bool,ReadWrite,Manual SMC,Momentary EV010 product inlet request through PLC permissives
 SMC_EV011_Manual,DB_Global.Cmd.SMCEV011Manual,Bool,ReadWrite,Manual SMC,Momentary EV011 product close request through PLC permissives
 SMC_EV210_Manual,DB_Global.Cmd.SMCEV210Manual,Bool,ReadWrite,Manual SMC,Momentary EV210 vacuum-after-pump request through PLC permissives
@@ -68,8 +68,8 @@ SMC_EV211_Manual,DB_Global.Cmd.SMCEV211Manual,Bool,ReadWrite,Manual SMC,Momentar
 SMC_EV212_Manual,DB_Global.Cmd.SMCEV212Manual,Bool,ReadWrite,Manual SMC,Momentary EV212 vacuum-before-pump request through PLC permissives
 SMC_Bottle_External_Wash_Manual,DB_Global.Cmd.SMCBottleExternalWashManual,Bool,ReadWrite,Manual SMC,Momentary Bottle External Washing pneumatic-enable request through PLC permissives
 SMC_EV001_Open_Manual,DB_Global.Cmd.GateManualOpen,Bool,ReadWrite,Manual SMC,Momentary EV001 gate-open request
-SMC_EV001_Close_Manual,DB_Global.Cmd.GateManualClose,Bool,ReadWrite,Manual SMC,Momentary EV001 gate-close request
-Gate_Close,DB_Global.Cmd.GateManualClose,Bool,ReadWrite,Manual Gate,Momentary gate close command
+SMC_EV001_Close_Manual,DB_Global.Cmd.GateManualClose,Bool,Read,Legacy compatibility,Retired - infeed gate is a single opening coil and spring-closes when the open command is removed
+Gate_Close,DB_Global.Cmd.GateManualClose,Bool,Read,Legacy compatibility,Retired close request; PLC forces FALSE because the infeed gate spring-closes
 Door_Request_Panel,DB_Global.Inp.RequestOpenDoorPanelPB,Bool,Read,Door Access,Physical panel request pushbutton
 Door_Request_Front,DB_Global.Inp.RequestOpenDoorFrontPB,Bool,Read,Door Access,Physical front request pushbutton
 Door_Request_Rear,DB_Global.Inp.RequestOpenDoorRearPB,Bool,Read,Door Access,Physical rear request pushbutton
@@ -155,9 +155,9 @@ Network_Anybus_ECAT_OK,DB_Global.Inp.AnybusGatewayECATOK,Bool,Read,Diagnostics,H
 Network_SMC_OK,DB_Global.Inp.SMCCommOK,Bool,Read,Diagnostics,Anybus SMC output-path status derived from configured PROFINET device diagnostics; independent EtherCAT/manifold feedback remains not configured
 SMC_EV211_Cmd,DB_Global.Out.EV211,Bool,Read,Diagnostics,Automatic EV211 command before manual arbitration
 SMC_EV220_Cmd,DB_Global.Out.EV220,Bool,Read,Diagnostics,Automatic EV220 cap distributor air command before manual arbitration
-SMC_EV221_Cmd,DB_Global.Out.EV221,Bool,Read,Diagnostics,Automatic EV221 cap channel air command before manual arbitration
+SMC_EV221_Cmd,DB_Global.Out.EV221,Bool,Read,Legacy compatibility,Retired non-existent Cap Channel Air output; forced FALSE
 SMC_EV001_Open_Active,DB_Global.Out.SMCEV001OpenActive,Bool,Read,Manual SMC,Final interlocked EV001 gate-open output state
-SMC_EV001_Close_Active,DB_Global.Out.SMCEV001CloseActive,Bool,Read,Manual SMC,Final interlocked EV001 gate-close output state
+SMC_EV001_Close_Active,DB_Global.Out.SMCEV001CloseActive,Bool,Read,Legacy compatibility,Retired close-coil state; always FALSE because the gate spring-closes
 SMC_EV010_Active,DB_Global.Out.SMCEV010Active,Bool,Read,Manual SMC,Final interlocked EV010 output state
 SMC_EV011_Active,DB_Global.Out.SMCEV011Active,Bool,Read,Manual SMC,Final interlocked EV011 output state
 SMC_EV210_Active,DB_Global.Out.SMCEV210Active,Bool,Read,Manual SMC,Final interlocked EV210 output state
@@ -489,3 +489,40 @@ Startup_Door_Signals_Off,DB_Global.StartupSafeState.DoorAndSignalsOff,Bool,Read,
 Startup_All_Commands_Off,DB_Global.StartupSafeState.AllCommandsOff,Bool,Read,Startup Safe State,Aggregate startup command state
 Startup_Start_Permitted,DB_Global.StartupSafeState.StartPermitted,Bool,Read,Startup Safe State,POWER UP transition permissive
 Startup_Physical_Feedback_Complete,DB_Global.StartupSafeState.PhysicalFeedbackComplete,Bool,Read,Startup Safe State,False until physical feedback mapping is commissioned
+AL102_Functional_Map_Confirmed,DB_Global.AL102Process.FunctionalMapConfirmed,Bool,Read,IO-Link AL102,Confirmed X1 through X8 functional allocation
+AL102_Hardware_Configured,DB_Global.AL102.HardwareConfigured,Bool,Read,IO-Link AL102,Physical process image and port parameters validated
+AL102_X1_Product_Presence_Valid,DB_Global.AL102Process.X1ProductPresenceValid,Bool,Read,IO-Link AL102,X1 quality and configuration valid
+AL102_X1_Product_Presence,DB_Global.AL102Process.X1ProductPresence,Bool,Read,IO-Link AL102,X1 Product Presence normalized state
+AL102_X2_Product_Temperature_Valid,DB_Global.AL102Process.X2ProductTemperatureValid,Bool,Read,IO-Link AL102,X2 quality and configuration valid
+AL102_X2_Product_Temperature,DB_Global.AL102Process.X2ProductTemperature,Real,Read,IO-Link AL102,X2 Product Temperature normalized engineering value
+AL102_X3_Vacuum_Valid,DB_Global.AL102Process.X3VacuumValid,Bool,Read,IO-Link AL102,X3 quality and configuration valid
+AL102_X3_Vacuum,DB_Global.AL102Process.X3Vacuum,Real,Read,IO-Link AL102,X3 Vacuum Sensor normalized engineering value
+AL102_X4_AntiRotation_Valid,DB_Global.AL102Process.X4AntiRotationValid,Bool,Read,IO-Link AL102,X4 quality and configuration valid
+AL102_X4_AntiRotation_Healthy,DB_Global.AL102Process.X4AntiRotationHealthy,Bool,Read,IO-Link AL102,X4 Distributor Anti-Rotation normalized healthy state
+AL102_X5_Tank_Level_Valid,DB_Global.AL102Process.X5TankLevelValid,Bool,Read,IO-Link AL102,X5 quality and configuration valid
+AL102_X5_Tank_Level,DB_Global.AL102Process.X5TankLevel,Real,Read,IO-Link AL102,X5 Tank Level normalized engineering value
+AL102_X6_Valve1_Reference_Valid,DB_Global.AL102Process.X6Valve1ReferenceValid,Bool,Read,IO-Link AL102,X6 quality and configuration valid
+AL102_X6_Valve1_Reference,DB_Global.AL102Process.X6Valve1Reference,Bool,Read,IO-Link AL102,X6 Filler Zero Position Valve 1 normalized reference
+AL102_X7_CIP_Presence_Valid,DB_Global.AL102Process.X7CIPPresenceValid,Bool,Read,IO-Link AL102,X7 quality and configuration valid
+AL102_X7_CIP_Presence,DB_Global.AL102Process.X7CIPPresenceEngaged,Bool,Read,IO-Link AL102,X7 CIP Presence Engaged normalized state
+AL102_X8_Spare_Valid,DB_Global.AL102Process.X8SpareValid,Bool,Read,IO-Link AL102,X8 spare port quality and configuration valid
+AL102_Immediate_Stop_Request,DB_Global.AL102Process.ImmediateStopRequest,Bool,Read,IO-Link AL102,X4 immediate main-drive stop request
+AL102_Rotation_Inhibited,DB_Global.AL102Process.RotationInhibited,Bool,Read,IO-Link AL102,Aggregate fail-safe rotation inhibit
+AL102_AntiRotation_Fault,DB_Global.AL102Process.AntiRotationFaultLatched,Bool,Read,IO-Link AL102,Latched X4 anti-rotation trip
+CIP_Positioning_Active,DB_Global.Machine.CIPPositioningActive,Bool,Read,CIP,Positioning filler to valve 1 reference
+CIP_Waiting_Connection,DB_Global.Machine.CIPWaitingConnection,Bool,Read,CIP,Position reached and waiting for CIP hose connection
+CIP_Position_Reference_Reached,DB_Global.AL102Process.CIPReferenceReachedLatched,Bool,Read,CIP,X6 valve 1 reference latched
+CIP_Presence_Engaged,DB_Global.AL102Process.X7CIPPresenceEngaged,Bool,Read,CIP,X7 CIP hose presence normalized state
+CIP_Ready,DB_Global.AL102Process.CIPReady,Bool,Read,CIP,Position zero speed hose presence and safety validation complete
+CIP_Safety_Interlock_Validated,DB_Global.AL102Process.SafetyInterlockValidated,Bool,Read,CIP,Independent X7 safety interlock commissioning hold point
+CIP_Connected_Before_Position,DB_Global.AL102Process.CIPConnectedBeforePosition,Bool,Read,CIP,Latched X7 engaged before X6 positioning complete
+CIP_Presence_Lost,DB_Global.AL102Process.CIPPresenceLostLatched,Bool,Read,CIP,Latched X7 loss during CIP
+SMC_125Y1_Desired_Open,DB_Global.SMC125.Y1OpenRequest,Bool,Read,SMC 125,Logical pneumatic target only
+SMC_125Y2_Desired_Open,DB_Global.SMC125.Y2OpenRequest,Bool,Read,SMC 125,Logical pneumatic target only
+SMC_125Y3_Desired_Open,DB_Global.SMC125.Y3OpenRequest,Bool,Read,SMC 125,Logical pneumatic target only
+SMC_125Y4_Desired_Open,DB_Global.SMC125.Y4OpenRequest,Bool,Read,SMC 125,Logical pneumatic target only
+SMC_125Y5_Desired_Open,DB_Global.SMC125.Y5OpenRequest,Bool,Read,SMC 125,Logical pneumatic target only
+SMC_125Y6_Desired_Open,DB_Global.SMC125.Y6OpenRequest,Bool,Read,SMC 125,Logical pneumatic target held until product pump stopped
+SMC_125Y7_Desired_Open,DB_Global.SMC125.Y7OpenRequest,Bool,Read,SMC 125,Logical pneumatic target only
+SMC_125Y6_Held_For_Pump_Stop,DB_Global.SMC125.Y6HeldForPumpStop,Bool,Read,SMC 125,Y6 remains open while pump stopped feedback is unproven
+SMC_125_Physical_Map_Validated,DB_Global.SMC125.PhysicalMapValidated,Bool,Read,SMC 125,Physical Anybus bit and coil polarity commissioning hold point

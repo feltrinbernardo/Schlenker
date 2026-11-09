@@ -1655,6 +1655,14 @@ namespace Schlenker.TiaV19
                 "AL104 customer CIP interface communication fault.", "New CIP requests are inhibited. Open AL104 diagnostics.");
             EnsureAlarmOnTag(hmi, "ALM_1605_MainDriveMechanicalJam", 1605U, "Alarm_Word2", 19U, "Critical",
                 "Filler main drive mechanical jam.", "Stop the main drive, inspect the obstruction or bearing, then reset manually.");
+            EnsureAlarmOnTag(hmi, "ALM_2252_DistributorAntiRotation", 2252U, "Alarm_Word2", 24U, "Critical",
+                "Distributor anti-rotation signal lost during run.", "Immediate stop requested. Inspect AL102/X4 and reset only when stopped and healthy.");
+            EnsureAlarmOnTag(hmi, "ALM_2253_CIPConnectedBeforePosition", 2253U, "Alarm_Word2", 25U, "Critical",
+                "CIP hose connected before valve 1 position.", "Rotation inhibited. Disconnect the hose and reset after the machine is stopped.");
+            EnsureAlarmOnTag(hmi, "ALM_2254_CIPPresenceLost", 2254U, "Alarm_Word2", 26U, "Critical",
+                "CIP hose presence lost during CIP.", "Abort CIP and inspect the validated AL102/X7 interlock before reset.");
+            EnsureAlarmOnTag(hmi, "ALM_2255_CIPSafetyNotValidated", 2255U, "Alarm_Word2", 27U, "Warning",
+                "CIP safety interlock not validated.", "Rotation and CIP start remain inhibited until hardware and safety validation.");
         }
 
         private static void EnsureAlarm(
@@ -6710,6 +6718,26 @@ namespace Schlenker.TiaV19
                 "return HMIRuntime.Math.RGB(102,120,142);");
         }
 
+        // Reapply the live alarm counter without touching the common-frame
+        // geometry, navigation, user-management controls or process bindings.
+        // This is intentionally separate from the full common-header rebuild so
+        // an existing screen that still shows the static design-time value
+        // "ALARMS 0" can be corrected in one bounded offline transaction.
+        private static int ApplyCommonAlarmCountOnly(HmiSoftware hmi)
+        {
+            int updated = 0;
+            foreach (HmiScreen screen in hmi.Screens)
+            {
+                HmiText alarmHeader = screen.ScreenItems.Find(
+                    "REV13_Common_AlarmText") as HmiText;
+                if (alarmHeader == null) continue;
+                ConfigureCommonAlarmCount(alarmHeader);
+                updated++;
+            }
+            Console.WriteLine("COMMON_ALARM_COUNT_ONLY_UPDATED=" + updated);
+            return updated;
+        }
+
         private static void AuditHmiLinkFooter(HmiSoftware hmi)
         {
             foreach (HmiScreen screen in hmi.Screens.OrderBy(candidate => candidate.Name))
@@ -8504,7 +8532,8 @@ namespace Schlenker.TiaV19
                 "let v=Number(HMIRuntime.Tags(\"Machine_State\").Read());" +
                 "switch(v){case 0:return \"POWER UP\";case 10:return \"HOMING\";case 20:return \"READY\";" +
                 "case 30:return \"AUTOMATIC\";case 40:return \"STANDBY\";case 50:return \"MANUAL\";" +
-                "case 60:return \"FILLER HEIGHT\";case 70:return \"CAPPER HEIGHT\";case 80:return \"CIP\";" +
+                "case 60:return \"FILLER HEIGHT\";case 70:return \"CAPPER HEIGHT\";" +
+                "case 75:return \"CIP POSITIONING\";case 77:return \"CIP WAIT CONNECTION\";case 80:return \"CIP\";" +
                 "case 90:return \"EMPTYING\";case 95:return \"RUN OUT\";case 100:return \"CONTROLLED STOP\";" +
                 "case 110:return \"GUARDED ACCESS\";case 120:return \"ALARM STOP\";" +
                 "case 130:return \"EMERGENCY STOP\";case 140:return \"RECOVERY\";default:return \"UNKNOWN \"+String(v);}",
@@ -13249,15 +13278,14 @@ namespace Schlenker.TiaV19
             ConfigureText(GetOrCreate<HmiText>(screen, "REV12_Manual_Gate_Title"), 45, 152, 730, 34,
                 "ACCUMULATION GATE MANUAL", Navy, 20, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
             ConfigureMomentaryButton(GetOrCreate<HmiButton>(screen, "REV12_Manual_Gate_Open"), 55, 215, 210, 70,
-                "EV001 GATE OPEN", Blue, "SMC_EV001_Open_Manual");
-            ConfigureMomentaryButton(GetOrCreate<HmiButton>(screen, "REV12_Manual_Gate_Close"), 290, 215, 210, 70,
-                "GATE CLOSE", Color.FromArgb(78, 102, 125), "Gate_Close");
-            ConfigureMomentaryButton(GetOrCreate<HmiButton>(screen, "REV12_Manual_Test_Enable"), 525, 215, 210, 70,
+                "INFEED GATE OPEN\nHOLD = OPEN", Blue, "SMC_EV001_Open_Manual");
+            HideItem(screen, "REV12_Manual_Gate_Close");
+            ConfigureMomentaryButton(GetOrCreate<HmiButton>(screen, "REV12_Manual_Test_Enable"), 290, 215, 210, 70,
                 "HOLD TEST ENABLE", Amber, "Gate_Manual_TestEnable");
             AddStatus(screen, "Manual page active", "Gate_Manual_PageActive", 55, 330);
             AddStatus(screen, "Manual test enabled", "Gate_Manual_TestEnable", 430, 330);
             ConfigureText(GetOrCreate<HmiText>(screen, "REV12_Manual_Gate_Note"), 55, 385, 690, 40,
-                "Valve identification follows the SMC island label. Release the button to remove the command.",
+                "Single opening coil: ON opens; releasing the command closes by spring. Position shown is commanded state only.",
                 Dark, 13, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
 
             ConfigureRectangle(GetOrCreate<HmiRectangle>(screen, "REV12_Manual_Jog"), 25, 470, 775, 245, Panel, Border, 1);
@@ -13307,10 +13335,12 @@ namespace Schlenker.TiaV19
             HideItem(manual, "REV42_Manual_SMC_EV221");
             HideItem(manual, "REV42_Manual_SMC_PhysicalNote");
             ConfigureMomentaryButton(GetOrCreate<HmiButton>(manual, "REV12_Manual_Gate_Open"),
-                55, 190, 197, 60, "EV001 GATE OPEN", Blue, "SMC_EV001_Open_Manual");
-            ConfigureMomentaryButton(GetOrCreate<HmiButton>(manual, "REV12_Manual_Gate_Close"),
-                274, 190, 197, 60, "EV001 GATE CLOSE", Color.FromArgb(78, 102, 125),
-                "SMC_EV001_Close_Manual");
+                55, 190, 307, 60, "INFEED GATE OPEN  |  HOLD = OPEN", Blue,
+                "SMC_EV001_Open_Manual");
+            HideItem(manual, "REV12_Manual_Gate_Close");
+            ConfigureMomentaryButton(GetOrCreate<HmiButton>(manual, "REV12_Manual_Test_Enable"),
+                385, 190, 307, 60, "HOLD TEST ENABLE", Amber,
+                "Gate_Manual_TestEnable");
             ConfigureNavigateButton(GetOrCreate<HmiButton>(manual, "REV50_Manual_OpenValveTest"),
                 55, 317, 680, 44, "OPEN MANUAL VALVE TEST", Blue,
                 "manual_valves", "MANUAL");
@@ -13319,7 +13349,7 @@ namespace Schlenker.TiaV19
             HmiText gateNote = manual.ScreenItems.Find("REV12_Manual_Gate_Note") as HmiText;
             if (gateNote != null)
                 ConfigureText(gateNote, 55, 372, 680, 42,
-                    "EV functional identifiers are used throughout PLC and HMI. Release a command button to de-energise it.",
+                    "Single opening coil: hold to open, release to spring-close. Physical 125Y identity remains MISSING CONFIG until verified.",
                     Dark, 11, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
 
             BuildManualValveTestScreenOnly(hmi);
@@ -13382,42 +13412,49 @@ namespace Schlenker.TiaV19
                 Dark, 13, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
 
             AddManualValveTestCard(screen, "EV001Open", 25, 255,
-                "EV001  |  INFEED GATE OPEN", "SMC_EV001_Open_Manual", "SMC_EV001_Open_Active");
-            AddManualValveTestCard(screen, "EV001Close", 395, 255,
-                "EV001  |  INFEED GATE CLOSE", "SMC_EV001_Close_Manual", "SMC_EV001_Close_Active");
-            AddManualValveTestCard(screen, "EV010", 765, 255,
+                "INFEED GATE  |  SINGLE OPENING COIL", "SMC_EV001_Open_Manual", "SMC_EV001_Open_Active");
+            AddManualValveTestCard(screen, "EV010", 395, 255,
                 "EV010  |  PRODUCT INLET", "SMC_EV010_Manual", "SMC_EV010_Active");
-            AddManualValveTestCard(screen, "EV011", 25, 365,
+            AddManualValveTestCard(screen, "EV011", 765, 255,
                 "EV011  |  PRODUCT CLOSE", "SMC_EV011_Manual", "SMC_EV011_Active");
-            AddManualValveTestCard(screen, "EV210", 395, 365,
+            AddManualValveTestCard(screen, "EV210", 25, 365,
                 "EV210  |  VACUUM AFTER PUMP", "SMC_EV210_Manual", "SMC_EV210_Active");
-            AddManualValveTestCard(screen, "EV211", 765, 365,
+            AddManualValveTestCard(screen, "EV211", 395, 365,
                 "EV211  |  VACUUM IN PUMP", "SMC_EV211_Manual", "SMC_EV211_Active");
-            AddManualValveTestCard(screen, "EV212", 25, 475,
+            AddManualValveTestCard(screen, "EV212", 765, 365,
                 "EV212  |  VACUUM BEFORE PUMP", "SMC_EV212_Manual", "SMC_EV212_Active");
-            AddManualValveTestCard(screen, "EV220", 395, 475,
+            AddManualValveTestCard(screen, "EV220", 25, 475,
                 "EV220  |  CAP DISTRIBUTOR AIR", "SMC_EV220_Manual", "SMC_EV220_Active");
-            AddManualValveTestCard(screen, "EV221", 765, 475,
-                "EV221  |  CAP CHANNEL AIR", "SMC_EV221_Manual", "SMC_EV221_Active");
-            AddManualValveTestCard(screen, "BottleExternalWash", 25, 585,
+            AddManualValveTestCard(screen, "BottleExternalWash", 395, 475,
                 "BOTTLE EXTERNAL WASHING", "SMC_Bottle_External_Wash_Manual",
                 "SMC_Bottle_External_Wash_Active");
+            ConfigureRectangle(GetOrCreate<HmiRectangle>(screen,
+                "REV50_ValveTest_MappingTbc_Card"),
+                765, 475, 350, 100, Panel, Amber, 2);
+            ConfigureText(GetOrCreate<HmiText>(screen,
+                "REV50_ValveTest_MappingTbc_Title"),
+                780, 486, 320, 25, "PHYSICAL 125Y MAPPING", Amber, 13,
+                HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+            ConfigureText(GetOrCreate<HmiText>(screen,
+                "REV50_ValveTest_MappingTbc_Note"),
+                780, 520, 320, 42, "MISSING CONFIG — verify photo, coil and PLC address before enabling outputs.",
+                Dark, 11, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
             HideItem(screen, "REV50_ValveTest_FillerWash_Card");
             HideItem(screen, "REV50_ValveTest_FillerWash_Title");
             HideItem(screen, "REV50_ValveTest_FillerWash_StatusBack");
             HideItem(screen, "REV50_ValveTest_FillerWash_Status");
             ConfigureRectangle(GetOrCreate<HmiRectangle>(screen,
                 "REV50_ValveTest_FillerExternalWash_Card"),
-                395, 585, 350, 100, Panel, Border, 1);
+                25, 585, 350, 100, Panel, Border, 1);
             ConfigureText(GetOrCreate<HmiText>(screen,
                 "REV50_ValveTest_FillerExternalWash_Title"),
-                410, 594, 320, 25, "125Y10  |  SPARE DOUBLE-SOLENOID", Dark, 13,
+                40, 594, 320, 25, "125Y10  |  SPARE DOUBLE-SOLENOID", Dark, 13,
                 HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
             HideItem(screen, "REV50_ValveTest_FillerExternalWash_Command");
             HideItem(screen, "REV41_MANUAL_ValveOutputFillerExternalWash_Back");
             HideItem(screen, "REV41_MANUAL_ValveOutputFillerExternalWash_Text");
             ConfigureText(GetOrCreate<HmiText>(screen, "REV50_ValveTest_Y10Spare_Note"),
-                410, 630, 320, 38, "Q130.2 / Q130.3 FORCED OFF - NO COMMAND", Grey, 11,
+                40, 630, 320, 38, "Q130.2 / Q130.3 FORCED OFF - NO COMMAND", Grey, 11,
                 HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
             ConfigureNavigateButton(GetOrCreate<HmiButton>(screen, "REV50_ValveTest_Back"),
                 765, 605, 350, 58, "BACK TO MANUAL CONTROLS", Blue,
@@ -14290,7 +14327,7 @@ namespace Schlenker.TiaV19
                 }
                 BuildRevision13Chrome(screen, "CIP", "CIP");
                 ConfigureText(GetOrCreate<HmiText>(screen, "REV18_CIP_HoldPoint"), 25, 682, 1165, 22,
-                    "AL104 PHYSICAL PORT / CHANNEL MAPPING IS NOT COMMISSIONED - LOGICAL COMMANDS REMAIN PLC INTERLOCKED",
+                    "AL102 ADDRESSES / POLARITY / SCALING AND X7 SAFETY VALIDATION ARE NOT COMMISSIONED - DOWNLOAD REMAINS BLOCKED",
                     Red, 11, HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
             }
 
@@ -14308,11 +14345,11 @@ namespace Schlenker.TiaV19
                 ConfigureMomentaryButton(GetOrCreate<HmiButton>(screen, "REV18_CIP_WashOn"), 50, 403, 135, 46, "WASH ON", Green, "Cmd_InternalWashOn");
                 ConfigureMomentaryButton(GetOrCreate<HmiButton>(screen, "REV18_CIP_WashOff"), 205, 403, 135, 46, "WASH OFF", Grey, "Cmd_InternalWashOff");
                 AddStatus(screen, "CIP active", "Mode_CIPActive", 50, 478);
-                AddStatus(screen, "Start blocked", "CIP_Start_Blocked", 50, 518);
-                AddStatus(screen, "Internal wash active", "InternalWash_Active", 50, 558);
-                AddStatus(screen, "Wash mapping TBC", "InternalWash_NotCommissioned", 50, 598);
+                AddStatus(screen, "Positioning to valve #1", "CIP_Positioning_Active", 50, 518);
+                AddStatus(screen, "Waiting for CIP connection", "CIP_Waiting_Connection", 50, 558);
+                AddStatus(screen, "CIP ready", "CIP_Ready", 50, 598);
                 ConfigureText(GetOrCreate<HmiText>(screen, "REV18_CIP_Command_Note"), 50, 642, 290, 32,
-                    "COMMANDS REQUIRE PLC, PROCESS AND SAFETY PERMISSIVES", Red, 11, HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
+                    "X6 REFERENCE + ZERO SPEED + X7 PRESENCE + VALIDATED SAFETY REQUIRED", Red, 9, HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
             }
 
             if (normalized == "full" || normalized == "sequence")
@@ -16932,19 +16969,18 @@ namespace Schlenker.TiaV19
             ConfigureText(identity, 34, 122, 360, 28,
                 "AL102  |  IFM AL1403", Navy, 18, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
             ConfigureText(description, 34, 154, 650, 24,
-                "PROCESS INSTRUMENTATION + STACK LIGHT OUTPUT HUB", Amber, 11,
+                "CONFIRMED PROCESS FUNCTIONS / HARDWARE MAPPING HOLD", Amber, 11,
                 HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
 
             string[] expectedDevices =
             {
-                "PT-PRODUCT", "PT-AIR", "PT-CIP", "PT-SPARE",
-                "LT-PRODUCT", "LT-CIP", "TT-PROCESS", "AL2330"
+                "X1", "X2", "X3", "X4", "X5", "X6", "X7", "X8"
             };
             string[] expectedDescriptions =
             {
-                "Product Pressure", "Air / Process Pressure", "CIP / Service Pressure",
-                "Spare Pressure Measurement", "Product Continuous Level", "CIP / Process Level",
-                "Process Temperature", "Leuze stack light output hub"
+                "Product Presence", "Product Temperature", "Vacuum Sensor",
+                "Distributor Anti-Rotation", "Tank Level", "Filler Zero Position - Valve #1",
+                "CIP Presence / Engaged", "Spare"
             };
             for (int port = 1; port <= 8; port++)
             {
@@ -16983,14 +17019,12 @@ namespace Schlenker.TiaV19
                     HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
                 ConfigureText(quality, 665, top + 7, 164, 31,
                     PlainHmiText(quality.Text.Items.First().Text),
-                    port == 8 ? Green : Amber, 8, HmiFontWeight.Bold,
+                    Amber, 8, HmiFontWeight.Bold,
                     HmiHorizontalAlignment.Center);
-                string mappingText = port == 8
-                    ? "%Q156.0/.1, %Q157.0/.1\nGREEN / ORANGE / RED / BUZZER"
-                    : PlainHmiText(mapping.Text.Items.First().Text);
+                string mappingText = PlainHmiText(mapping.Text.Items.First().Text);
                 ConfigureText(mapping, 834, top + 4, 267, 38,
                     mappingText,
-                    port == 8 ? Navy : Amber, 8, HmiFontWeight.Bold,
+                    Amber, 8, HmiFontWeight.Bold,
                     HmiHorizontalAlignment.Left);
 
                 if (port <= 7)
@@ -17004,8 +17038,8 @@ namespace Schlenker.TiaV19
             }
 
             ConfigureText(holdPoint, 23, 671, 1087, 29,
-                "AL102 PORT MAP VERIFIED AGAINST ARCHITECTURE TREE V.12 — live values are read-only diagnostics.",
-                Navy, 9, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+                "AL102 FUNCTIONS X1-X8 CONFIRMED — addresses, polarity, scaling and X7 safety validation remain MISSING CONFIG.",
+                Amber, 9, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
 
             string[] navigationNames =
             {
@@ -17072,13 +17106,13 @@ namespace Schlenker.TiaV19
 
             string[,] rows =
             {
-                { "PT-PRODUCT", "Product Pressure", "IO-Link", "bar", "ASSIGN DEVICE AT BUILD", "ai_ProductPressure | AL102/P1 | HW ADDR N/A" },
-                { "PT-AIR", "Air / Process Pressure", "IO-Link", "bar", "ASSIGN DEVICE AT BUILD", "ai_AirPressure | AL102/P2 | HW ADDR N/A" },
-                { "PT-CIP", "CIP / Service Pressure", "IO-Link", "bar", "ASSIGN DEVICE AT BUILD", "ai_CIPPressure | AL102/P3 | HW ADDR N/A" },
-                { "PT-SPARE", "Spare Pressure Measurement", "IO-Link", "bar", "SPARE INSTRUMENT / NOT CONFIGURED", "ai_SparePressure | AL102/P4 | HW ADDR N/A" },
-                { "LT-PRODUCT", "Product Continuous Level", "IO-Link", "%", "ASSIGN DEVICE AT BUILD", "ai_ProductLevel | AL102/P5 | HW ADDR N/A" },
-                { "LT-CIP", "CIP / Process Level", "IO-Link", "%", "ASSIGN DEVICE AT BUILD", "ai_CIPLevel | AL102/P6 | HW ADDR N/A" },
-                { "TT-PROCESS", "Process Temperature", "IO-Link", "degC", "ASSIGN DEVICE AT BUILD", "ai_ProcessTemperature | AL102/P7 | HW ADDR N/A" }
+                { "X1", "Product Presence", "IO-Link", "—", "FUNCTION CONFIRMED / HW PENDING", "DB_Global.AL102Process.X1ProductPresence | AL102/X1" },
+                { "X2", "Product Temperature", "IO-Link", "—", "FUNCTION CONFIRMED / HW PENDING", "DB_Global.AL102Process.X2ProductTemperature | AL102/X2" },
+                { "X3", "Vacuum Sensor", "IO-Link", "—", "FUNCTION CONFIRMED / HW PENDING", "DB_Global.AL102Process.X3Vacuum | AL102/X3" },
+                { "X4", "Distributor Anti-Rotation", "IO-Link", "—", "FUNCTION CONFIRMED / HW PENDING", "DB_Global.AL102Process.X4AntiRotationHealthy | AL102/X4" },
+                { "X5", "Tank Level", "IO-Link", "—", "FUNCTION CONFIRMED / HW PENDING", "DB_Global.AL102Process.X5TankLevel | AL102/X5" },
+                { "X6", "Filler Zero Position - Valve #1", "IO-Link", "—", "FUNCTION CONFIRMED / HW PENDING", "DB_Global.AL102Process.X6Valve1Reference | AL102/X6" },
+                { "X7", "CIP Presence / Engaged", "IO-Link", "—", "FUNCTION CONFIRMED / SAFETY HOLD", "DB_Global.AL102Process.X7CIPPresenceEngaged | AL102/X7" }
             };
 
             HmiText identity = screen.ScreenItems.Find("REV18_IOL_Detail_Identity") as HmiText;
@@ -17087,7 +17121,7 @@ namespace Schlenker.TiaV19
             if (identity == null || description == null || holdPoint == null)
                 throw new InvalidOperationException("AL102 summary objects are incomplete.");
             SetText(identity.Text, "AL102  |  IFM AL1403 MASTER 3");
-            SetText(description.Text, "PROCESS INSTRUMENTATION + STACK LIGHT OUTPUT HUB");
+            SetText(description.Text, "CONFIRMED PROCESS FUNCTIONS / HARDWARE MAPPING HOLD");
 
             for (int port = 1; port <= 7; port++)
             {
@@ -17118,21 +17152,21 @@ namespace Schlenker.TiaV19
             }
 
             SetText(holdPoint.Text,
-                "AL102 P1-P7 follow Architecture Tree v.12 and remain NOT CONFIGURED; P8 is the AL2330 stack-light output hub.");
+                "AL102 X1-X8 functions confirmed; addresses, polarity, scaling and X7 safety validation remain MISSING CONFIG.");
             holdPoint.ForeColor = Amber;
 
             HmiScreen overview = hmi.Screens.Find("io_link_overview");
             HmiText overviewDescription = overview == null ? null :
                 overview.ScreenItems.Find("REV18_IOL_AL102_Description") as HmiText;
             if (overviewDescription != null)
-                SetText(overviewDescription.Text, "PROCESS INSTRUMENTATION + STACK LIGHT OUTPUT");
+                SetText(overviewDescription.Text, "CONFIRMED PROCESS FUNCTIONS / HARDWARE HOLD");
 
             VerifyArchitectureTreeV12Page(hmi, "AL102", new[]
             {
-                "PT-PRODUCT|Product Pressure", "PT-AIR|Air / Process Pressure",
-                "PT-CIP|CIP / Service Pressure", "PT-SPARE|Spare Pressure Measurement",
-                "LT-PRODUCT|Product Continuous Level", "LT-CIP|CIP / Process Level",
-                "TT-PROCESS|Process Temperature", "AL2330|Leuze stack light output hub"
+                "X1|Product Presence", "X2|Product Temperature",
+                "X3|Vacuum Sensor", "X4|Distributor Anti-Rotation",
+                "X5|Tank Level", "X6|Filler Zero Position - Valve #1",
+                "X7|CIP Presence / Engaged", "X8|Spare"
             });
         }
 
@@ -17266,7 +17300,7 @@ namespace Schlenker.TiaV19
                 "AL102  |  IFM AL1403 MASTER 3", Navy, 18,
                 HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
             ConfigureText(description, 34, 154, 650, 24,
-                "PROCESS INSTRUMENTATION / PRODUCT SYSTEM", Blue, 11,
+                "CONFIRMED X1-X8 FUNCTIONS / HARDWARE MAPPING HOLD", Blue, 11,
                 HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
             ConfigureText(commLabel, 700, 126, 215, 24,
                 "PROFINET COMMUNICATION", Navy, 10,
@@ -17318,12 +17352,39 @@ namespace Schlenker.TiaV19
 
             string[] logicalTags =
             {
-                "ai_ProductPressure", "ai_AirPressure", "ai_CIPPressure", "ai_SparePressure",
-                "ai_ProductLevel", "ai_CIPLevel", "ai_ProcessTemperature", ""
+                "DB_Global.AL102Process.X1ProductPresence",
+                "DB_Global.AL102Process.X2ProductTemperature",
+                "DB_Global.AL102Process.X3Vacuum",
+                "DB_Global.AL102Process.X4AntiRotationHealthy",
+                "DB_Global.AL102Process.X5TankLevel",
+                "DB_Global.AL102Process.X6Valve1Reference",
+                "DB_Global.AL102Process.X7CIPPresenceEngaged", ""
+            };
+            string[] hmiTags =
+            {
+                "AL102_X1_Product_Presence", "AL102_X2_Product_Temperature",
+                "AL102_X3_Vacuum", "AL102_X4_AntiRotation_Healthy",
+                "AL102_X5_Tank_Level", "AL102_X6_Valve1_Reference",
+                "AL102_X7_CIP_Presence", ""
+            };
+            string[] validTags =
+            {
+                "AL102_X1_Product_Presence_Valid", "AL102_X2_Product_Temperature_Valid",
+                "AL102_X3_Vacuum_Valid", "AL102_X4_AntiRotation_Valid",
+                "AL102_X5_Tank_Level_Valid", "AL102_X6_Valve1_Reference_Valid",
+                "AL102_X7_CIP_Presence_Valid", "AL102_X8_Spare_Valid"
+            };
+            string[] deviceIds = { "X1", "X2", "X3", "X4", "X5", "X6", "X7", "X8" };
+            string[] functions =
+            {
+                "Product Presence", "Product Temperature", "Vacuum Sensor",
+                "Distributor Anti-Rotation", "Tank Level", "Filler Zero Position - Valve #1",
+                "CIP Presence / Engaged", "Spare"
             };
             for (int port = 1; port <= 8; port++)
             {
-                bool spare = port == 4 || port == 8;
+                bool spare = port == 8;
+                bool discrete = port == 1 || port == 4 || port == 6 || port == 7;
                 int top = 240 + (port - 1) * 49;
                 string prefix = "REV18_IOL_Port_" + port.ToString();
                 HmiRectangle row = screen.ScreenItems.Find(prefix + "_Back") as HmiRectangle;
@@ -17344,6 +17405,9 @@ namespace Schlenker.TiaV19
                 ConfigureRectangle(row, 20, top, 1170, 45,
                     spare ? spareGray : (port % 2 == 0 ? Color.FromArgb(232, 240, 247) : Color.White),
                     Color.FromArgb(190, 202, 212), 1);
+                SetText(device.Text, deviceIds[port - 1]);
+                SetText(rowDescription.Text, functions[port - 1]);
+                SetText(mode.Text, spare ? "SPARE" : "NORMALISED");
                 device.Font.Size = 9;
                 rowDescription.Font.Size = 9;
                 mode.Font.Size = 9;
@@ -17354,6 +17418,10 @@ namespace Schlenker.TiaV19
                 ConfigureIoLinkAl100Badge(screen,
                     "REV36_IOL_AL102_Port_" + port.ToString() + "_Live",
                     540, top + 6, 95, 32, spare ? "NOT USED" : "NO DATA", offlineGray, 8);
+                HmiRectangle liveBack = screen.ScreenItems.Find(
+                    "REV36_IOL_AL102_Port_" + port.ToString() + "_Live_Back") as HmiRectangle;
+                HmiText liveText = screen.ScreenItems.Find(
+                    "REV36_IOL_AL102_Port_" + port.ToString() + "_Live_Text") as HmiText;
                 if (spare)
                 {
                     ConfigureText(unit, 640, top + 10, 65, 24,
@@ -17367,21 +17435,28 @@ namespace Schlenker.TiaV19
                 }
                 else
                 {
-                    unit.Font.Size = 9;
-                    unit.Font.Weight = HmiFontWeight.Bold;
-                    unit.HorizontalTextAlignment = HmiHorizontalAlignment.Center;
-                    unit.ForeColor = Navy;
+                    ConfigureText(unit, 640, top + 10, 65, 24,
+                        "—", Navy, 9, HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
                     ConfigureText(quality, 710, top + 7, 175, 30,
-                        "MISSING CONFIG", Amber, 9, HmiFontWeight.Bold,
+                        port == 7 ? "SAFETY + HW HOLD" : "HW MAPPING HOLD", Amber, 9, HmiFontWeight.Bold,
                         HmiHorizontalAlignment.Center);
                     ConfigureText(mapping, 890, top + 4, 285, 36,
-                        "PLC: " + logicalTags[port - 1] + "\nHMI: NOT ASSIGNED", Navy, 8,
+                        "PLC: " + logicalTags[port - 1] + "\nHMI: " + hmiTags[port - 1], Navy, 8,
                         HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+                    string textScript = discrete
+                        ? "let ok=Boolean(HMIRuntime.Tags(\"" + validTags[port - 1] + "\").Read());" +
+                          "if(!ok){return \"NO DATA\";}return Boolean(HMIRuntime.Tags(\"" + hmiTags[port - 1] + "\").Read())?\"ON\":\"OFF\";"
+                        : "let ok=Boolean(HMIRuntime.Tags(\"" + validTags[port - 1] + "\").Read());" +
+                          "if(!ok){return \"NO DATA\";}return Number(HMIRuntime.Tags(\"" + hmiTags[port - 1] + "\").Read()).toFixed(1);";
+                    ConfigureNumericDynamization(liveText, "Text", hmiTags[port - 1], textScript);
+                    ConfigureNumericDynamization(liveBack, "BackColor", validTags[port - 1],
+                        "let ok=Boolean(HMIRuntime.Tags(\"" + validTags[port - 1] + "\").Read());" +
+                        "return ok?HMIRuntime.Math.RGB(28,145,82):HMIRuntime.Math.RGB(145,155,165);");
                 }
             }
 
             ConfigureText(holdPoint, 25, 644, 1160, 28,
-                "MISSING CONFIG — analog HMI tags and physical port/channel/address remain pending in TIA hardware and wiring records.",
+                "FUNCTIONS CONFIRMED — physical address, polarity, scaling and independent X7 safety validation remain MISSING CONFIG.",
                 Amber, 10, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
 
             commBinding = legacyComm.Dynamizations.Find("ProcessValue") as TagDynamization;
@@ -17422,7 +17497,7 @@ namespace Schlenker.TiaV19
             });
             bool rowsOk = Enumerable.Range(1, 8).All(port =>
             {
-                bool spare = port == 4 || port == 8;
+                bool spare = port == 8;
                 HmiText live = screen.ScreenItems.Find(
                     "REV36_IOL_AL102_Port_" + port.ToString() + "_Live_Text") as HmiText;
                 HmiText quality = screen.ScreenItems.Find(
@@ -17430,10 +17505,10 @@ namespace Schlenker.TiaV19
                 HmiText mapping = screen.ScreenItems.Find(
                     "REV18_IOL_Port_" + port.ToString() + "_Mapping") as HmiText;
                 return live != null && quality != null && mapping != null &&
-                    live.Dynamizations.Count == 0 &&
+                    (spare ? live.Dynamizations.Count == 0 : live.Dynamizations.Find("Text") != null) &&
                     live.Text.Items.First().Text.Contains(spare ? "NOT USED" : "NO DATA") &&
-                    quality.Text.Items.First().Text.Contains(spare ? "SPARE / NOT USED" : "MISSING CONFIG") &&
-                    mapping.Text.Items.First().Text.Contains(spare ? "NO ASSIGNMENT" : "HMI: NOT ASSIGNED");
+                    quality.Text.Items.First().Text.Contains(spare ? "SPARE / NOT USED" : (port == 7 ? "SAFETY + HW HOLD" : "HW MAPPING HOLD")) &&
+                    mapping.Text.Items.First().Text.Contains(spare ? "NO ASSIGNMENT" : "HMI: " + hmiTags[port - 1]);
             });
             bool headingsAligned = Enumerable.Range(0, headings.Length).All(index =>
             {
@@ -17461,12 +17536,12 @@ namespace Schlenker.TiaV19
             Console.WriteLine("IO_LINK_AL102_READ_ONLY_BINDINGS_PRESERVED=1");
             Console.WriteLine("IO_LINK_AL102_NAVIGATION_EVENTS_PRESERVED=" + navigationNames.Length);
             Console.WriteLine("IO_LINK_AL102_HEADERS_ALIGNED=8");
-            Console.WriteLine("IO_LINK_AL102_ACTIVE_PORTS_MISSING_CONFIG=6");
-            Console.WriteLine("IO_LINK_AL102_SPARE_PORTS_STANDARDIZED=2");
+            Console.WriteLine("IO_LINK_AL102_ACTIVE_PORTS_HW_HOLD=7");
+            Console.WriteLine("IO_LINK_AL102_SPARE_PORTS_STANDARDIZED=1");
             Console.WriteLine("IO_LINK_AL102_ANALOG_BINDINGS_INVENTED=0");
             Console.WriteLine("IO_LINK_AL102_SCREEN_OBJECTS_DELETED=0");
             Console.WriteLine("IO_LINK_AL102_PLC_LOGIC_MODIFIED=0");
-            Console.WriteLine("IO_LINK_AL102_PROCESS_TAGS_MODIFIED=0");
+            Console.WriteLine("IO_LINK_AL102_PROCESS_TAGS_MODIFIED=7");
             Console.WriteLine("IO_LINK_AL102_HARDWARE_ADDRESSES_INVENTED=0");
         }
 
@@ -18248,13 +18323,9 @@ namespace Schlenker.TiaV19
                 new IoLinkPortView("AL103",3,"IFS240","Filler minimum height","SIO DI","IOL_AL103_X3","AL103_X3_FillerMinimumHeight","Bool","%I353.0"),
                 new IoLinkPortView("AL103",4,"IFS240","Dummy bottle washing","SIO DI","IOL_AL103_X4","AL103_X4_DummyBottleWashing","Bool","%I354.0")
             };
-            IoLinkPortView[] stackOutputs =
-            {
-                new IoLinkPortView("AL102",8,"AL2330","Stack green","PNP DO","IOL_AL102_GREEN","AL102_X8_StackGreen","Bool","%Q156.0"),
-                new IoLinkPortView("AL102",8,"AL2330","Stack orange","PNP DO","IOL_AL102_ORANGE","AL102_X8_StackOrange","Bool","%Q156.1"),
-                new IoLinkPortView("AL102",8,"AL2330","Stack red","PNP DO","IOL_AL102_RED","AL102_X8_StackRed","Bool","%Q157.0"),
-                new IoLinkPortView("AL102",8,"AL2330","Stack buzzer","PNP DO","IOL_AL102_BUZZER","AL102_X8_StackBuzzer","Bool","%Q157.1")
-            };
+            // AL102/X8 is confirmed spare. The former stack-light mapping is
+            // intentionally removed; no replacement address is inferred.
+            IoLinkPortView[] stackOutputs = new IoLinkPortView[0];
 
             PlcSoftware plc = FindPlcSoftware(project);
             if (plc == null) throw new InvalidOperationException("PLC software was not found.");
@@ -18287,7 +18358,8 @@ namespace Schlenker.TiaV19
 
             ConfigureMappedIoLinkPage(hmi, "AL100", ports.Where(p => p.Master == "AL100").ToArray());
             ConfigureMappedIoLinkPage(hmi, "AL101", ports.Where(p => p.Master == "AL101").ToArray());
-            ConfigureStackLightPage(hmi);
+            ApplyArchitectureTreeV12IoLinkReview(hmi);
+            ApplyIoLinkAl102ContentRefinement(hmi);
             ConfigureMappedIoLinkPage(hmi, "AL103", ports.Where(p => p.Master == "AL103").ToArray());
             ConfigureFourMasterIoLinkNavigation(hmi);
             ConfigureProductPresenceOnManual(hmi);
@@ -18296,7 +18368,7 @@ namespace Schlenker.TiaV19
             Console.WriteLine("IO_LINK_HMI_TAGS_CREATED=" + hmiTagsCreated);
             Console.WriteLine("IO_LINK_PORTS_CONFIGURED=" + ports.Length);
             Console.WriteLine("IO_LINK_STACK_OUTPUTS_CONFIGURED=" + stackOutputs.Length);
-            Console.WriteLine("PRODUCT_PRESENCE_SOURCE=%IW324.%X0");
+            Console.WriteLine("PRODUCT_PRESENCE_SOURCE=DB_Global.AL102Process.X1ProductPresence");
         }
 
         private static void ConfigureMappedIoLinkPage(HmiSoftware hmi, string master, IoLinkPortView[] ports)
@@ -18366,73 +18438,11 @@ namespace Schlenker.TiaV19
 
         private static void ConfigureStackLightPage(HmiSoftware hmi)
         {
-            HmiScreen screen = hmi.Screens.Find("io_link_al102");
-            if (screen == null) throw new InvalidOperationException("Missing IO-Link screen: AL102");
-            HmiText summary = screen.ScreenItems.Find("REV18_IOL_Detail_Quality") as HmiText;
-            HmiText hold = screen.ScreenItems.Find("REV18_IOL_Detail_HoldPoint") as HmiText;
-            ConfigureText(summary, 986, 127, 115, 33, "CONFIGURED", Green, 8,
-                HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
-            for (int port = 1; port <= 7; port++)
-            {
-                int spareTop = 250 + (port - 1) * 51;
-                string sparePrefix = "REV18_IOL_Port_" + port;
-                DeleteItem(screen, sparePrefix + "_LiveValue");
-                ConfigureText(GetOrCreate<HmiText>(screen, sparePrefix + "_Device"),
-                    84, spareTop + 10, 117, 25, "SPARE", Dark, 8,
-                    HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
-                ConfigureText(GetOrCreate<HmiText>(screen, sparePrefix + "_Description"),
-                    206, spareTop + 10, 201, 25, "Not used", Dark, 8,
-                    HmiFontWeight.Normal, HmiHorizontalAlignment.Left);
-                ConfigureText(GetOrCreate<HmiText>(screen, sparePrefix + "_Mode"),
-                    412, spareTop + 10, 89, 25, "NOT USED", Dark, 8,
-                    HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
-                ConfigureText(GetOrCreate<HmiText>(screen, sparePrefix + "_LiveText"),
-                    506, spareTop + 10, 89, 25, "—", Dark, 9,
-                    HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
-                ConfigureText(GetOrCreate<HmiText>(screen, sparePrefix + "_Unit"),
-                    600, spareTop + 10, 61, 25, "—", Dark, 9,
-                    HmiFontWeight.Normal, HmiHorizontalAlignment.Center);
-                ConfigureText(GetOrCreate<HmiText>(screen, sparePrefix + "_Quality"),
-                    665, spareTop + 7, 164, 31, "SPARE / NOT USED", Dark, 8,
-                    HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
-                ConfigureText(GetOrCreate<HmiText>(screen, sparePrefix + "_Mapping"),
-                    834, spareTop + 10, 267, 25, "NO ASSIGNMENT", Dark, 8,
-                    HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
-            }
-            int top = 250 + 7 * 51;
-            string prefix = "REV18_IOL_Port_8";
-            ConfigureText(screen.ScreenItems.Find(prefix + "_Device") as HmiText, 84, top + 4, 117, 38,
-                "AL2330", Navy, 8, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
-            ConfigureText(screen.ScreenItems.Find(prefix + "_Description") as HmiText, 206, top + 4, 201, 38,
-                "Leuze stack light output hub", Dark, 8, HmiFontWeight.Normal, HmiHorizontalAlignment.Left);
-            ConfigureText(screen.ScreenItems.Find(prefix + "_Mode") as HmiText, 412, top + 10, 89, 25,
-                "IO-Link 8I/8O", Navy, 8, HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
-            ConfigureText(screen.ScreenItems.Find(prefix + "_Unit") as HmiText, 600, top + 10, 61, 25,
-                "4 x DO", Navy, 8, HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
-            ConfigureText(screen.ScreenItems.Find(prefix + "_Quality") as HmiText, 665, top + 7, 164, 31,
-                "CONFIGURED", Green, 8, HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
-            ConfigureText(screen.ScreenItems.Find(prefix + "_Mapping") as HmiText, 834, top + 2, 267, 42,
-                "%Q156.0/.1, %Q157.0/.1\nGREEN / ORANGE / RED / BUZZER", Navy, 7,
-                HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
-            ConfigureIoLinkAl100Badge(screen, "REV70_IOL_AL102_X8", 506, top + 7, 89, 33,
-                "ALL OFF", Grey, 7);
-            HmiRectangle liveBack = screen.ScreenItems.Find("REV70_IOL_AL102_X8_Back") as HmiRectangle;
-            HmiText liveText = screen.ScreenItems.Find("REV70_IOL_AL102_X8_Text") as HmiText;
-            ConfigureNumericDynamization(liveText, "Text", "IOL_AL102_GREEN",
-                "let g=Boolean(HMIRuntime.Tags(\"IOL_AL102_GREEN\").Read());" +
-                "let o=Boolean(HMIRuntime.Tags(\"IOL_AL102_ORANGE\").Read());" +
-                "let r=Boolean(HMIRuntime.Tags(\"IOL_AL102_RED\").Read());" +
-                "let b=Boolean(HMIRuntime.Tags(\"IOL_AL102_BUZZER\").Read());" +
-                "return (g||o||r||b)?\"ACTIVE\":\"ALL OFF\";");
-            ConfigureNumericDynamization(liveBack, "BackColor", "IOL_AL102_GREEN",
-                "let g=Boolean(HMIRuntime.Tags(\"IOL_AL102_GREEN\").Read());" +
-                "let o=Boolean(HMIRuntime.Tags(\"IOL_AL102_ORANGE\").Read());" +
-                "let r=Boolean(HMIRuntime.Tags(\"IOL_AL102_RED\").Read());" +
-                "let b=Boolean(HMIRuntime.Tags(\"IOL_AL102_BUZZER\").Read());" +
-                "return (g||o||r||b)?HMIRuntime.Math.RGB(28,145,82):HMIRuntime.Math.RGB(145,155,165);");
-            ConfigureText(hold, 23, 671, 1087, 29,
-                "AL102/X8 — AL2330 output hub configured at %QB156..%QB163; four stack-light commands allocated.",
-                Navy, 9, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+            // Compatibility entry point retained for old command-line stages.
+            // The confirmed 2026-11-10 allocation makes X8 spare and replaces
+            // the former stack-light page with the normalized X1-X8 view.
+            ApplyArchitectureTreeV12IoLinkReview(hmi);
+            ApplyIoLinkAl102ContentRefinement(hmi);
         }
 
         private static void ConfigureProductPresenceOnManual(HmiSoftware hmi)
@@ -18448,14 +18458,13 @@ namespace Schlenker.TiaV19
             HmiText state = GetOrCreate<HmiText>(manual, "REV70_Manual_ProductPresenceState");
             ConfigureText(state, 962, 696, 134, 24, "NO DATA", Color.White, 8,
                 HmiFontWeight.Bold, HmiHorizontalAlignment.Center);
-            ConfigureNumericDynamization(state, "Text", "Product_Present_At_Pump",
-                "let t=HMIRuntime.Tags(\"Product_Present_At_Pump\");let v=Boolean(t.Read());" +
-                "let q=Number(t.QualityCode);if(t.LastError!==0||(q&192)<128){return \"NO DATA\";}" +
-                "return v?\"PRODUCT PRESENT\":\"NO PRODUCT\";");
-            ConfigureNumericDynamization(stateBack, "BackColor", "Product_Present_At_Pump",
-                "let t=HMIRuntime.Tags(\"Product_Present_At_Pump\");let v=Boolean(t.Read());" +
-                "let q=Number(t.QualityCode);if(t.LastError!==0||(q&192)<128){return HMIRuntime.Math.RGB(145,155,165);}" +
-                "return v?HMIRuntime.Math.RGB(28,145,82):HMIRuntime.Math.RGB(195,45,55);");
+            ConfigureNumericDynamization(state, "Text", "AL102_X1_Product_Presence",
+                "let ok=Boolean(HMIRuntime.Tags(\"AL102_X1_Product_Presence_Valid\").Read());" +
+                "if(!ok){return \"NO DATA\";}return Boolean(HMIRuntime.Tags(\"AL102_X1_Product_Presence\").Read())?\"PRODUCT PRESENT\":\"NO PRODUCT\";");
+            ConfigureNumericDynamization(stateBack, "BackColor", "AL102_X1_Product_Presence_Valid",
+                "let ok=Boolean(HMIRuntime.Tags(\"AL102_X1_Product_Presence_Valid\").Read());" +
+                "if(!ok){return HMIRuntime.Math.RGB(145,155,165);}" +
+                "return Boolean(HMIRuntime.Tags(\"AL102_X1_Product_Presence\").Read())?HMIRuntime.Math.RGB(28,145,82):HMIRuntime.Math.RGB(195,45,55);");
         }
 
         private static void ConfigureFourMasterIoLinkNavigation(HmiSoftware hmi)
@@ -20622,14 +20631,14 @@ namespace Schlenker.TiaV19
                 new[] { "AL101/P6", "SPARE-A101-06", "Cap / pneumatic expansion", "-", "", "SPARE", "SPARE", "N/A", "" },
                 new[] { "AL101/P7", "SPARE-A101-07", "Cap / pneumatic expansion", "-", "", "SPARE", "SPARE", "N/A", "" },
                 new[] { "AL101/P8", "SPARE-A101-08", "Future expansion", "-", "", "SPARE", "SPARE", "N/A", "" },
-                new[] { "AL102/P1", "PT-PRODUCT", "Product Pressure", "ai_ProductPressure", "", "IO-Link", "ASSIGN DEVICE AT BUILD", "bar", "0.00" },
-                new[] { "AL102/P2", "PT-AIR", "Air / Process Pressure", "ai_AirPressure", "", "IO-Link", "ASSIGN DEVICE AT BUILD", "bar", "0.00" },
-                new[] { "AL102/P3", "PT-CIP", "CIP / Service Pressure", "ai_CIPPressure", "", "IO-Link", "ASSIGN DEVICE AT BUILD", "bar", "0.00" },
-                new[] { "AL102/P4", "PT-SPARE", "Spare Pressure Measurement", "ai_SparePressure", "", "IO-Link", "SPARE INSTRUMENT", "bar", "0.00" },
-                new[] { "AL102/P5", "LT-PRODUCT", "Product Continuous Level", "ai_ProductLevel", "", "IO-Link", "ASSIGN DEVICE AT BUILD", "%", "0.0" },
-                new[] { "AL102/P6", "LT-CIP", "CIP / Process Level", "ai_CIPLevel", "", "IO-Link", "ASSIGN DEVICE AT BUILD", "%", "0.0" },
-                new[] { "AL102/P7", "TT-PROCESS", "Process Temperature", "ai_ProcessTemperature", "", "IO-Link", "ASSIGN DEVICE AT BUILD", "degC", "0.0" },
-                new[] { "AL102/P8", "DO-HUB-TL100", "Tower light output hub", "IOL_AL102_GREEN/ORANGE/RED/BUZZER", "", "IO-Link 8I/8O", "CONFIGURED", "%QB156..%QB163", "" },
+                new[] { "AL102/P1", "X1", "Product Presence", "DB_Global.AL102Process.X1ProductPresence", "AL102_X1_Product_Presence", "IO-Link", "FUNCTION CONFIRMED / HW HOLD", "", "" },
+                new[] { "AL102/P2", "X2", "Product Temperature", "DB_Global.AL102Process.X2ProductTemperature", "AL102_X2_Product_Temperature", "IO-Link", "FUNCTION CONFIRMED / HW HOLD", "", "0.0" },
+                new[] { "AL102/P3", "X3", "Vacuum Sensor", "DB_Global.AL102Process.X3Vacuum", "AL102_X3_Vacuum", "IO-Link", "FUNCTION CONFIRMED / HW HOLD", "", "0.0" },
+                new[] { "AL102/P4", "X4", "Distributor Anti-Rotation", "DB_Global.AL102Process.X4AntiRotationHealthy", "AL102_X4_AntiRotation_Healthy", "IO-Link", "FUNCTION CONFIRMED / HW HOLD", "", "" },
+                new[] { "AL102/P5", "X5", "Tank Level", "DB_Global.AL102Process.X5TankLevel", "AL102_X5_Tank_Level", "IO-Link", "FUNCTION CONFIRMED / HW HOLD", "", "0.0" },
+                new[] { "AL102/P6", "X6", "Filler Zero Position - Valve #1", "DB_Global.AL102Process.X6Valve1Reference", "AL102_X6_Valve1_Reference", "IO-Link", "FUNCTION CONFIRMED / HW HOLD", "", "" },
+                new[] { "AL102/P7", "X7", "CIP Presence / Engaged", "DB_Global.AL102Process.X7CIPPresenceEngaged", "AL102_X7_CIP_Presence", "IO-Link", "FUNCTION CONFIRMED / SAFETY HOLD", "", "" },
+                new[] { "AL102/P8", "X8", "Spare", "-", "", "SPARE", "SPARE", "", "" },
                 new[] { "AL103/P1", "SEN-103-01", "Additional machine sensor 1", "io_AL103_P1", "", "IO-Link/SIO", "RESERVED / NOT INSTALLED", "N/A", "" },
                 new[] { "AL103/P2", "SEN-103-02", "Additional machine sensor 2", "io_AL103_P2", "", "IO-Link/SIO", "RESERVED / NOT INSTALLED", "N/A", "" },
                 new[] { "AL103/P3", "SEN-103-03", "Additional machine sensor 3", "io_AL103_P3", "", "IO-Link/SIO", "RESERVED / NOT INSTALLED", "N/A", "" },
@@ -20683,7 +20692,7 @@ namespace Schlenker.TiaV19
             ConfigureRectangle(GetOrCreate<HmiRectangle>(screen, "REV16_SMC_Mapping_Panel"),
                 20, 256, 1170, 444, Panel, Border, 1);
             ConfigureText(GetOrCreate<HmiText>(screen, "REV16_SMC_Mapping_Title"), 35, 266, 760, 28,
-                "LOGICAL EVxxx / SMC MAPPING - READ ONLY", Navy, 17, HmiFontWeight.Bold,
+                "125Y1-125Y7 LOGICAL PNEUMATIC TARGETS - READ ONLY", Navy, 17, HmiFontWeight.Bold,
                 HmiHorizontalAlignment.Left);
             ConfigureNavigateButton(GetOrCreate<HmiButton>(screen, "REV16_SMC_BackToIO"), 980, 264, 190, 34,
                 "I/O DIRECTORY", Blue, "io_diagnostics", "DIAGNOSTICS");
@@ -20707,27 +20716,27 @@ namespace Schlenker.TiaV19
             ConfigureText(GetOrCreate<HmiText>(screen, "REV16_SMC_H_Quality"), 1010, 307, 160, 24,
                 "DIAGNOSTIC QUALITY", Color.White, 9, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
 
-            AddRevision16ValveRow(screen, "EV200O", 338, "EV200-O", "Gate open", "ValveBits.%X0",
-                "DB_Global.Out.GateOpen / DO_Gate_Open", "TBC / NOT COMM.", "DO_Gate_Open", "SYMBOLIC FB", "PN/ECAT/SMC");
-            AddRevision16ValveRow(screen, "EV200C", 374, "EV200-C", "Gate close", "ValveBits.%X1",
-                "DB_Global.Out.GateClose / DO_Gate_Close", "TBC / NOT COMM.", "DO_Gate_Close", "SYMBOLIC FB", "PN/ECAT/SMC");
-            AddRevision16ValveRow(screen, "EV210", 410, "EV210", "Product valve", "ValveBits.%X4",
-                "DB_Global.Out.Valve210Cmd / DO_Valve_210", "TBC / NOT COMM.", "DO_Valve_210", "N/A", "PN/ECAT/SMC");
-            AddRevision16ValveRow(screen, "EV211", 446, "EV211", "Function TBC", "ValveBits.%X5",
-                "DB_Global.Out.EV211 / SMC_EV211_Cmd", "TBC / NOT COMM.", "SMC_EV211_Cmd", "N/A", "PN/ECAT/SMC");
-            AddRevision16ValveRow(screen, "EV212", 482, "EV212", "Vacuum valve", "ValveBits.%X6",
-                "DB_Global.Out.Valve212Cmd / DO_Valve_212", "TBC / NOT COMM.", "DO_Valve_212", "N/A", "PN/ECAT/SMC");
-            AddRevision16ValveRow(screen, "EV217", 518, "EV217", "Product valve", "MAPPING MISSING",
-                "DB_Global.Out.Valve217Cmd / DO_Valve_217", "TBC / NOT COMM.", "DO_Valve_217", "N/A", "PN/ECAT/SMC");
-            AddRevision16ValveRow(screen, "EV213", 554, "EV213", "Product valve", "MAPPING MISSING",
-                "DB_Global.Out.Valve213Cmd / DO_Valve_213", "TBC / NOT COMM.", "DO_Valve_213", "N/A", "PN/ECAT/SMC");
-            AddRevision16ValveRow(screen, "EV247", 590, "EV247", "Discharge valve", "MAPPING MISSING",
-                "DB_Global.Out.Valve247Cmd / DO_Valve_247", "TBC / NOT COMM.", "DO_Valve_247", "N/A", "PN/ECAT/SMC");
-            AddRevision16ValveRow(screen, "WASH", 626, "TBC-WASH", "Bottle wash", "ValveBits.%X9",
-                "DB_Global.Out.ExternalBottleWashValveCmd / DO_External_Wash", "TBC / NOT COMM.", "DO_External_Wash", "N/A", "PN/ECAT/SMC");
+            AddRevision16ValveRow(screen, "EV200O", 338, "125Y1", "Production target", "PNEUMATIC OPEN",
+                "DB_Global.SMC125.Y1OpenRequest", "PHYSICAL MAP HOLD", "SMC_125Y1_Desired_Open", "N/A", "FUNCTION CONFIRMED");
+            AddRevision16ValveRow(screen, "EV200C", 374, "125Y2", "Production target", "PNEUMATIC OPEN",
+                "DB_Global.SMC125.Y2OpenRequest", "PHYSICAL MAP HOLD", "SMC_125Y2_Desired_Open", "N/A", "FUNCTION CONFIRMED");
+            AddRevision16ValveRow(screen, "EV210", 410, "125Y3", "Production target", "PNEUMATIC CLOSED",
+                "DB_Global.SMC125.Y3OpenRequest", "PHYSICAL MAP HOLD", "SMC_125Y3_Desired_Open", "N/A", "FUNCTION CONFIRMED");
+            AddRevision16ValveRow(screen, "EV211", 446, "125Y4", "Production target", "PNEUMATIC CLOSED",
+                "DB_Global.SMC125.Y4OpenRequest", "PHYSICAL MAP HOLD", "SMC_125Y4_Desired_Open", "N/A", "FUNCTION CONFIRMED");
+            AddRevision16ValveRow(screen, "EV212", 482, "125Y5", "Production target", "PNEUMATIC CLOSED",
+                "DB_Global.SMC125.Y5OpenRequest", "PHYSICAL MAP HOLD", "SMC_125Y5_Desired_Open", "N/A", "FUNCTION CONFIRMED");
+            AddRevision16ValveRow(screen, "EV217", 518, "125Y6", "Product / level pause", "OPEN THEN CLOSE AFTER PUMP STOP",
+                "DB_Global.SMC125.Y6OpenRequest", "PHYSICAL MAP HOLD", "SMC_125Y6_Desired_Open", "N/A", "FEEDBACK SEQUENCED");
+            AddRevision16ValveRow(screen, "EV213", 554, "125Y7", "Production target", "PNEUMATIC CLOSED",
+                "DB_Global.SMC125.Y7OpenRequest", "PHYSICAL MAP HOLD", "SMC_125Y7_Desired_Open", "N/A", "FUNCTION CONFIRMED");
+            AddRevision16ValveRow(screen, "EV247", 590, "125Y6", "Pump-stop hold", "STATUS",
+                "DB_Global.SMC125.Y6HeldForPumpStop", "READ ONLY", "SMC_125Y6_Held_For_Pump_Stop", "N/A", "VALID FEEDBACK REQUIRED");
+            AddRevision16ValveRow(screen, "WASH", 626, "MAP", "Physical mapping", "COMMISSIONING HOLD",
+                "DB_Global.SMC125.PhysicalMapValidated", "NOT VALIDATED", "SMC_125_Physical_Map_Validated", "N/A", "NO OUTPUT BINDING");
 
             ConfigureText(GetOrCreate<HmiText>(screen, "REV16_SMC_HoldPoint"), 35, 668, 1135, 24,
-                "X2/X3/X7/X8 have no confirmed EV code. Physical address, PDO and solenoid positions remain NOT COMMISSIONED. No HMI forcing is provided.",
+                "125Y1-125Y7 are logical pneumatic targets only. Anybus bits, coil polarity and output enable remain NOT COMMISSIONED. No HMI forcing is provided.",
                 Red, 10, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
 
             HmiScreen ioDiagnostics = hmi.Screens.Find("io_diagnostics");

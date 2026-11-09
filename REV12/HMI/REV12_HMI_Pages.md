@@ -40,7 +40,10 @@
    - Machine lights ON / OFF and relay-command status
    - Air filter ON / OFF, pressure proof and replacement warning
 18. Manual Gate
-   - EV001 Gate Open and Gate Close momentary commands
+   - Infeed Gate single-coil OPEN momentary command; release commands spring-close
+   - No separate Gate Close command is exposed
+   - Cap Channel Air command retired because the valve does not exist
+   - Physical `125Y` identifiers remain `MISSING CONFIG` until photo/coil/address evidence is reconciled
    - Controls are active only in Manual with engineer permission and this page visible
    - `OPEN MANUAL VALVE TEST` opens the complete EV-based valve-test interface
    - Valve-test commands are momentary and are cleared when leaving Manual
@@ -83,6 +86,14 @@
    - `lift_warning`: explicit filler/capper confirmation workflow; PLC retains movement authority
    - `production`: read-only product/filler/vacuum mimic with selectable diagnostics for M102, M103 and EV210/217/213/212/247
    - Final SET03 audit: 144 navigation, 33 command, 218 field, 25,185 layout and 530 wording checks; zero failures
+25. AL102 / CIP Positioning / SMC 125 Baseline (2026-11-10)
+   - AL102 detail uses the confirmed functional order: X1 Product Presence, X2 Product Temperature, X3 Vacuum Sensor, X4 Distributor Anti-Rotation, X5 Tank Level, X6 Filler Zero Position Valve #1, X7 CIP Presence / Engaged and X8 Spare
+   - Each value is displayed with a separate validity indication; no HMI object implies an address, polarity, scale or time value
+   - CIP shows Positioning, Waiting for connection, X6 reference reached, X7 engaged, CIP Ready, Rotation Inhibited and Safety Interlock Validated states
+   - SMC diagnostics show logical pneumatic targets 125Y1 through 125Y7 separately from the unvalidated physical Anybus/coil mapping
+   - Production target matrix: 125Y1, 125Y2 and 125Y6 OPEN; 125Y3, 125Y4, 125Y5 and 125Y7 CLOSED
+   - During a level pause 125Y6 remains logically OPEN until valid product-pump feedback confirms stopped
+   - Operational download and output enable remain outside this offline baseline
 
 ## Required behavior
 - Selecting Filler Height ON blocks all rotation and permits filler UP/DOWN only.
@@ -93,4 +104,6 @@
 - Operator may load recipes but protected users save/edit recipes.
 - Leaving a manual valve page returns control to the automatic command path in the same PLC scan.
 - Door access never causes automatic restart; a separate physical Start command is required.
+- X4 loss or invalid quality during main-drive run requests an immediate stop and latches alarm 2252.
+- X7 engaged or invalid inhibits Automatic, Manual, Jog, Homing and CIP-positioning rotation; CIP may enter active sequence only after X6 reference, confirmed zero speed, X7 engagement and validated safety interlock.
 - All visible HMI objects remain inside the 1366 x 768 screen boundary and interactive button hit areas must not overlap.

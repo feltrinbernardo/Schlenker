@@ -35,11 +35,13 @@ VAR
     AL100           : "UDT_IOLinkMasterMapping";
     AL101           : "UDT_IOLinkMasterMapping";
     AL102           : "UDT_IOLinkMasterMapping";
+    AL102Process    : "UDT_AL102Process";
     AL103           : "UDT_IOLinkMasterMapping";
     // 2026-09-23 AL103 functional baseline. No member below is bound to P1..P8.
     AL103BottleHandling : "UDT_AL103BottleHandling";
     AL104           : "UDT_IOLinkMasterMapping";
     OpenPoints      : "UDT_OpenPoints";
+    SMC125          : "UDT_SMC125ValveState";
     Par             : "UDT_Parameters";
     AlarmCritical   : Bool;
     AlarmWarning    : Bool;
@@ -199,6 +201,13 @@ BEGIN
     OpenPoints.AL100.Required := TRUE;
     OpenPoints.AL101.Required := TRUE;
     OpenPoints.AL102.Required := TRUE;
+    // The functional X1..X8 allocation is approved. Hardware process-image
+    // addresses, value scaling/polarity and the independent X7 safety
+    // interlock are intentionally not released by this software baseline.
+    AL102Process.FunctionalMapConfirmed := TRUE;
+    AL102Process.SafetyInterlockValidated := FALSE;
+    AL102.HardwareConfigured := FALSE;
+    SMC125.PhysicalMapValidated := FALSE;
     OpenPoints.AL103.Required := TRUE;
     AL103BottleHandling.BaselineRevision := '2026-09-23';
     AL103BottleHandling.SoftwareStructureConfigured := TRUE;

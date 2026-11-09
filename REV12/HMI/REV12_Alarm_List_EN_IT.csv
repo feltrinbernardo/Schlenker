@@ -47,3 +47,7 @@
 1607,Bottle conveyor VSD communication fault.,Guasto comunicazione VSD nastro bottiglie.,Critical,Check bottle conveyor VSD power and PROFINET connection
 1608,Product pump VSD communication fault.,Guasto comunicazione VSD pompa prodotto.,Critical,Check product pump VSD power and PROFINET connection
 1609,Cap distributor VSD communication fault.,Guasto comunicazione VSD distributore tappi.,Critical,Check cap distributor VSD power and PROFINET connection
+2252,Distributor anti-rotation signal lost during run.,Segnale antirotazione distributore perso durante la marcia.,Critical,Immediate stop request; inspect X4 and reset only when stopped and healthy
+2253,CIP hose connected before valve 1 position.,Tubo CIP collegato prima della posizione rubinetto 1.,Critical,Rotation inhibited; disconnect hose and reset after the machine is stopped
+2254,CIP hose presence lost during CIP.,Presenza tubo CIP persa durante il CIP.,Critical,Abort CIP and inspect the validated X7 interlock before reset
+2255,CIP safety interlock not validated.,Interblocco di sicurezza CIP non validato.,Warning,Rotation and CIP start remain inhibited until hardware and safety validation

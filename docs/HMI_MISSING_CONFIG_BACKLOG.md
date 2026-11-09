@@ -8,43 +8,38 @@ No item in this file authorizes creating PLC logic, HMI tags, hardware
 addresses, IO-Link assignments, scaling, or process semantics without approved
 engineering information.
 
-## IO-Link AL102 — process instrumentation / product system
+## IO-Link AL102 — confirmed functions, hardware commissioning open
 
 - Screen: `io_link_al102`
 - Master: `AL102 | IFM AL1403 MASTER 3`
-- Status: Software mapping approved in REV03; physical commissioning open
-- HMI presentation: `NO DATA` for the live value and `MISSING CONFIG` for the
-  engineering integration state
+- Status: X1-X8 functional allocation approved 2026-11-10; physical commissioning open
+- HMI presentation: normalized read-only values with separate validity and an
+  explicit hardware/safety hold indication
 - Runtime expectation: Going online alone will not resolve these entries. The
-  HMI will continue to show `NO DATA` until authoritative tags and mappings are
-  configured and validated.
+  HMI continues to show `NO DATA` while configuration or quality is invalid.
 
-| Port | Device ID | Intended measurement | Unit | Logical PLC reference | Current HMI assignment | Pending engineering confirmation |
-| --- | --- | --- | --- | --- | --- | --- |
-| P1 | `PT-PRODUCT` | Product pressure | bar | `ai_ProductPressure` | Not assigned | Physical IO-Link port/channel/address, PLC tag, HMI tag/binding, range and scaling |
-| P2 | `PT-AIR` | Air/process pressure | bar | `ai_AirPressure` | Not assigned | Physical IO-Link port/channel/address, PLC tag, HMI tag/binding, range and scaling |
-| P3 | `PT-CIP` | CIP/service pressure | bar | `ai_CIPPressure` | Not assigned | Physical IO-Link port/channel/address, PLC tag, HMI tag/binding, range and scaling |
-| P5 | `LT-PRODUCT` | Product continuous level | % | `ai_ProductLevel` | Not assigned | Physical IO-Link port/channel/address, PLC tag, HMI tag/binding, range and scaling |
-| P6 | `LT-CIP` | CIP/process level | % | `ai_CIPLevel` | Not assigned | Physical IO-Link port/channel/address, PLC tag, HMI tag/binding, range and scaling |
-| P7 | `TT-PROCESS` | Process temperature | degC | `ai_ProcessTemperature` | Not assigned | Physical IO-Link port/channel/address, PLC tag, HMI tag/binding, range and scaling |
-
-P4 (`PT-SPARE`) is an intentional spare port and is not a backlog defect. It
-remains `NOT USED / SPARE` until an approved hardware change assigns it. P8 is
-assigned to the IFM AL2330 stack-light output hub and is not part of the
-missing-configuration backlog.
+| Port | Function | Logical PLC reference | HMI tag | Pending engineering confirmation |
+| --- | --- | --- | --- | --- |
+| X1 | Product Presence | `DB_Global.AL102Process.X1ProductPresence` | `AL102_X1_Product_Presence` | Address, device, polarity and end-to-end test |
+| X2 | Product Temperature | `DB_Global.AL102Process.X2ProductTemperature` | `AL102_X2_Product_Temperature` | Address, device, scaling and unit |
+| X3 | Vacuum Sensor | `DB_Global.AL102Process.X3Vacuum` | `AL102_X3_Vacuum` | Address, device, scaling and unit |
+| X4 | Distributor Anti-Rotation | `DB_Global.AL102Process.X4AntiRotationHealthy` | `AL102_X4_AntiRotation_Healthy` | Address, polarity, diagnostic state and stop test |
+| X5 | Tank Level | `DB_Global.AL102Process.X5TankLevel` | `AL102_X5_Tank_Level` | Address, device, scaling and unit |
+| X6 | Filler Zero Position – Valve #1 | `DB_Global.AL102Process.X6Valve1Reference` | `AL102_X6_Valve1_Reference` | Address, polarity and positioning proof |
+| X7 | CIP Presence / Engaged | `DB_Global.AL102Process.X7CIPPresenceEngaged` | `AL102_X7_CIP_Presence` | Address, polarity and independent safety validation |
+| X8 | Spare | — | validity only | Confirm unused |
 
 ### Completion criteria
 
 An AL102 entry may be closed only after:
 
 1. the installed instrument and physical IO-Link port/channel are confirmed;
-2. the PLC source tag, datatype, engineering range, scaling and unit are
-   approved;
+2. polarity, datatype, engineering range, scaling and unit are approved;
 3. the corresponding HMI tag and read-only screen binding are configured;
 4. communication quality and bad/offline behavior are validated;
-5. the HMI displays the real value without substituting static or simulated
-   data;
-6. the screen is saved, compiled where resource conditions allow, and verified
+5. the HMI displays the real value without substituting static or simulated data;
+6. X7 is validated as an independent safety interlock preventing rotation;
+7. the screen is saved, compiled where resource conditions allow, and verified
    without overlap or duplicate legacy objects.
 
 ## IO-Link AL104 — customer CIP interface
@@ -116,29 +111,25 @@ This entry may be closed only after:
 4. the HMI wording is updated from `MISSING CONFIG` only after the mapping is
    proven and documented.
 
-## Digital outputs — SMC manifold physical mapping
+## SMC 125Y1–125Y7 — logical positions complete, physical mapping open
 
-- Screen: `settings_outputs`
+- Screen: `smc_diagnostics`
 - Status: Open
-- HMI presentation: communication-gated logical command states
-  (`COMMAND ON`, `COMMAND OFF`, or `NO DATA`) and an explicit
-  `MISSING CONFIG` hold point
+- HMI presentation: read-only pneumatic target states and an explicit physical
+  mapping hold point
 - Runtime expectation: Going online may update the logical PLC command tags,
   but it does not prove that the physical SMC manifold bit/channel actuates the
   intended valve or gate.
 
-| Station / bit | Function | Existing HMI indication | Pending confirmation |
+| Station | Production pneumatic target | HMI indication | Pending confirmation |
 | --- | --- | --- | --- |
-| `125Y1 / %Q128.0` | `EV010` product inlet | `SMC_EV010_Active` | Cable, coil and end-to-end actuation |
-| `125Y2 / %Q128.2` | `EV011` product shutoff | `SMC_EV011_Active` | Cable, coil and end-to-end actuation |
-| `125Y3 / %Q128.4` | `EV210` vacuum after pump | `SMC_EV210_Active` | Cable, coil and end-to-end actuation |
-| `125Y4 / %Q128.6` | `EV211` vacuum in pump | `SMC_EV211_Active` | Cable, coil and end-to-end actuation |
-| `125Y5 / %Q129.0` | `EV212` vacuum before pump | `SMC_EV212_Active` | Cable, coil and end-to-end actuation |
-| `125Y6 / %Q129.2` | `EV220` cap distributor air | `SMC_EV220_Active` | Cable, coil and end-to-end actuation |
-| `125Y7 / %Q129.4` | `EV221` cap channel air | `SMC_EV221_Active` | Cable, coil and end-to-end actuation |
-| `125Y8 / %Q129.6` | Bottle-wash pneumatic enable | `SMC_Bottle_External_Wash_Active` | Cable, coil and end-to-end actuation |
-| `125Y9 / %Q130.0-.1` | `EV001` gate open/close | `SMC_EV001_Open_Active`, `SMC_EV001_Close_Active` | Both coils, interlock and `%I0.5/%I0.6` feedback |
-| `125Y10 / %Q130.2-.3` | Spare double-solenoid | Spare indication only | Confirm both bits remain `FALSE` |
+| `125Y1` | OPEN | `SMC_125Y1_Desired_Open` | Anybus bit, coil polarity and actuation proof |
+| `125Y2` | OPEN | `SMC_125Y2_Desired_Open` | Anybus bit, coil polarity and actuation proof |
+| `125Y3` | CLOSED | `SMC_125Y3_Desired_Open` | Anybus bit, coil polarity and actuation proof |
+| `125Y4` | CLOSED | `SMC_125Y4_Desired_Open` | Anybus bit, coil polarity and actuation proof |
+| `125Y5` | CLOSED | `SMC_125Y5_Desired_Open` | Anybus bit, coil polarity and actuation proof |
+| `125Y6` | OPEN; close only after valid pump-stopped feedback on level pause | `SMC_125Y6_Desired_Open` / `SMC_125Y6_Held_For_Pump_Stop` | Anybus bit, coil polarity and end-to-end stop sequence |
+| `125Y7` | CLOSED | `SMC_125Y7_Desired_Open` | Anybus bit, coil polarity and actuation proof |
 
 ### Completion criteria
 

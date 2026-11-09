@@ -51,6 +51,10 @@ VAR_INPUT
     ConveyorDriveCommFault : Bool;
     ProductPumpCommFault   : Bool;
     CapDriveCommFault      : Bool;
+    DistributorAntiRotationFault : Bool;
+    CIPConnectedBeforePosition   : Bool;
+    CIPPresenceLost              : Bool;
+    CIPSafetyInterlockNotValidated : Bool;
 END_VAR
 VAR_OUTPUT
     CriticalAlarm       : Bool;
@@ -116,6 +120,10 @@ BEGIN
     AlarmWord2.%X21 := ConveyorDriveCommFault;  // 1607 bottle-conveyor VSD communication
     AlarmWord2.%X22 := ProductPumpCommFault;    // 1608 product-pump VSD communication
     AlarmWord2.%X23 := CapDriveCommFault;        // 1609 cap-distributor VSD communication
+    AlarmWord2.%X24 := DistributorAntiRotationFault; // 2252 X4 anti-rotation trip
+    AlarmWord2.%X25 := CIPConnectedBeforePosition;   // 2253 X7 connected before X6 reference
+    AlarmWord2.%X26 := CIPPresenceLost;               // 2254 X7 lost during CIP
+    AlarmWord2.%X27 := CIPSafetyInterlockNotValidated; // 2255 commissioning hold
 
     CriticalAlarm :=
         NOT SafetyOK OR NOT EStopChain24VHealthy OR NOT AirPressureOK OR NOT EncoderHealthy OR
@@ -129,10 +137,12 @@ BEGIN
         CIPInvalidState OR AL104CommFault OR CIPRecipeInvalid;
     CriticalAlarm := CriticalAlarm OR CapDistributorNoPulseFault OR MainDriveMechanicalJam
                      OR MainDriveCommFault OR ConveyorDriveCommFault
-                     OR ProductPumpCommFault OR CapDriveCommFault;
+                     OR ProductPumpCommFault OR CapDriveCommFault
+                     OR DistributorAntiRotationFault
+                     OR CIPConnectedBeforePosition OR CIPPresenceLost;
 
     WarningAlarm := Hood1FilterClogged OR AirFilterFault OR Hood2FilterClogged OR PumpLowWarning
                     OR ProductLevelNotReached OR CIPStartBlocked OR
                     CapHopperLow OR CapChannelDemand OR BottleShortage1Active OR Accumulation1Active OR
-                    CIPNextRejected;
+                    CIPNextRejected OR CIPSafetyInterlockNotValidated;
 END_FUNCTION_BLOCK
