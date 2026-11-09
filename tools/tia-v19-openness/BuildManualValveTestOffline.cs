@@ -32,11 +32,13 @@ namespace Schlenker.TiaV19
 
         private static int Main(string[] args)
         {
-            if (args.Length != 5)
+            if (args.Length < 5 || args.Length > 6 ||
+                (args.Length == 6 && !args[5].Equals("--hmi-only", StringComparison.OrdinalIgnoreCase)))
             {
-                Console.Error.WriteLine("Usage: BuildManualValveTestOffline <exact-ap19> <tag-csv> <report> <valve-manager-source> <application-source>");
+                Console.Error.WriteLine("Usage: BuildManualValveTestOffline <exact-ap19> <tag-csv> <report> <valve-manager-source> <application-source> [--hmi-only]");
                 return 2;
             }
+            bool hmiOnly = args.Length == 6;
             string projectPath = Path.GetFullPath(args[0]);
             string csvPath = Path.GetFullPath(args[1]);
             string reportPath = Path.GetFullPath(args[2]);
@@ -62,19 +64,42 @@ namespace Schlenker.TiaV19
                     DeviceItem hmiItem;
                     HmiSoftware hmi = FindUnifiedHmi(project, out hmiDevice, out hmiItem);
                     if (hmi == null || hmiItem == null) throw new InvalidOperationException("Unified HMI not found.");
-                    PlcSoftware plc = FindPlc(project);
-                    if (plc == null) throw new InvalidOperationException("PLC software not found.");
+                    PlcSoftware plc = hmiOnly ? null : FindPlc(project);
+                    if (!hmiOnly && plc == null) throw new InvalidOperationException("PLC software not found.");
                     report.WriteLine("SCHLENKER MANUAL VALVE TEST OFFLINE BUILD");
                     report.WriteLine("Project=" + project.Path.FullName);
                     report.WriteLine("PortalMode=" + (ownsProject ? "WITHOUT_USER_INTERFACE" : "ATTACHED_EXACT_PROJECT"));
                     report.WriteLine("OnlineApisUsed=NO");
                     report.WriteLine("DownloadOrTransferApisUsed=NO");
+                    report.WriteLine("Mode=" + (hmiOnly ? "HMI_ONLY" : "HMI_AND_PLC"));
 
-                    MethodInfo tagImporter = typeof(BuildUnifiedHomeScreen).GetMethod(
-                        "EnsureHmiTags", BindingFlags.NonPublic | BindingFlags.Static);
-                    if (tagImporter == null) throw new MissingMethodException("EnsureHmiTags not found.");
-                    tagImporter.Invoke(null, new object[] { hmi, csvPath });
-                    report.WriteLine("TagsRefreshedFromCsv=YES");
+                    if (hmiOnly)
+                    {
+                        string[] requiredExistingTags = CommandTags.Concat(new[]
+                        {
+                            "Gate_Manual_TestEnable", "Machine_SafetyOK",
+                            "Machine_Manual_Active", "Network_SMC_OK",
+                            "Alarm_Word1", "Alarm_Word2"
+                        }).ToArray();
+                        string[] missingTags = requiredExistingTags.Where(tagName =>
+                            !hmi.TagTables.SelectMany(table => table.Tags).Any(tag =>
+                                tag.Name.Equals(tagName, StringComparison.OrdinalIgnoreCase)))
+                            .ToArray();
+                        if (missingTags.Length != 0)
+                            throw new InvalidOperationException(
+                                "Required existing HMI tags are missing: " +
+                                String.Join(", ", missingTags));
+                        report.WriteLine("TagsRefreshedFromCsv=NO_HMI_ONLY");
+                        report.WriteLine("ExistingHmiTagsValidated=" + requiredExistingTags.Length);
+                    }
+                    else
+                    {
+                        MethodInfo tagImporter = typeof(BuildUnifiedHomeScreen).GetMethod(
+                            "EnsureHmiTags", BindingFlags.NonPublic | BindingFlags.Static);
+                        if (tagImporter == null) throw new MissingMethodException("EnsureHmiTags not found.");
+                        tagImporter.Invoke(null, new object[] { hmi, csvPath });
+                        report.WriteLine("TagsRefreshedFromCsv=YES");
+                    }
 
                     MethodInfo builder = typeof(BuildUnifiedHomeScreen).GetMethod(
                         "BuildManualValveTest", BindingFlags.NonPublic | BindingFlags.Static);
@@ -119,30 +144,43 @@ namespace Schlenker.TiaV19
                     report.WriteLine("RetiredFillerWashTagsDeleted=3_OR_ALREADY_ABSENT");
                     Audit(hmi, report);
 
-                    foreach (string sourcePath in plcSources)
+                    if (!hmiOnly)
                     {
-                        if (!File.Exists(sourcePath))
-                            throw new FileNotFoundException("PLC source not found.", sourcePath);
-                        string sourceName = Path.GetFileName(sourcePath);
-                        PlcExternalSource existing = plc.ExternalSourceGroup.ExternalSources.Find(sourceName);
-                        if (existing != null) existing.Delete();
-                        PlcExternalSource source = plc.ExternalSourceGroup.ExternalSources.CreateFromFile(
-                            sourceName, sourcePath);
-                        source.GenerateBlocksFromSource();
-                        report.WriteLine("PLCSourceGenerated=" + sourceName);
+                        foreach (string sourcePath in plcSources)
+                        {
+                            if (!File.Exists(sourcePath))
+                                throw new FileNotFoundException("PLC source not found.", sourcePath);
+                            string sourceName = Path.GetFileName(sourcePath);
+                            PlcExternalSource existing = plc.ExternalSourceGroup.ExternalSources.Find(sourceName);
+                            if (existing != null) existing.Delete();
+                            PlcExternalSource source = plc.ExternalSourceGroup.ExternalSources.CreateFromFile(
+                                sourceName, sourcePath);
+                            source.GenerateBlocksFromSource();
+                            report.WriteLine("PLCSourceGenerated=" + sourceName);
+                        }
                     }
 
-                    CompilerResult plcResult = plc.GetService<ICompilable>().Compile();
-                    report.WriteLine("PlcRootErrors=" + plcResult.ErrorCount);
-                    report.WriteLine("PlcRootWarnings=" + plcResult.WarningCount);
-                    WriteMessages(plcResult.Messages, report, "  ");
+                    CompilerResult plcResult = null;
+                    if (!hmiOnly)
+                    {
+                        plcResult = plc.GetService<ICompilable>().Compile();
+                        report.WriteLine("PlcRootErrors=" + plcResult.ErrorCount);
+                        report.WriteLine("PlcRootWarnings=" + plcResult.WarningCount);
+                        WriteMessages(plcResult.Messages, report, "  ");
+                    }
+                    else
+                    {
+                        report.WriteLine("PlcCompile=SKIPPED_HMI_ONLY");
+                    }
 
                     ICompilable compilable = hmiItem.GetService<ICompilable>() ?? hmiDevice.GetService<ICompilable>();
                     CompilerResult result = compilable.Compile();
                     report.WriteLine("RootErrors=" + result.ErrorCount);
                     report.WriteLine("RootWarnings=" + result.WarningCount);
                     WriteMessages(result.Messages, report, "  ");
-                    if (plcResult.ErrorCount == 0 && result.ErrorCount == 0)
+                    bool compilePassed = result.ErrorCount == 0 &&
+                        (hmiOnly || plcResult.ErrorCount == 0);
+                    if (compilePassed)
                     {
                         project.Save();
                         report.WriteLine("SaveInvoked=YES");
@@ -155,13 +193,13 @@ namespace Schlenker.TiaV19
                     }
                     Console.WriteLine("ERRORS=" + result.ErrorCount);
                     Console.WriteLine("WARNINGS=" + result.WarningCount);
-                    Console.WriteLine("PLC_ERRORS=" + plcResult.ErrorCount);
-                    Console.WriteLine("PLC_WARNINGS=" + plcResult.WarningCount);
+                    Console.WriteLine("PLC_ERRORS=" + (hmiOnly ? "SKIPPED" : plcResult.ErrorCount.ToString()));
+                    Console.WriteLine("PLC_WARNINGS=" + (hmiOnly ? "SKIPPED" : plcResult.WarningCount.ToString()));
                     Console.WriteLine("REPORT=" + reportPath);
-                    Console.WriteLine("STATUS=" + (plcResult.ErrorCount == 0 && result.ErrorCount == 0
+                    Console.WriteLine("STATUS=" + (compilePassed
                         ? "PASS" : "FAIL_NOT_SAVED"));
                     if (ownsProject) project.Close();
-                    return plcResult.ErrorCount == 0 && result.ErrorCount == 0 ? 0 : 1;
+                    return compilePassed ? 0 : 1;
                 }
             }
             catch (TargetInvocationException exception)
