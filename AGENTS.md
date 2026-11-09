@@ -63,6 +63,10 @@ only and does not satisfy a new run.
 ## Computer Use workflow
 
 - Use the installed `computer-use` skill and its official wrapper.
+- The operator adopted the exact-hash Windows 10 capture workaround on
+  2026-11-10. See `docs/COMPUTER_USE_WINDOWS10_WORKAROUND.md` for verified
+  hashes, local backup/rollback and limitations. It does not relax any
+  engineering, target-selection or device-write rule.
 - Select TIA Portal V19 only from objects returned by Computer Use and require
   one unique target window before acting.
 - Treat accessibility observation, visual observation, and persisted screenshot
