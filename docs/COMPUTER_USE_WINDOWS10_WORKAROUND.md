@@ -34,4 +34,23 @@ Detailed local evidence: `runs/2026-11-10-computer-use-runtime-recovery/report.m
 
 ## Subsequent TIA verification
 
+### Windows path arguments in the JavaScript wrapper
+
+On 2026-11-10 a later restart failed with `ShellExecuteW returned 2` even
+though the TIA executable existed. A path typed as a JavaScript string with
+single backslashes lost separators; a dated path also raised an octal-escape
+parse error. Construct paths without ambiguous literal escapes, for example:
+
+```javascript
+const tiaPath = 'C:/Program Files/SIEMENS/Automation/Portal V19/Bin/Siemens.Automation.Portal.exe'
+  .replaceAll('/', String.fromCharCode(92));
+```
+
+The corrected argument launched TIA, and the approved recovery copy and new
+SMC source were subsequently opened/imported through the official GUI wrapper.
+This identifies a caller-side path error; it does not prove that every earlier
+stale-input or capture symptom had the same cause. Verify the exact visible
+file path before confirming a file dialog. No helper binary change was needed
+for this correction.
+
 On 2026-11-10, TIA Portal V19 capture and coordinate input succeeded during read-only discovery of 12 workshop devices. See [network discovery record](TIA_NETWORK_DISCOVERY_2026-11-10.md) for observed addresses and limitations. This establishes the tested TIA capture/navigation path, not full engineering validation or reboot persistence.
