@@ -273,7 +273,7 @@ Ancora da chiudere:
 | 6 | EV230 | WAITING FOR TM COUNT | TO/modulo/canale fast DQ, angolo/offset, tolleranza, pulse duration, scaling, safe polarity, single-pulse test |
 | 7 | ABC3113-A | CONFIGURED / TEST PENDING | GSDML e immagine output 4 byte `%QD128` presenti; restano firmware/config export, byte order, watchdog e prova reale |
 | 8 | EX260-SEC1 | SOFTWARE MAP COMPLETE / TEST PENDING | REV03 definisce Output 0…19 e riserve; restano ESI/config export, firmware e comportamento reale su perdita comunicazione |
-| 9 | Valve 01–10 | SOFTWARE MAP COMPLETE / TEST PENDING | 125Y1…125Y9 assegnate; 125Y10 spare; restano cavo/solenoide e prova end-to-end |
+| 9 | Valve 125Y1–125Y11 | MISSING CONFIG / NATIVE UPDATE PENDING | Numerazione confermata il 2026-11-10; Y10 Cap Opening, non spare. Canali bobine, doppio caricamento e gateway da verificare; vedere REV12/Documentation/SMC_FINAL_NUMBERING_2026-11-10.md |
 | 10 | Pilz | WAITING FOR PILZ PROJECT | GSDML/module, device name/IP, raw byte map, DataValid/watchdog, aggregate and individual diagnostics realmente esportati |
 | 11 | AL100–AL104 | WAITING FOR TIA HARDWARE | 5 AL1403, device names/IP, GSDML, port modes, IODD, process data, polarity/scaling, diagnostics |
 | 12 | Customer CIP | WAITING FOR CUSTOMER INTERFACE | 24 VDC PNP o dry contacts, relays, request/feedback map, handshake, timeout, fault ownership |

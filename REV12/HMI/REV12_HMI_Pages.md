@@ -47,8 +47,10 @@
    - Controls are active only in Manual with engineer permission and this page visible
    - `OPEN MANUAL VALVE TEST` opens the complete EV-based valve-test interface
    - Valve-test commands are momentary and are cleared when leaving Manual
-   - Bottle External Washing is controllable through `%Q129.6`
-   - 125Y10-A/B (`%Q130.2` / `%Q130.3`) is displayed as spare and has no HMI command
+   - Final numbering source update (2026-11-10): 125Y8 Cap Distributor Air; 125Y9 Infeed Gate Open; 125Y10 Cap Opening; 125Y11 External Washing
+   - 125Y9 and 125Y10 use one opening coil with spring return; no separate closing command
+   - The Manual Valve Test builder and recovered native screen hold the unverified Y8/Y9/Y11 command buttons disabled and show Y10 as MISSING CONFIG; native WinCC Unified rebuild completed with 0 errors / 0 warnings on 2026-11-10 (see `../../docs/TIA_RECOVERY_SMC_NATIVE_2026-11-10.md`)
+   - Historical `%Q129.6` washing and `%Q130.2`/`%Q130.3` spare assignments are not verified final physical assignments. See `../Documentation/SMC_FINAL_NUMBERING_2026-11-10.md`
 19. REV12.1 Home Process Commands
    - External bottle wash valve status
    - Gate OFF / Gate ON maintained automatic admission request

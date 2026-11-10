@@ -1,5 +1,24 @@
 # HMI Missing Configuration Backlog
 
+## SMC final station numbering — 2026-11-10 source update
+
+Operator confirmed stations 125Y1–125Y11 only. Y8 is Cap Distributor Air,
+Y9 Infeed Gate Open, Y10 Cap Opening and Y11 External Washing. Y9/Y10 are
+single-coil spring-return functions. The inherited REV03 bit allocation is
+not a verified match to these physical station identities. Preserve the
+dual-loading double-solenoid arrangement pending coil evidence.
+
+MISSING CONFIG remains open: installed coil A/B order, gateway EtherCAT PDO
+mapping, byte order, physical output assignments, communication-loss behavior
+and the Y10 command sequence are unresolved. No configuration-complete flag
+has been forced. This indicator is not itself an output interlock. Source
+corrections have now been applied to a recovered native work copy: PLC software
+rebuild 0/0, PLC hardware rebuild 0/8, WinCC Unified rebuild 0/0. Y8/Y9/Y11
+test-page buttons remain disabled and Y10 has no assigned operational command.
+The new repository SMC125 metadata members remain source-only. See
+[native recovery report](TIA_RECOVERY_SMC_NATIVE_2026-11-10.md).
+See [mapping and validation report](../REV12/Documentation/SMC_FINAL_NUMBERING_2026-11-10.md).
+
 This backlog records HMI items that intentionally remain marked as
 `MISSING CONFIG`. An entry identifies an incomplete or unverified engineering
 integration; it does not by itself mean that the PLC logic is faulty.

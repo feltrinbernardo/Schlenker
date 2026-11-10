@@ -1357,11 +1357,24 @@ BEGIN
         SMCBottleWashCmd := "DB_Global".Out.ExternalBottleWashValveCmd;
     END_IF;
 
-    // REV03: 125Y10 is the spare VQC1200 station.  Retain the legacy DB
-    // members for interface compatibility, but never turn them into an
-    // Anybus output request or an HMI active indication.
+    // Final numbering: 125Y10 is Cap Opening, not a spare or filler wash.
+    // Its coil channel and command sequence remain unverified. Retain the
+    // old filler-wash members for compatibility; do not repurpose their outputs.
     "DB_Global".Cmd.SMCFillerExternalWashManual := FALSE;
     "DB_Global".Out.FillerExternalWashValveCmd := FALSE;
+
+    // Owner-confirmed station legend, separate from the inherited output-bit map:
+    // 125Y1 Infeed Vacuum; 125Y2 Vacuum; 125Y3 Drainage;
+    // 125Y4 Return Dummy Bottle CIP; 125Y5 Bypass; 125Y6 Infeed Product;
+    // 125Y7 Spray CIP; 125Y8 Cap Distributor Air; 125Y9 Infeed Gate Open;
+    // 125Y10 Cap Opening; 125Y11 External Washing. There is no 125Y12.
+    // The inherited EV request paths are not proof of the final physical
+    // associations. No production behavior, member or output is reassigned here.
+    // Do not infer EX260 channels from station numbers or change dual-loading coils.
+    "DB_Global".SMC125.Y8AirRequest := SMCCapDistributorCmd;
+    "DB_Global".SMC125.Y9OpenRequest := GateFinalOpenCmd;
+    "DB_Global".SMC125.Y10OpenRequest := FALSE; // MISSING CONFIG: no approved command/channel
+    "DB_Global".SMC125.Y11WashRequest := SMCBottleWashCmd;
 
     ValveManager(
         // The bench exception is valid only while every manual SMC test

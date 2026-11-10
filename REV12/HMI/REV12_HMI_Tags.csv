@@ -174,7 +174,7 @@ Bottle_Tracking_Valid,DB_Global.Machine.TrackingValid,Bool,Read,Home,Encoder-bas
 Bottle_Tracking_Count,DB_Global.OpenPoints.Tracking.Count,USInt,Read,Home,Active records in the commissioned encoder-based bottle tracker; display is gated by Bottle_Tracking_Valid
 Bottle_Admission_Complete,DB_Global.Inp.BottleAdmissionComplete,Bool,Read,Production,Admission controller complete handshake; commissioning mapping required
 Product_Present_At_Pump,DB_Global.Inp.ProductPresentAtPump,Bool,Read,Product Pump,IFM LMT100 OUT1 mapped offline from SPL100_LMT100_ProcessData %IW324 bit 0; PLC download and wet/dry polarity test pending
-External_Wash_Valve,DB_Global.Out.ExternalBottleWashValveCmd,Bool,Read,Home,Bottle External Washing automatic request; physically assigned to Q129.6
+External_Wash_Valve,DB_Global.Out.ExternalBottleWashValveCmd,Bool,Read,Home,Legacy Bottle External Washing automatic request; association to 125Y11 and physical PLC/Anybus/SMC output remain unverified
 Gate_Auto_Request_Enable,DB_Global.Cmd.GateAutoRequestEnable,Bool,ReadWrite,Home,Maintained Gate OFF/ON sequence request
 Gate_Auto_State,DB_Global.AutoGateRequest.State,USInt,Read,Home,Automatic gate-request sequence state
 Gate_Auto_Active,DB_Global.AutoGateRequest.Active,Bool,Read,Home,Automatic gate-request sequence active
@@ -223,7 +223,7 @@ Valve_213_Cmd,DB_Global.Out.Valve213Cmd,Bool,Read,Production,Logical valve 213 c
 Valve_212_Cmd,DB_Global.Out.Valve212Cmd,Bool,Read,Production,Logical vacuum valve 212 command; physical output mapping must be confirmed
 Valve_247_Cmd,DB_Global.Out.Valve247Cmd,Bool,Read,CIP,Logical discharge valve 247 command; physical output mapping must be confirmed
 Gate_Open_Output,DB_Global.Out.GateOpen,Bool,Read,Production,Final interlocked bottle-gate open command
-Gate_Close_Output,DB_Global.Out.GateClose,Bool,Read,Production,Final interlocked bottle-gate close command
+Gate_Close_Output,DB_Global.Out.GateClose,Bool,Read,Legacy compatibility,Retired separate gate-close state forced FALSE in revised source; native application pending
 CIP_Forced_Gate_Closed,DB_Global.Machine.CIPActive,Bool,Read,CIP,CIP mode forces bottle infeed gate closed
 CIP_Step,DB_Global.CIP.Step,USInt,Read,CIP,CIP vacuum and circulation sequence step
 CIP_Medium,DB_Global.CIP.Medium,USInt,Read,CIP,Active CIP medium code
@@ -277,7 +277,7 @@ DO_Conveyor_Run,DB_Global.Out.ConveyorRun,Bool,Read,Settings Outputs,M101 - Bott
 DO_ProductPump_Run,DB_Global.Out.ProductPumpRun,Bool,Read,Settings Outputs,M102 - Product pump run command - Product circuit
 DO_CapDrive_Run,DB_Global.Out.CapDriveRun,Bool,Read,Settings Outputs,Cap drive run command - Capper
 DO_Gate_Open,DB_Global.Out.GateOpen,Bool,Read,Settings Outputs,EV001 - Infeed gate OPEN logical command - physical VQC station TBC
-DO_Gate_Close,DB_Global.Out.GateClose,Bool,Read,Settings Outputs,EV001 - Infeed gate CLOSE logical command - physical VQC station TBC
+DO_Gate_Close,DB_Global.Out.GateClose,Bool,Read,Legacy compatibility,125Y9 spring return - no separate closing coil; retained diagnostic reference only
 DO_Filler_Up,DB_Global.Out.FillerUp,Bool,Read,Settings Outputs,Filler lift UP command - Filler
 DO_Filler_Down,DB_Global.Out.FillerDown,Bool,Read,Settings Outputs,Filler lift DOWN command - Filler
 DO_Capper_Up,DB_Global.Out.CapperUp,Bool,Read,Settings Outputs,Capper lift UP command - Capper

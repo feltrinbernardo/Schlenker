@@ -1,5 +1,12 @@
 # SMC EX260 complete output mapping — REV03
 
+> HISTORICAL / SUPERSEDED FOR STATION IDENTITIES: operator confirmation on
+> 2026-11-10 establishes 125Y1–125Y11, including Y8 distributor air, Y9 gate,
+> Y10 cap opening and Y11 external washing. The table below is retained as
+> historical evidence, not an approved wiring table. See
+> [current verification](SMC_FINAL_NUMBERING_2026-11-10.md). Final coil/channel
+> allocation and the dual-loading arrangement still require verification.
+
 REV03 supersedes the 2026-09-24 and 2026-09-26 REV02 mappings. It implements
 the approved 2026-09-27 complete SMC output allocation. This revision removes
 the former Filler External Washing assignment from 125Y10-A and reserves both

@@ -13368,7 +13368,7 @@ namespace Schlenker.TiaV19
             ConfigureRectangle(GetOrCreate<HmiRectangle>(screen, "REV12_Common_Status_Bar"),
                 0, 72, 1280, 48, PaleBlue, Border, 1);
             ConfigureText(GetOrCreate<HmiText>(screen, "REV12_Common_Page_Label"),
-                735, 81, 380, 30, "MANUAL VALVE TEST", Dark, 15,
+                735, 81, 190, 30, "MANUAL VALVE TEST", Dark, 15,
                 HmiFontWeight.Bold, HmiHorizontalAlignment.Right);
             // Rebuild the generated valve-test content as one layer. Reusing the
             // old 1366-wide cards left hidden duplicates and clipped the right column.
@@ -13406,39 +13406,50 @@ namespace Schlenker.TiaV19
                 825, 143, 135, 34, "TEST ENABLE OFF", Grey, "Gate_Manual_TestEnable", 0);
             ConfigureWriteButton(GetOrCreate<HmiButton>(screen, "REV50_ValveTest_EnableOn"),
                 970, 143, 145, 34, "ENABLE VALVE TEST", Amber, "Gate_Manual_TestEnable", 1);
-            ConfigureText(GetOrCreate<HmiText>(screen, "REV50_ValveTest_Instruction"),
+            ConfigureText(GetOrCreate<HmiText>(screen, "REV50_ValveTest_MappingTbc_Note"),
                 45, 187, 1070, 38,
-                "Enable the test, then press and hold one valve command. Releasing the button or leaving MANUAL clears the request.",
-                Dark, 13, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+                "MISSING CONFIG - Physical coil/channel and gateway mapping pending. Manual valve commands remain disabled.",
+                Amber, 13, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
 
-            AddManualValveTestCard(screen, "EV001Open", 25, 255,
-                "INFEED GATE  |  SINGLE OPENING COIL", "SMC_EV001_Open_Manual", "SMC_EV001_Open_Active");
-            AddManualValveTestCard(screen, "EV010", 395, 255,
-                "EV010  |  PRODUCT INLET", "SMC_EV010_Manual", "SMC_EV010_Active");
-            AddManualValveTestCard(screen, "EV011", 765, 255,
-                "EV011  |  PRODUCT CLOSE", "SMC_EV011_Manual", "SMC_EV011_Active");
-            AddManualValveTestCard(screen, "EV210", 25, 365,
-                "EV210  |  VACUUM AFTER PUMP", "SMC_EV210_Manual", "SMC_EV210_Active");
-            AddManualValveTestCard(screen, "EV211", 395, 365,
-                "EV211  |  VACUUM IN PUMP", "SMC_EV211_Manual", "SMC_EV211_Active");
-            AddManualValveTestCard(screen, "EV212", 765, 365,
-                "EV212  |  VACUUM BEFORE PUMP", "SMC_EV212_Manual", "SMC_EV212_Active");
-            AddManualValveTestCard(screen, "EV220", 25, 475,
-                "EV220  |  CAP DISTRIBUTOR AIR", "SMC_EV220_Manual", "SMC_EV220_Active");
-            AddManualValveTestCard(screen, "BottleExternalWash", 395, 475,
-                "BOTTLE EXTERNAL WASHING", "SMC_Bottle_External_Wash_Manual",
+            // Function labels are confirmed separately from physical channel mapping.
+            // Preserve the existing request/status bindings while ordering stations.
+            AddManualValveTestCard(screen, "EV010", 25, 255,
+                "125Y1 | Infeed Vacuum", "SMC_EV010_Manual", "SMC_EV010_Active");
+            AddManualValveTestCard(screen, "EV011", 395, 255,
+                "125Y2 | Vacuum", "SMC_EV011_Manual", "SMC_EV011_Active");
+            AddManualValveTestCard(screen, "EV210", 765, 255,
+                "125Y3 | Drainage", "SMC_EV210_Manual", "SMC_EV210_Active");
+            AddManualValveTestCard(screen, "EV211", 25, 365,
+                "125Y4 | Return Dummy Bottle CIP", "SMC_EV211_Manual", "SMC_EV211_Active");
+            AddManualValveTestCard(screen, "EV212", 395, 365,
+                "125Y5 | Bypass", "SMC_EV212_Manual", "SMC_EV212_Active");
+            // Y6/Y7 functions are owner-confirmed; command/output mapping remains pending.
+            // Keep these cards unbound rather than inventing request tags or outputs.
+            foreach (int station in new[] { 6, 7 })
+            {
+                int left = station == 6 ? 765 : 25;
+                int top = station == 6 ? 365 : 475;
+                string prefix = "REV50_ValveTest_Y" + station;
+                HmiRectangle identityCard = GetOrCreate<HmiRectangle>(screen, prefix + "_Card");
+                ConfigureRectangle(identityCard, left, top, 350, 100, Panel, Border, 1);
+                identityCard.Enabled = false;
+                HmiText identityTitle = GetOrCreate<HmiText>(screen, prefix + "_Title");
+                ConfigureText(identityTitle, left + 15, top + 9, 320, 25,
+                    station == 6 ? "125Y6 | Infeed Product" : "125Y7 | Spray CIP",
+                    Dark, 13, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+                identityTitle.Enabled = false;
+                HmiText identityNote = GetOrCreate<HmiText>(screen, prefix + "_Config_Note");
+                ConfigureText(identityNote, left + 15, top + 43, 320, 42,
+                    "MISSING CONFIG", Amber, 13, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+                identityNote.Enabled = false;
+            }
+            AddManualValveTestCard(screen, "EV220", 395, 475,
+                "125Y8 | Cap Distributor Air", "SMC_EV220_Manual", "SMC_EV220_Active");
+            AddManualValveTestCard(screen, "EV001Open", 765, 475,
+                "125Y9 | Infeed Gate Open", "SMC_EV001_Open_Manual", "SMC_EV001_Open_Active");
+            AddManualValveTestCard(screen, "BottleExternalWash", 395, 585,
+                "125Y11 | External Washing", "SMC_Bottle_External_Wash_Manual",
                 "SMC_Bottle_External_Wash_Active");
-            ConfigureRectangle(GetOrCreate<HmiRectangle>(screen,
-                "REV50_ValveTest_MappingTbc_Card"),
-                765, 475, 350, 100, Panel, Amber, 2);
-            ConfigureText(GetOrCreate<HmiText>(screen,
-                "REV50_ValveTest_MappingTbc_Title"),
-                780, 486, 320, 25, "PHYSICAL 125Y MAPPING", Amber, 13,
-                HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
-            ConfigureText(GetOrCreate<HmiText>(screen,
-                "REV50_ValveTest_MappingTbc_Note"),
-                780, 520, 320, 42, "MISSING CONFIG — verify photo, coil and PLC address before enabling outputs.",
-                Dark, 11, HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
             HideItem(screen, "REV50_ValveTest_FillerWash_Card");
             HideItem(screen, "REV50_ValveTest_FillerWash_Title");
             HideItem(screen, "REV50_ValveTest_FillerWash_StatusBack");
@@ -13448,17 +13459,41 @@ namespace Schlenker.TiaV19
                 25, 585, 350, 100, Panel, Border, 1);
             ConfigureText(GetOrCreate<HmiText>(screen,
                 "REV50_ValveTest_FillerExternalWash_Title"),
-                40, 594, 320, 25, "125Y10  |  SPARE DOUBLE-SOLENOID", Dark, 13,
+                40, 594, 320, 25, "125Y10 | Cap Opening", Dark, 13,
                 HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
             HideItem(screen, "REV50_ValveTest_FillerExternalWash_Command");
             HideItem(screen, "REV41_MANUAL_ValveOutputFillerExternalWash_Back");
             HideItem(screen, "REV41_MANUAL_ValveOutputFillerExternalWash_Text");
-            ConfigureText(GetOrCreate<HmiText>(screen, "REV50_ValveTest_Y10Spare_Note"),
-                40, 630, 320, 38, "Q130.2 / Q130.3 FORCED OFF - NO COMMAND", Grey, 11,
+            ConfigureText(GetOrCreate<HmiText>(screen, "REV50_ValveTest_Y10Config_Note"),
+                40, 630, 320, 42, "MISSING CONFIG: single opening coil, spring return. Channel / command pending.", Amber, 11,
                 HmiFontWeight.Bold, HmiHorizontalAlignment.Left);
+            // Numbering confirms function, not the inherited physical bit address.
+            // Keep bound requests visible but inoperable until their mapping is verified.
+            foreach (string suffix in new[]
+            {
+                "EV001Open", "EV010", "EV011", "EV210", "EV211", "EV212",
+                "EV220", "BottleExternalWash"
+            })
+            {
+                HmiButton heldCommand = screen.ScreenItems.Find(
+                    "REV50_ValveTest_" + suffix + "_Command") as HmiButton;
+                if (heldCommand == null) throw new InvalidOperationException("Missing held valve command.");
+                heldCommand.Enabled = false;
+                SetText(heldCommand.Text, "MISSING CONFIG");
+            }
             ConfigureNavigateButton(GetOrCreate<HmiButton>(screen, "REV50_ValveTest_Back"),
                 765, 605, 350, 58, "BACK TO MANUAL CONTROLS", Blue,
                 "manual", "MANUAL");
+            // Mirror the verified manual_valves-only header geometry without
+            // replacing the existing alarm text/color scripts or tag bindings.
+            HmiText valveAlarmHeader = screen.ScreenItems.Find(
+                "REV13_Common_AlarmText") as HmiText;
+            if (valveAlarmHeader == null)
+                throw new InvalidOperationException("Manual valve alarm header is missing.");
+            SetBounds(valveAlarmHeader, 950, 81, 165, 30);
+            valveAlarmHeader.Font.Size = 15;
+            // Layer_1 is verified in the native editor. No supported layer setter
+            // is established here; retain and verify that placement in TIA.
         }
 
         private static void AddManualValveTestCard(

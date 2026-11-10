@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Siemens.Engineering;
 using Siemens.Engineering.Compiler;
 using Siemens.Engineering.HW;
@@ -209,6 +210,15 @@ namespace Schlenker.TiaV19
             catch (Exception exception) { return Fail(reportPath, exception); }
         }
 
+        internal static bool ActivatesTag(string script, string tag)
+        {
+            // Match the write on this tag, not another write in the same event.
+            // Navigation resets retired tags while enabling the destination page.
+            return Regex.IsMatch(script ?? String.Empty,
+                @"HMIRuntime\s*\.\s*Tags\s*\(\s*([""'])" + Regex.Escape(tag) +
+                @"\1\s*\)\s*\.\s*Write\s*\(\s*(?:true|1)\s*\)");
+        }
+
         private static void Audit(HmiSoftware hmi, StreamWriter report)
         {
             HmiScreen screen = hmi.Screens.Find("manual_valves");
@@ -242,8 +252,7 @@ namespace Schlenker.TiaV19
             {
                 HmiButton retiredButton = screen.ScreenItems.OfType<HmiButton>().FirstOrDefault(candidate =>
                     candidate.EventHandlers.Any(handler =>
-                        handler.Script.ScriptCode.Contains("\"" + retiredTag + "\"") &&
-                        handler.Script.ScriptCode.Contains("Write(true)")));
+                        ActivatesTag(handler.Script.ScriptCode, retiredTag)));
                 if (retiredButton != null && retiredButton.Visible && retiredButton.Enabled)
                     throw new InvalidOperationException(
                         "Retired manual command is still operable: " + retiredTag + ".");
@@ -261,11 +270,11 @@ namespace Schlenker.TiaV19
             HmiButton filler = screen.ScreenItems.Find(
                 "REV50_ValveTest_FillerExternalWash_Command") as HmiButton;
             HmiText spareNote = screen.ScreenItems.Find(
-                "REV50_ValveTest_Y10Spare_Note") as HmiText;
+                "REV50_ValveTest_Y10Config_Note") as HmiText;
             if ((filler != null && (filler.Visible || filler.Enabled)) ||
                 spareNote == null || !spareNote.Visible || !spareNote.Enabled)
                 throw new InvalidOperationException(
-                    "125Y10 spare-state audit failed: command must be retired and note visible.");
+                    "125Y10 configuration-hold audit failed: unverified command must remain disabled and note visible.");
 
             string[] requiredStatusSuffixes =
             {
@@ -381,13 +390,28 @@ namespace Schlenker.TiaV19
 
             report.WriteLine("Screen=manual_valves");
             report.WriteLine("MomentaryCommands=" + CommandTags.Length);
-            report.WriteLine("PhysicalStationNumbersVisible=0");
-            report.WriteLine("Physical125YMapping=MISSING_CONFIG_BLOCKED");
+            // Source-layout expectations are not evidence of physical mapping,
+            // native visual verification or runtime/FAT acceptance.
+            report.WriteLine("ExpectedValveCardCount=11");
+            report.WriteLine("ExpectedStationLayout=125Y1-125Y11_NUMERICAL_ROWS_3_3_3_2");
+            string[] expectedStationFunctions =
+            {
+                "Infeed Vacuum", "Vacuum", "Drainage", "Return Dummy Bottle CIP",
+                "Bypass", "Infeed Product", "Spray CIP", "Cap Distributor Air",
+                "Infeed Gate Open", "Cap Opening", "External Washing"
+            };
+            for (int station = 1; station <= expectedStationFunctions.Length; station++)
+                report.WriteLine("ExpectedFunction125Y" + station + "=" + expectedStationFunctions[station - 1]);
+            report.WriteLine("ExpectedManualValveCommands=DISABLED_PENDING_PHYSICAL_MAPPING");
+            report.WriteLine("Physical125YMapping=MISSING_CONFIG_UNVERIFIED");
+            report.WriteLine("Station125Y6=INFEED_PRODUCT_FUNCTION_CONFIRMED_CHANNEL_PENDING_NO_COMMAND_BINDING");
+            report.WriteLine("Station125Y7=SPRAY_CIP_FUNCTION_CONFIRMED_CHANNEL_PENDING_NO_COMMAND_BINDING");
             report.WriteLine("InfeedGate=SINGLE_OPENING_COIL_COMMAND_ONLY");
             report.WriteLine("GateCloseCommand=RETIRED");
             report.WriteLine("CapChannelAirCommand=RETIRED");
-            report.WriteLine("BottleExternalWash=PASS_Q129.6");
-            report.WriteLine("Station125Y10=SPARE_Q130.2_Q130.3_FORCED_OFF");
+            report.WriteLine("BottleExternalWash=125Y11_FUNCTION_CONFIRMED_PHYSICAL_OUTPUT_UNVERIFIED");
+            report.WriteLine("Station125Y10=CAP_OPENING_SINGLE_COIL_SPRING_RETURN_COMMAND_AND_CHANNEL_PENDING");
+            report.WriteLine("PhysicalActuationAndFAT=NOT_VERIFIED_BY_THIS_AUDIT");
             report.WriteLine("NavigationAndExitClearing=PASS");
             report.WriteLine("DuplicateObjectNames=0");
             report.WriteLine("ManualNavigation=12_BUTTONS_12_ICONS_SINGLE_LAYER");

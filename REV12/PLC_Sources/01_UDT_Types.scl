@@ -51,6 +51,13 @@ END_TYPE
 
 TYPE "UDT_SMC125ValveState" :
 STRUCT
+    // Owner-confirmed station legend, separate from legacy EV command names:
+    // 125Y1 Infeed Vacuum; 125Y2 Vacuum; 125Y3 Drainage;
+    // 125Y4 Return Dummy Bottle CIP; 125Y5 Bypass; 125Y6 Infeed Product;
+    // 125Y7 Spray CIP; 125Y8 Cap Distributor Air; 125Y9 Infeed Gate Open;
+    // 125Y10 Cap Opening; 125Y11 External Washing. There is no 125Y12.
+    // Function identity does not verify EV association, coil/channel or address.
+    // Existing members and production targets are preserved pending that audit.
     // Pneumatic target positions only. Physical Anybus bits and coil
     // energisation polarity remain outside this structure until verified.
     Y1OpenRequest       : Bool;
@@ -62,6 +69,11 @@ STRUCT
     Y7OpenRequest       : Bool;
     Y6HeldForPumpStop   : Bool;
     PhysicalMapValidated: Bool;
+    // Operator-confirmed functions, 2026-11-10. Requests only, not coil outputs.
+    Y8AirRequest        : Bool; // Cap Distributor Air
+    Y9OpenRequest       : Bool; // Infeed Gate: single opening coil, spring return
+    Y10OpenRequest      : Bool; // Cap Opening: held FALSE pending command/channel verification
+    Y11WashRequest      : Bool; // External Washing
 END_STRUCT;
 END_TYPE
 
@@ -231,7 +243,7 @@ STRUCT
     SMCEV211Manual      : Bool;
     SMCEV212Manual      : Bool;
     SMCBottleExternalWashManual : Bool;
-    SMCFillerExternalWashManual : Bool; // Legacy compatibility; forced FALSE, 125Y10 is spare
+    SMCFillerExternalWashManual : Bool; // Retired filler-wash compatibility; not 125Y10 Cap Opening
     LightsOn            : Bool;
     LightsOff           : Bool;
     AirFilterOn         : Bool;
@@ -424,7 +436,7 @@ STRUCT
     MachineLightsRelayCmd : Bool;
     AirFilterRelayCmd     : Bool;
     ExternalBottleWashValveCmd : Bool;
-    // Legacy compatibility only. 125Y10-A/B is spare and this command is
+    // Legacy filler-wash compatibility only; not the new 125Y10 Cap Opening. This command is
     // forced FALSE before the Anybus output image is built.
     FillerExternalWashValveCmd : Bool;
     Valve210Cmd         : Bool;

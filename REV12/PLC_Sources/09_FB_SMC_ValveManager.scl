@@ -20,6 +20,14 @@ VAR_OUTPUT
 END_VAR
 
 BEGIN
+    // Owner-confirmed station legend; this is not a channel/EV assignment:
+    // 125Y1 Infeed Vacuum; 125Y2 Vacuum; 125Y3 Drainage;
+    // 125Y4 Return Dummy Bottle CIP; 125Y5 Bypass; 125Y6 Infeed Product;
+    // 125Y7 Spray CIP; 125Y8 Cap Distributor Air; 125Y9 Infeed Gate Open;
+    // 125Y10 Cap Opening; 125Y11 External Washing. There is no 125Y12.
+    // Legacy EV-to-station associations and the address comments below remain
+    // unverified end to end. Preserve executable allocation and dual-loading
+    // behavior until coil order, Anybus mapping and byte order are proven.
     ValveBits := DWORD#0;
     // The infeed gate is a single opening coil with spring return.  Retain the
     // legacy GateCloseCmd interface for DB/source compatibility, but never turn
@@ -28,7 +36,9 @@ BEGIN
     ConflictAlarm := ProductInletCmd AND ProductCloseCmd;
 
     IF SafetyOK AND CommOK AND OutputsPermitted AND NOT ConflictAlarm THEN
-        // Final EX260 4-byte output map (REV02). PLC/HMI names stay aligned
+        // Inherited EX260 bit allocation: NOT the verified final station map.
+        // Final station names are 125Y1..125Y11; dual-loading coil order is pending.
+        // PLC/HMI names stay aligned
         // with the existing functional EV structure; manifold station labels
         // are commissioning references only and are not software tag names.
         ValveBits.%X0  := ProductInletCmd;               // %Q128.0 EV010
@@ -43,7 +53,7 @@ BEGIN
         ValveBits.%X14 := ExternalBottleWashPneuEnable;  // %Q129.6 pneumatic enable
         ValveBits.%X16 := GateOpenCmd;                   // %Q130.0 EV001 OPEN
         ValveBits.%X17 := FALSE;                         // retired: spring return closes gate
-        // Bits 18..31 remain reserved and forced FALSE.  In particular,
-        // 125Y10-A/B (%Q130.2/%Q130.3) is the spare double-solenoid station.
+        // Bits 18..31 remain unassigned here. Do not equate them to 125Y10/11:
+        // Cap Opening / External Washing coil channels require physical verification.
     END_IF;
 END_FUNCTION_BLOCK

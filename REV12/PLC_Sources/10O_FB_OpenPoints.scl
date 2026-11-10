@@ -588,6 +588,7 @@ BEGIN
     // VQC station order is verified; no physical Q128-Q131 assignment is made here.
     IF NOT O.Gate.AutomaticOpenPermitted THEN
         Out.GateOpen := FALSE;
-        Out.GateClose := SafetyOK AND AirPressureOK;
+        // 125Y9 closes by spring return. Never recreate a separate close request.
+        Out.GateClose := FALSE;
     END_IF;
 END_FUNCTION_BLOCK
