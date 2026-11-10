@@ -174,7 +174,7 @@ abilitazione fisica occorre riconciliare anche quel percorso e le uscite
 dirette legacy. Nessuna dichiarazione di pronta attivazione deriva dalla
 sola preparazione dell'interfaccia logica.
 
-### Esito del tentativo nativo
+### Esito del primo tentativo nativo (superato dalla ripresa seguente)
 
 La copia TIA corretta è stata selezionata e 306 file sono stati copiati nel
 backup precauzionale del run `2026-11-10-smc-logical-test`. Non è un archivio
@@ -195,3 +195,56 @@ Il problema dei canali sconosciuti è rappresentato esplicitamente dalla
 tabella non assegnata; non impedisce la preparazione logica richiesta.
 Il blocco attuale all'applicazione è l'input UI non verificabile. Non è stata
 dichiarata pronta al collaudo la configurazione né effettuato alcun download.
+
+### Ripresa nativa del 10 novembre 2026
+
+Nella copia `runs/2026-11-10-tia-recovery-smc/recovered-work-copy` sono stati
+generati `DB_SMC_LogicalTest` e `FC_SMC_LogicalTest` e aggiunta una sola chiamata
+ciclica a fine `FB_Application`, dopo il percorso di uscita preesistente.
+La ricompilazione completa del software PLC termina con **0 errori, 0 avvisi**;
+la ricompilazione hardware con **0 errori, 8 avvisi**. Il progetto è salvato.
+Le evidenze sono `plc-software-rebuild-success.png`, `plc-hardware-rebuild.png`
+e `plc-success-report.txt` nel run `2026-11-10-smc-logical-test`.
+I tre AP19 originali protetti conservano gli hash iniziali.
+
+Sette avvisi indicano che la sostituzione senza supporto rimovibile richiede
+la topologia per al100–al104, anybus-smc e mes-profinet; l'ottavo segnala
+`PLC_1 does not contain a configured protection level`. Il testo completo
+osservato è conservato in `plc-hardware-warnings-exact.txt`. Nessuna proprietà
+hardware o protezione è stata modificata per sopprimere questi avvisi.
+
+L'operatore ha autorizzato esplicitamente Siemens TIA Openness esclusivamente
+per applicare i 67 tag e gli 11 controlli HMI sulla copia offline. Un backup
+completo precede l'applicazione. Il primo preflight si è fermato prima delle
+modifiche perché non trova entrambi gli eventi Loaded/Unloaded attesi.
+Questo era un problema di adattamento del preparatore al progetto reale,
+non una prova di configurazione fisica mancante. Dopo l'audit sono stati
+creati gli eventi mancanti, conservando gli eventi di navigazione esistenti.
+I gruppi Y6/Y7 sono stati identificati dalle etichette reali, non dai vecchi
+nomi interni: Y6 usa MappingTbc_*_1 e Y7 MappingTbc_*.
+
+L'applicazione HMI è ora salvata: **67 tag collegati al DB logico, 11 comandi
+momentanei e diagnostica con controllo qualità**, verificati anche tramite
+lettura API successiva. Compilazione WinCC Unified: **0 errori, 0 avvisi**.
+Gli eventi Loaded/Unloaded azzerano le nuove richieste e l'abilitazione.
+I comandi riutilizzati non attivano più i vecchi tag EV: scrivono soltanto
+SMC_Y1_Request…SMC_Y11_Request. Per Y6/Y7/Y10 sono stati aggiunti controlli
+logici nelle posizioni confermate della griglia, senza muovere i gruppi.
+I tre testi segnaposto ormai obsoleti sono stati svuotati dopo aver verificato
+che i rispettivi oggetti fossero già nascosti/disabilitati. La nota generale
+mantiene esplicita la verifica fisica pendente. Anche dopo questa pulizia
+la compilazione HMI termina con **0 errori, 0 avvisi**, progetto salvato.
+
+Report nativi: `hmi-openness-report.txt`, `hmi-application-final-console.txt`,
+`hmi-placeholder-cleanup-report.txt` nel run. I 134 test degli script preparati
+sono passati, ma non sostituiscono un test runtime. NO DATA a runtime dipende
+dalla qualità/collegamento; il testo statico nell'editor è solo fallback.
+ACCEPTED resta accettazione logica, non conferma fisica.
+
+La tabella `REV12/HMI/SMC_LogicalTest_ChannelAssignment.csv` contiene tutte
+le 11 identità approvate, alias HMI e campi PLC. Tutti i canali restano -1,
+PhysicalVerified e PhysicalOutputsEnabled FALSE per la nuova interfaccia.
+Il percorso generale %QD128 → ABC3113-A → EX260 esistente non è stato
+riassegnato. Non è quindi pronta l'attivazione pneumatica: restano da
+confermare canali/bobine/PDO e da riconciliare il percorso automatico legacy
+descritto sopra. Nessun download o azionamento è stato eseguito.

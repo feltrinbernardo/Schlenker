@@ -64,7 +64,7 @@ namespace Schlenker.TiaV19
                 string path = Path.GetFullPath(args[0]);
                 Require(String.Equals(path, ApprovedProject, StringComparison.OrdinalIgnoreCase), "Only the approved disposable project is permitted.");
                 VerifyBackup(path, Path.GetFullPath(args[1]));
-                Require(Hash(args[2]) == "402CF561917410C03C3C3BDB48310F105B1FFA76B26E05008153F1227A86B578" && Hash(args[3]) == "710266B9CB6C87BEFE7553CEA84802E4DCF77253B5DBA9CCE8FCE406F3E70C39", "Only the reviewed tag CSV and binding JSON bytes are permitted.");
+                Require(Hash(args[2]) == "402CF561917410C03C3C3BDB48310F105B1FFA76B26E05008153F1227A86B578" && Hash(args[3]) == "AFC19120C6FB8E3219EFA69BC83053FCA3ED41A471C35F5C54980D0FE22F91AE", "Only the reviewed tag CSV and binding JSON bytes are permitted.");
                 string[][] tags = File.ReadAllLines(args[2]).Skip(1).Where(l => !String.IsNullOrWhiteSpace(l)).Select(l => l.Split(',')).ToArray();
                 ValidateTags(tags);
                 Binding bindings = new JavaScriptSerializer().Deserialize<Binding>(File.ReadAllText(args[3]));
@@ -248,7 +248,7 @@ namespace Schlenker.TiaV19
                     HmiRectangle back=Item<HmiRectangle>(items,"REV41_MANUAL_ValveOutput"+Suffix[i]+"_Back");
                     Dynamic(back,"BackColor","return HMIRuntime.Math.RGB(92,105,118);"); // Remove legacy coil/active colors.
                 }
-                SetText(command.Text,v.text); command.Visible=true; command.Enabled=false;
+                SetText(command.Text,v.text); command.Font.Size=14; command.Visible=true; command.Enabled=false;
                 Event(command,HmiButtonEventType.Down,v.downBody); Event(command,HmiButtonEventType.Up,v.upBody);
                 Dynamic(command,"Enabled",b.requestEnabled);
                 SetText(state.Text,"NO DATA"); state.Visible=true; Dynamic(state,"Text",v.stateText);
