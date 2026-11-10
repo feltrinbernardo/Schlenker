@@ -1,0 +1,118 @@
+// Offline logical commissioning interface. No physical output writes.
+// Channel -1 = unassigned; no EX260 coil numbering is inferred here.
+DATA_BLOCK "DB_SMC_LogicalTest"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+NON_RETAIN
+VAR
+    PageActive : Bool;
+    Enable : Bool;
+    Request : Array[1..11] of Bool;
+    Accepted : Array[1..11] of Bool;
+    State : Array[1..11] of USInt;
+    Channel : Array[1..11] of Int;
+    PhysicalVerified : Array[1..11] of Bool;
+    PhysicalOutputsEnabled : Bool;
+    Permit : Bool;
+    Armed : Bool;
+    MultipleRequests : Bool;
+    RequestCount : Int;
+    HmiLinkOK : Bool;
+    ProfinetDeviceOK : Bool;
+    SafetyOK : Bool;
+    ManualModeOK : Bool;
+    ProcessInactive : Bool;
+    AirPressureOK : Bool;
+    DoorsOK : Bool;
+    AlarmsOK : Bool;
+END_VAR
+BEGIN
+    Channel[1] := -1;
+    Channel[2] := -1;
+    Channel[3] := -1;
+    Channel[4] := -1;
+    Channel[5] := -1;
+    Channel[6] := -1;
+    Channel[7] := -1;
+    Channel[8] := -1;
+    Channel[9] := -1;
+    Channel[10] := -1;
+    Channel[11] := -1;
+END_DATA_BLOCK
+
+FUNCTION "FC_SMC_LogicalTest" : Void
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+VAR_TEMP
+    i : Int;
+END_VAR
+BEGIN
+    // Exact owner identities, independent of legacy EV names and coil wiring:
+    // 1 Infeed Vacuum; 2 Vacuum; 3 Drainage; 4 Return Dummy Bottle CIP;
+    // 5 Bypass; 6 Infeed Product; 7 Spray CIP; 8 Cap Distributor Air;
+    // 9 Infeed Gate Open; 10 Cap Opening; 11 External Washing.
+    // Y9/Y10 requests represent opening only; no closing command exists.
+    // Accepted means LOGICAL REQUEST ACCEPTED, never coil/position feedback.
+    // State: 0 idle; 1 interlocked; 2 release to rearm;
+    //        3 logical request accepted; 4 conflicting multiple requests.
+    "DB_SMC_LogicalTest".HmiLinkOK := "DB_Global".Inp.HMILinkOK;
+    // AnybusGatewayOK is the real PROFINET diagnostic, not simulated SMCCommOK.
+    "DB_SMC_LogicalTest".ProfinetDeviceOK := "DB_Global".Inp.AnybusGatewayOK;
+    "DB_SMC_LogicalTest".SafetyOK := "DB_Global".Inp.SafetyOK;
+    "DB_SMC_LogicalTest".ManualModeOK := "DB_Global".Machine.ManualActive;
+    "DB_SMC_LogicalTest".ProcessInactive :=
+        NOT "DB_Global".Machine.ProductionActive
+        AND NOT "DB_Global".Machine.RunOutActive
+        AND NOT "DB_Global".Machine.CIPActive;
+    "DB_SMC_LogicalTest".AirPressureOK := "DB_Global".Inp.AirPressureOK;
+    "DB_SMC_LogicalTest".DoorsOK := "DB_Global".Inp.AllDoorsClosed
+        AND NOT "DB_Global".Machine.DoorAccessActive
+        AND NOT "DB_Global".DoorAccess.SequenceActive
+        AND NOT "DB_Global".DoorAccess.Fault;
+    "DB_SMC_LogicalTest".AlarmsOK := NOT "DB_Global".AlarmCritical
+        AND NOT "DB_Global".Machine.AlarmStopActive;
+    "DB_SMC_LogicalTest".Permit := "DB_SMC_LogicalTest".PageActive
+        AND "DB_SMC_LogicalTest".Enable
+        AND "DB_SMC_LogicalTest".HmiLinkOK
+        AND "DB_SMC_LogicalTest".ProfinetDeviceOK
+        AND "DB_SMC_LogicalTest".SafetyOK
+        AND "DB_SMC_LogicalTest".ManualModeOK
+        AND "DB_SMC_LogicalTest".ProcessInactive
+        AND "DB_SMC_LogicalTest".AirPressureOK
+        AND "DB_SMC_LogicalTest".DoorsOK
+        AND "DB_SMC_LogicalTest".AlarmsOK;
+    "DB_SMC_LogicalTest".RequestCount := 0;
+    FOR #i := 1 TO 11 DO
+        IF "DB_SMC_LogicalTest".Request[#i] THEN
+            "DB_SMC_LogicalTest".RequestCount := "DB_SMC_LogicalTest".RequestCount + 1;
+        END_IF;
+    END_FOR;
+    "DB_SMC_LogicalTest".MultipleRequests := "DB_SMC_LogicalTest".RequestCount > 1;
+    IF NOT "DB_SMC_LogicalTest".Permit OR "DB_SMC_LogicalTest".MultipleRequests THEN
+        "DB_SMC_LogicalTest".Armed := FALSE;
+    ELSIF "DB_SMC_LogicalTest".RequestCount = 0 THEN
+        "DB_SMC_LogicalTest".Armed := TRUE;
+    END_IF;
+    // Intentionally immutable in this offline, unmapped revision. A later
+    // reviewed physical integration must replace this hold explicitly.
+    "DB_SMC_LogicalTest".PhysicalOutputsEnabled := FALSE;
+    FOR #i := 1 TO 11 DO
+        "DB_SMC_LogicalTest".Channel[#i] := -1;
+        "DB_SMC_LogicalTest".PhysicalVerified[#i] := FALSE;
+        "DB_SMC_LogicalTest".Accepted[#i] := "DB_SMC_LogicalTest".Permit
+            AND "DB_SMC_LogicalTest".Armed
+            AND ("DB_SMC_LogicalTest".RequestCount = 1)
+            AND "DB_SMC_LogicalTest".Request[#i];
+        IF NOT "DB_SMC_LogicalTest".Permit THEN
+            "DB_SMC_LogicalTest".State[#i] := 1;
+        ELSIF "DB_SMC_LogicalTest".MultipleRequests THEN
+            "DB_SMC_LogicalTest".State[#i] := 4;
+        ELSIF NOT "DB_SMC_LogicalTest".Armed THEN
+            "DB_SMC_LogicalTest".State[#i] := 2;
+        ELSIF "DB_SMC_LogicalTest".Accepted[#i] THEN
+            "DB_SMC_LogicalTest".State[#i] := 3;
+        ELSE
+            "DB_SMC_LogicalTest".State[#i] := 0;
+        END_IF;
+    END_FOR;
+END_FUNCTION

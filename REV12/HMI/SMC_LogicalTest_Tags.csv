@@ -1,0 +1,68 @@
+Name,PLC_Tag,DataType,Access,Page,Comment
+SMC_Y1_Request,DB_SMC_LogicalTest.Request[1],Bool,ReadWrite,manual_valves,125Y1 Infeed Vacuum - logical interface only
+SMC_Y1_Accepted,DB_SMC_LogicalTest.Accepted[1],Bool,Read,manual_valves,125Y1 Infeed Vacuum - logical interface only
+SMC_Y1_State,DB_SMC_LogicalTest.State[1],USInt,Read,manual_valves,125Y1 Infeed Vacuum - logical interface only
+SMC_Y1_Channel,DB_SMC_LogicalTest.Channel[1],Int,Read,manual_valves,125Y1 Infeed Vacuum - logical interface only
+SMC_Y1_PhysicalVerified,DB_SMC_LogicalTest.PhysicalVerified[1],Bool,Read,manual_valves,125Y1 Infeed Vacuum - logical interface only
+SMC_Y2_Request,DB_SMC_LogicalTest.Request[2],Bool,ReadWrite,manual_valves,125Y2 Vacuum - logical interface only
+SMC_Y2_Accepted,DB_SMC_LogicalTest.Accepted[2],Bool,Read,manual_valves,125Y2 Vacuum - logical interface only
+SMC_Y2_State,DB_SMC_LogicalTest.State[2],USInt,Read,manual_valves,125Y2 Vacuum - logical interface only
+SMC_Y2_Channel,DB_SMC_LogicalTest.Channel[2],Int,Read,manual_valves,125Y2 Vacuum - logical interface only
+SMC_Y2_PhysicalVerified,DB_SMC_LogicalTest.PhysicalVerified[2],Bool,Read,manual_valves,125Y2 Vacuum - logical interface only
+SMC_Y3_Request,DB_SMC_LogicalTest.Request[3],Bool,ReadWrite,manual_valves,125Y3 Drainage - logical interface only
+SMC_Y3_Accepted,DB_SMC_LogicalTest.Accepted[3],Bool,Read,manual_valves,125Y3 Drainage - logical interface only
+SMC_Y3_State,DB_SMC_LogicalTest.State[3],USInt,Read,manual_valves,125Y3 Drainage - logical interface only
+SMC_Y3_Channel,DB_SMC_LogicalTest.Channel[3],Int,Read,manual_valves,125Y3 Drainage - logical interface only
+SMC_Y3_PhysicalVerified,DB_SMC_LogicalTest.PhysicalVerified[3],Bool,Read,manual_valves,125Y3 Drainage - logical interface only
+SMC_Y4_Request,DB_SMC_LogicalTest.Request[4],Bool,ReadWrite,manual_valves,125Y4 Return Dummy Bottle CIP - logical interface only
+SMC_Y4_Accepted,DB_SMC_LogicalTest.Accepted[4],Bool,Read,manual_valves,125Y4 Return Dummy Bottle CIP - logical interface only
+SMC_Y4_State,DB_SMC_LogicalTest.State[4],USInt,Read,manual_valves,125Y4 Return Dummy Bottle CIP - logical interface only
+SMC_Y4_Channel,DB_SMC_LogicalTest.Channel[4],Int,Read,manual_valves,125Y4 Return Dummy Bottle CIP - logical interface only
+SMC_Y4_PhysicalVerified,DB_SMC_LogicalTest.PhysicalVerified[4],Bool,Read,manual_valves,125Y4 Return Dummy Bottle CIP - logical interface only
+SMC_Y5_Request,DB_SMC_LogicalTest.Request[5],Bool,ReadWrite,manual_valves,125Y5 Bypass - logical interface only
+SMC_Y5_Accepted,DB_SMC_LogicalTest.Accepted[5],Bool,Read,manual_valves,125Y5 Bypass - logical interface only
+SMC_Y5_State,DB_SMC_LogicalTest.State[5],USInt,Read,manual_valves,125Y5 Bypass - logical interface only
+SMC_Y5_Channel,DB_SMC_LogicalTest.Channel[5],Int,Read,manual_valves,125Y5 Bypass - logical interface only
+SMC_Y5_PhysicalVerified,DB_SMC_LogicalTest.PhysicalVerified[5],Bool,Read,manual_valves,125Y5 Bypass - logical interface only
+SMC_Y6_Request,DB_SMC_LogicalTest.Request[6],Bool,ReadWrite,manual_valves,125Y6 Infeed Product - logical interface only
+SMC_Y6_Accepted,DB_SMC_LogicalTest.Accepted[6],Bool,Read,manual_valves,125Y6 Infeed Product - logical interface only
+SMC_Y6_State,DB_SMC_LogicalTest.State[6],USInt,Read,manual_valves,125Y6 Infeed Product - logical interface only
+SMC_Y6_Channel,DB_SMC_LogicalTest.Channel[6],Int,Read,manual_valves,125Y6 Infeed Product - logical interface only
+SMC_Y6_PhysicalVerified,DB_SMC_LogicalTest.PhysicalVerified[6],Bool,Read,manual_valves,125Y6 Infeed Product - logical interface only
+SMC_Y7_Request,DB_SMC_LogicalTest.Request[7],Bool,ReadWrite,manual_valves,125Y7 Spray CIP - logical interface only
+SMC_Y7_Accepted,DB_SMC_LogicalTest.Accepted[7],Bool,Read,manual_valves,125Y7 Spray CIP - logical interface only
+SMC_Y7_State,DB_SMC_LogicalTest.State[7],USInt,Read,manual_valves,125Y7 Spray CIP - logical interface only
+SMC_Y7_Channel,DB_SMC_LogicalTest.Channel[7],Int,Read,manual_valves,125Y7 Spray CIP - logical interface only
+SMC_Y7_PhysicalVerified,DB_SMC_LogicalTest.PhysicalVerified[7],Bool,Read,manual_valves,125Y7 Spray CIP - logical interface only
+SMC_Y8_Request,DB_SMC_LogicalTest.Request[8],Bool,ReadWrite,manual_valves,125Y8 Cap Distributor Air - logical interface only
+SMC_Y8_Accepted,DB_SMC_LogicalTest.Accepted[8],Bool,Read,manual_valves,125Y8 Cap Distributor Air - logical interface only
+SMC_Y8_State,DB_SMC_LogicalTest.State[8],USInt,Read,manual_valves,125Y8 Cap Distributor Air - logical interface only
+SMC_Y8_Channel,DB_SMC_LogicalTest.Channel[8],Int,Read,manual_valves,125Y8 Cap Distributor Air - logical interface only
+SMC_Y8_PhysicalVerified,DB_SMC_LogicalTest.PhysicalVerified[8],Bool,Read,manual_valves,125Y8 Cap Distributor Air - logical interface only
+SMC_Y9_Request,DB_SMC_LogicalTest.Request[9],Bool,ReadWrite,manual_valves,125Y9 Infeed Gate Open - logical interface only
+SMC_Y9_Accepted,DB_SMC_LogicalTest.Accepted[9],Bool,Read,manual_valves,125Y9 Infeed Gate Open - logical interface only
+SMC_Y9_State,DB_SMC_LogicalTest.State[9],USInt,Read,manual_valves,125Y9 Infeed Gate Open - logical interface only
+SMC_Y9_Channel,DB_SMC_LogicalTest.Channel[9],Int,Read,manual_valves,125Y9 Infeed Gate Open - logical interface only
+SMC_Y9_PhysicalVerified,DB_SMC_LogicalTest.PhysicalVerified[9],Bool,Read,manual_valves,125Y9 Infeed Gate Open - logical interface only
+SMC_Y10_Request,DB_SMC_LogicalTest.Request[10],Bool,ReadWrite,manual_valves,125Y10 Cap Opening - logical interface only
+SMC_Y10_Accepted,DB_SMC_LogicalTest.Accepted[10],Bool,Read,manual_valves,125Y10 Cap Opening - logical interface only
+SMC_Y10_State,DB_SMC_LogicalTest.State[10],USInt,Read,manual_valves,125Y10 Cap Opening - logical interface only
+SMC_Y10_Channel,DB_SMC_LogicalTest.Channel[10],Int,Read,manual_valves,125Y10 Cap Opening - logical interface only
+SMC_Y10_PhysicalVerified,DB_SMC_LogicalTest.PhysicalVerified[10],Bool,Read,manual_valves,125Y10 Cap Opening - logical interface only
+SMC_Y11_Request,DB_SMC_LogicalTest.Request[11],Bool,ReadWrite,manual_valves,125Y11 External Washing - logical interface only
+SMC_Y11_Accepted,DB_SMC_LogicalTest.Accepted[11],Bool,Read,manual_valves,125Y11 External Washing - logical interface only
+SMC_Y11_State,DB_SMC_LogicalTest.State[11],USInt,Read,manual_valves,125Y11 External Washing - logical interface only
+SMC_Y11_Channel,DB_SMC_LogicalTest.Channel[11],Int,Read,manual_valves,125Y11 External Washing - logical interface only
+SMC_Y11_PhysicalVerified,DB_SMC_LogicalTest.PhysicalVerified[11],Bool,Read,manual_valves,125Y11 External Washing - logical interface only
+SMC_Logical_PageActive,DB_SMC_LogicalTest.PageActive,Bool,ReadWrite,manual_valves,Logical test PageActive; no physical feedback
+SMC_Logical_Enable,DB_SMC_LogicalTest.Enable,Bool,ReadWrite,manual_valves,Logical test Enable; no physical feedback
+SMC_Logical_Permit,DB_SMC_LogicalTest.Permit,Bool,Read,manual_valves,Logical test Permit; no physical feedback
+SMC_Logical_HmiLinkOK,DB_SMC_LogicalTest.HmiLinkOK,Bool,Read,manual_valves,Logical test HmiLinkOK; no physical feedback
+SMC_Logical_ProfinetDeviceOK,DB_SMC_LogicalTest.ProfinetDeviceOK,Bool,Read,manual_valves,Logical test ProfinetDeviceOK; no physical feedback
+SMC_Logical_SafetyOK,DB_SMC_LogicalTest.SafetyOK,Bool,Read,manual_valves,Logical test SafetyOK; no physical feedback
+SMC_Logical_ManualModeOK,DB_SMC_LogicalTest.ManualModeOK,Bool,Read,manual_valves,Logical test ManualModeOK; no physical feedback
+SMC_Logical_ProcessInactive,DB_SMC_LogicalTest.ProcessInactive,Bool,Read,manual_valves,Logical test ProcessInactive; no physical feedback
+SMC_Logical_AirPressureOK,DB_SMC_LogicalTest.AirPressureOK,Bool,Read,manual_valves,Logical test AirPressureOK; no physical feedback
+SMC_Logical_DoorsOK,DB_SMC_LogicalTest.DoorsOK,Bool,Read,manual_valves,Logical test DoorsOK; no physical feedback
+SMC_Logical_AlarmsOK,DB_SMC_LogicalTest.AlarmsOK,Bool,Read,manual_valves,Logical test AlarmsOK; no physical feedback
+SMC_Logical_PhysicalOutputsEnabled,DB_SMC_LogicalTest.PhysicalOutputsEnabled,Bool,Read,manual_valves,Logical test PhysicalOutputsEnabled; no physical feedback
