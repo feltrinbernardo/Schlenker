@@ -1,0 +1,51 @@
+CableID,Device,Area,Service,Connection,CableOrCores,PanelOrMaster,Status
+C-001,E100,Main drive,Incremental encoder,Direct PLC HSC,A/B/Z + 0V/+24V per manufacturer,PLC HSC terminals,Confirmed basis
+C-002,ZS100,Filler,Machine zero / valve 1 home,Direct PLC DI,3C x 0.34-0.5 mm2,PLC DI terminal,Confirmed basis
+C-003,SPB100,Infeed,Bottle presence / tracking,Direct PLC DI,3C/4C x 0.34-0.5 mm2,PLC DI terminal,Confirmed basis
+C-004,SPB101,Capper transfer,Bottle / cap trigger,Direct PLC DI,3C/4C x 0.34-0.5 mm2,PLC DI terminal,Confirmed basis
+C-005,SPB102,Capper outfeed,Bottle presence / crash check,Direct PLC DI,3C/4C x 0.34-0.5 mm2,PLC DI terminal,Confirmed basis
+C-006,TLS100,Filler tank,Tank level sensor,IO-Link or analog AI,IO-Link 3/4 wire OR 2C shielded 4-20mA,AL1403 or PLC AI,To finalise
+C-007,LSL100,Filler tank,Minimum level backup,IO-Link / SIO,3C/4C x 0.34-0.5 mm2,AL1403 port,Planned
+C-008,LSH100,Filler tank,Maximum level backup,IO-Link / SIO,3C/4C x 0.34-0.5 mm2,AL1403 port,Planned
+C-009,SPL100,Product line,Product/water presence before pump,IO-Link,3/4 wire x 0.34-0.5 mm2,AL1403 port,Planned
+C-010,VS100,Vacuum line,Vacuum sensor,IO-Link or 4-20mA,3/4 wire or 2C shielded,AL1403 or PLC AI,Planned
+C-011,PS100,Pneumatic main,General air pressure switch,IO-Link,3/4 wire x 0.34-0.5 mm2,AL1403 port,Planned
+C-012,PSH100,Ventilation hood,Hood/filter pressure sensor,IO-Link / SIO,3/4 wire x 0.34-0.5 mm2,AL1403 port,Planned
+C-013,PEI100,Infeed,Infeed slowdown photoelectric,IO-Link / SIO,3C/4C x 0.34-0.5 mm2,AL1403 port,Confirmed basis
+C-014,PEI101,Infeed,Infeed stop photoelectric,IO-Link / SIO,3C/4C x 0.34-0.5 mm2,AL1403 port,Confirmed basis
+C-015,PEO100,Outfeed,Outfeed slowdown photoelectric,IO-Link / SIO,3C/4C x 0.34-0.5 mm2,AL1403 port,Confirmed basis
+C-016,PEO101,Outfeed,Outfeed stop photoelectric,IO-Link / SIO,3C/4C x 0.34-0.5 mm2,AL1403 port,Confirmed basis
+C-017,CS100,Cap hopper,Low cap level sensor,IO-Link / SIO,3C/4C x 0.34-0.5 mm2,AL1403 port,Confirmed basis
+C-018,CS101,Cap chute,Orienter demand sensor,IO-Link / SIO,3C/4C x 0.34-0.5 mm2,AL1403 port,Confirmed basis
+C-019,CS102,Cap chute,Cap chute empty sensor,IO-Link / SIO,3C/4C x 0.34-0.5 mm2,AL1403 port,Confirmed basis
+C-020,CS103,Pick and place,Cap present sensor,Direct PLC DI,3C/4C x 0.34-0.5 mm2,PLC DI,Confirmed basis
+C-021,LSF100,Filler lift,Filler upper limit,Field DI,3C/4C x 0.34-0.5 mm2,AL1403/terminal,Confirmed basis
+C-022,LSF101,Filler lift,Filler lower limit,Field DI,3C/4C x 0.34-0.5 mm2,AL1403/terminal,Confirmed basis
+C-023,LSC100,Capper lift,Capper upper limit,Field DI,3C/4C x 0.34-0.5 mm2,AL1403/terminal,Confirmed basis
+C-024,LSC101,Capper lift,Capper lower limit,Field DI,3C/4C x 0.34-0.5 mm2,AL1403/terminal,Confirmed basis
+C-025,EV200,Infeed gate,Bottle gate solenoid,SMC manifold,Network-based,SMC fieldbus node,Confirmed basis
+C-026,EV210,Product circuit,Valve 210,SMC manifold,Network-based,SMC node,Updated design
+C-027,EV217,Product circuit,Valve 217,SMC manifold,Network-based,SMC node,Updated design
+C-028,EV213,Product circuit,Valve 213,SMC manifold,Network-based,SMC node,Updated design
+C-029,EV212,Vacuum circuit,Vacuum valve 212,SMC manifold,Network-based,SMC node,Updated design
+C-030,EV247,Discharge,Discharge valve 247,SMC manifold,Network-based,SMC node,Updated design
+C-031,EV230,Cap release,Fast cap release solenoid,Direct PLC fast DO,2C x 0.75 mm2 minimum,PLC DQ/terminal,Confirmed basis
+C-032,M100,Main machine,Main motor / G120C,VFD motor,3P + PE,G120C output,Motor data known
+C-033,M101,Bottle conveyor,Conveyor motor / VFD,VFD motor,3P + PE,VFD output,Awaiting motor data
+C-034,M102,Product pump,Product pump / VFD,VFD motor,3P + PE,VFD output,Awaiting motor data
+C-035,M103,Vacuum pump,Vacuum pump,Contactor/VFD TBC,3P + PE,Contactor/VFD,Awaiting motor data
+C-036,M104,Ventilation,Hood/fan motor,Contactor/VFD TBC,3P + PE,Contactor/VFD,Awaiting motor data
+C-037,HMI1,Operator station,MTP1500 Unified Comfort,PROFINET + 24VDC,Ethernet + 2C power,SCALANCE + PSU,Selected
+C-038,PLC1,Control cabinet,S7-1512C-1 PN,PROFINET + 24VDC,Ethernet + 2C power,SCALANCE / PSU,Selected
+C-039,IOL1-4,Machine zones,IFM AL1403 masters,PROFINET + 24VDC field power,Ethernet + field power,SCALANCE + 24V PSU,Selected
+C-040,SMC1,Pneumatic island,SMC fieldbus node,PROFINET + 24VDC,Ethernet + node power,SCALANCE + PSU,Existing/selected
+C-041,SAFE1,Safety panel,Pilz PNOZmulti base + modules,24VDC + PROFINET,2C power + Ethernet,Safety PSU / SCALANCE,Selected
+C-042,DS100-111,Guarding,Safety door sensors / locks,Safety field wiring,4-8 cores TBC,Pilz safety terminals,Hold: schedule says 12; machine says 11 doors
+C-043,EST100-103,Machine perimeter,Emergency-stop pushbuttons,Safety DI,4C x 0.75 mm2 typical; final by design,Pilz safety terminals,Selected
+C-044,PB100,Operator panel,Start / Stop / Reset pushbuttons,PLC DI/DQ,Multicore 0.75 mm2; count TBC,PLC DI/DQ,Selected
+C-045,SEL100,Operator panel,Manual / Auto selector,Direct PLC DI,3C/4C x 0.75 mm2,PLC DI,Selected
+C-046,TL100,External structure,Tower light + buzzer,PLC DO,5C/6C x 0.75 mm2,PLC relay/DQ,To order
+C-047,LGT100-103,External structure,Machine LED lights 24VDC,PLC relay / DO,2C x 0.75-1.0 mm2 each,Relay/terminal,Received
+C-048,PEND100,Pendant,Portable JOG pendant / joystick,PLC DI + safety TBC,Core count TBC,Marshalling terminals,To define
+C-049,NET-01,Cabinet/network,SCALANCE network links,PROFINET,2 twisted pairs,SCALANCE ports,Selected
+C-050,PE-BOND,Entire machine,Protective bonding,Protective earth / equipotential,1C size by electrical design,Main PE bar,Required

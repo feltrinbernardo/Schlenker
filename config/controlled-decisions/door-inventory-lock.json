@@ -1,0 +1,27 @@
+{
+  "decisionId": "SCHLENKER-DOOR-INVENTORY-2026-09-25",
+  "status": "LOCKED",
+  "lockedBy": "operator",
+  "lockedDate": "2026-09-25",
+  "doorCount": 11,
+  "accessRequestStationCount": 3,
+  "doors": [
+    { "channel": 1, "location": "Front 1" },
+    { "channel": 2, "location": "Front 2" },
+    { "channel": 3, "location": "Front 3" },
+    { "channel": 4, "location": "Front 4" },
+    { "channel": 5, "location": "Rear 1" },
+    { "channel": 6, "location": "Rear 2" },
+    { "channel": 7, "location": "Rear 3" },
+    { "channel": 8, "location": "Rear 4" },
+    { "channel": 9, "location": "Right Infeed 1" },
+    { "channel": 10, "location": "Right Infeed 2" },
+    { "channel": 11, "location": "Left Outfeed 1" }
+  ],
+  "rejectedAssumptions": [
+    "A twelfth door identified as DR12",
+    "A three-zone Z1/Z2/Z3 allocation without a separately approved physical map"
+  ],
+  "changeControl": "EXPLICIT_OPERATOR_CONFIRMATION_REQUIRED",
+  "note": "Do not change the 11-door baseline until the operator explicitly instructs that this lock is released or replaced."
+}

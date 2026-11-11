@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Siemens.Engineering;
 using Siemens.Engineering.CrossReference;
@@ -26,42 +27,57 @@ namespace Schlenker.TiaV19
             "PilzDiag", "SafetyOK", "SafetySystemFault", "EStopChain24VHealthy",
             "AllDoorsClosed", "AllDoorsUnlocked", "SafetyCircuitClosed",
             "ZeroSpeedConfirmed", "ThreePhaseOffConfirmed", "DoorAccess",
+            "DB_Global", "ManualTestEnable", "GateManualPageActive", "ManualSelect",
             "REQ_ACCESS", "REQ_SAFETY_RESET", "DR01", "DR02", "DR03", "DR04",
-            "DR05", "DR06", "DR07", "DR08", "DR09", "DR10", "DR11", "DR12"
+            "DR05", "DR06", "DR07", "DR08", "DR09", "DR10", "DR11",
+            "AirPressure", "DI_AirPressure_OK", "b_AirPressureOK",
+            "%I337", "%I338", "%I339",
+            "AL100", "AL101", "AL102", "AL103", "LMT100", "PN7094",
+            "LR2050", "TA2405", "ProductPresent", "Product_Present",
+            "VacuumActual", "Vacuum_Actual", "VacuumSignalValid",
+            "BottleShortage", "Accumulation", "FillerLow", "FillerHigh",
+            "CapperLow", "CapperHigh", "IOL_AL102", "SPL100"
         };
 
         private static string ExportDirectory;
         private static bool SkipCrossReferences;
+        private static bool HardwareOnly;
+        private static bool AllBlocks;
 
         private static int Main(string[] args)
         {
             string hint = args.Length > 0 ? args[0] : "schlenkers 36-10 190036-7-8v2.12.ap19";
+            string exactPath = File.Exists(hint) ? Path.GetFullPath(hint) : null;
             ExportDirectory = args.Length > 1 ? args[1] : null;
             SkipCrossReferences = args.Any(arg => arg.Equals("--no-xref", StringComparison.OrdinalIgnoreCase));
+            HardwareOnly = args.Any(arg => arg.Equals("--hardware-only", StringComparison.OrdinalIgnoreCase));
+            AllBlocks = args.Any(arg => arg.Equals("--all-blocks", StringComparison.OrdinalIgnoreCase));
             try
             {
                 IList<TiaPortalProcess> processes = TiaPortal.GetProcesses();
                 TiaPortalProcess selected = processes.FirstOrDefault(p => p.ProjectPath != null &&
                     p.ProjectPath.FullName.EndsWith(hint, StringComparison.OrdinalIgnoreCase));
-                if (selected == null)
-                {
-                    Console.Error.WriteLine("STATUS=FAIL");
-                    Console.Error.WriteLine("No open TIA project matched: " + hint);
-                    return 2;
-                }
+                bool attached = selected != null;
+                if (!attached && exactPath == null)
+                    throw new InvalidOperationException("No open TIA project matched and exact project path was not found: " + hint);
 
-                using (TiaPortal portal = selected.Attach())
+                using (TiaPortal portal = attached
+                    ? selected.Attach()
+                    : new TiaPortal(TiaPortalMode.WithoutUserInterface))
                 {
-                    Project project = portal.Projects.FirstOrDefault();
+                    Project project = attached
+                        ? portal.Projects.FirstOrDefault()
+                        : portal.Projects.Open(new FileInfo(exactPath));
                     if (project == null) return 3;
                     Console.WriteLine("PROJECT=" + project.Path.FullName);
                     Console.WriteLine("AUDIT_MODE=READ_ONLY; SAVE=NO; COMPILE=NO");
                     TryCrossReferences(project, "PROJECT", "");
-                    foreach (Device device in project.Devices)
+                    foreach (Device device in AllDevices(project))
                     {
                         Console.WriteLine("DEVICE name={0}", device.Name);
                         InspectItems(device.Name, device.DeviceItems, "  ");
                     }
+                    if (!attached) project.Close();
                 }
                 Console.WriteLine("STATUS=PASS");
                 return 0;
@@ -72,6 +88,27 @@ namespace Schlenker.TiaV19
                 Console.Error.WriteLine(ex);
                 return 1;
             }
+        }
+
+        private static IEnumerable<Device> AllDevices(Project project)
+        {
+            HashSet<Device> seen = new HashSet<Device>();
+            foreach (Device device in project.Devices)
+                if (seen.Add(device)) yield return device;
+            foreach (Device device in project.UngroupedDevicesGroup.Devices)
+                if (seen.Add(device)) yield return device;
+            foreach (DeviceUserGroup group in project.DeviceGroups)
+                foreach (Device device in DevicesInGroup(group))
+                    if (seen.Add(device)) yield return device;
+        }
+
+        private static IEnumerable<Device> DevicesInGroup(DeviceUserGroup group)
+        {
+            foreach (Device device in group.Devices)
+                yield return device;
+            foreach (DeviceUserGroup child in group.Groups)
+                foreach (Device device in DevicesInGroup(child))
+                    yield return device;
         }
 
         private static void InspectItems(string device, DeviceItemComposition items, string indent)
@@ -86,9 +123,10 @@ namespace Schlenker.TiaV19
                 foreach (Address address in item.Addresses)
                     Console.WriteLine("{0}  ADDRESS io={1}; start={2}; length={3}", indent,
                         address.IoType, address.StartAddress, address.Length);
-                foreach (Channel channel in item.Channels)
-                    Console.WriteLine("{0}  CHANNEL number={1}; io={2}; type={3}", indent,
-                        channel.Number, channel.IoType, channel.Type);
+                if (!HardwareOnly)
+                    foreach (Channel channel in item.Channels)
+                        Console.WriteLine("{0}  CHANNEL number={1}; io={2}; type={3}", indent,
+                            channel.Number, channel.IoType, channel.Type);
 
                 NetworkInterface network = item.GetService<NetworkInterface>();
                 if (network != null)
@@ -101,11 +139,14 @@ namespace Schlenker.TiaV19
                             node.ConnectedSubnet == null ? "<none>" : node.ConnectedSubnet.Name);
                 }
 
-                SoftwareContainer container = item.GetService<SoftwareContainer>();
-                PlcSoftware plc = container == null ? null : container.Software as PlcSoftware;
-                if (plc != null) InspectPlc(plc, indent + "  ");
-                HmiSoftware hmi = container == null ? null : container.Software as HmiSoftware;
-                if (hmi != null) InspectHmi(hmi, indent + "  ");
+                if (!HardwareOnly)
+                {
+                    SoftwareContainer container = item.GetService<SoftwareContainer>();
+                    PlcSoftware plc = container == null ? null : container.Software as PlcSoftware;
+                    if (plc != null) InspectPlc(plc, indent + "  ");
+                    HmiSoftware hmi = container == null ? null : container.Software as HmiSoftware;
+                    if (hmi != null) InspectHmi(hmi, indent + "  ");
+                }
                 InspectItems(device, item.DeviceItems, indent + "  ");
             }
         }
@@ -134,7 +175,7 @@ namespace Schlenker.TiaV19
         {
             foreach (PlcBlock block in blocks)
             {
-                if (!Interesting(block.Name)) continue;
+                if (!AllBlocks && !Interesting(block.Name)) continue;
                 Console.WriteLine("{0}PLC_BLOCK name={1}; number={2}; language={3}; consistent={4}",
                     indent, block.Name, block.Number, block.ProgrammingLanguage, block.IsConsistent);
                 if (!String.IsNullOrWhiteSpace(ExportDirectory))

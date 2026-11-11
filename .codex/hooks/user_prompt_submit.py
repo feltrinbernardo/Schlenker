@@ -161,42 +161,30 @@ def _write_log(
 
 def _format_additional_context(result: dict) -> str:
     """
-    Build the additionalContext string injected into the model context.
-    Codex will see this before processing the prompt.
-    """
-    # Import here so missing openai package during non-judge tests still works
-    from judge import format_score_banner  # noqa: PLC0415
+    Build a compact additionalContext string for the model.
 
-    banner = format_score_banner(result)
+    The complete judgment remains in the local JSONL log. Keeping the injected
+    summary small avoids the token and latency cost of a large banner on every
+    substantive prompt.
+    """
     overall = result["overall_score"]
     label   = result["label"]
     top_issue = result.get("top_issue", "")
     suggestion = result.get("suggestion", "")
 
-    parts = [
-        f"[SCHLENKER JUDGE] Prompt scored {overall:.2f}/5.00 — {label}",
-        "",
-        banner,
-        "",
-    ]
+    parts = [f"[SCHLENKER JUDGE] {overall:.2f}/5.00 — {label}"]
 
     if overall < 3.0:
-        parts.append(
-            "⚠️  The user prompt scored POOR or REJECT. Before proceeding, "
-            "consider asking the user to clarify the following:"
-        )
+        parts.append("Clarification or a safety stop may be required.")
         if top_issue:
-            parts.append(f"   → {top_issue}")
+            parts.append(f"Top issue: {top_issue}")
         if suggestion:
-            parts.append(f"   💡 {suggestion}")
-        parts.append("")
+            parts.append(f"Suggestion: {suggestion}")
 
     elif overall < 4.0:
-        parts.append(
-            "ℹ️  The prompt scored FAIR. Proceed, but you may ask one "
-            "clarifying question if the scope is ambiguous."
-        )
-        parts.append("")
+        parts.append("Proceed only if scope and authority are unambiguous.")
+        if top_issue:
+            parts.append(f"Top issue: {top_issue}")
 
     return "\n".join(parts)
 

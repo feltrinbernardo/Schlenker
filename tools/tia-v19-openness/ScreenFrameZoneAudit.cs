@@ -28,7 +28,10 @@ internal static class ScreenFrameZoneAudit
             "REV12_Settings_Return", "REV12_Settings_Previous", "REV12_Settings_Next",
             "REV18_IOL_Detail_Back", "REV18_IOL_Detail_Previous", "REV18_IOL_Detail_Next",
             "PILZ26_Back", "ROB_CIP_RECIPE_EDIT_Back",
-            "REV12_Efficiency_Previous", "REV12_Efficiency_Next"
+            "REV12_Efficiency_Previous", "REV12_Efficiency_Next",
+            "REV28_Home_HmiLinkLamp", "REV52_Manual_Footer_Back",
+            "REF06_FooterDivider1", "REF06_FooterDivider2",
+            "REF06_FooterDivider3", "REF06_FooterDivider4"
         };
 
     private static int Main(string[] args)
@@ -68,18 +71,19 @@ internal static class ScreenFrameZoneAudit
                     foreach (HmiScreenItemBase item in screen.ScreenItems.OrderBy(value => value.Name))
                     {
                         if (IsMasterFrameObject(item.Name)) continue;
+                        if (!item.Visible) continue;
                         Bounds bounds;
                         if (!TryGetBounds(item, out bounds)) continue;
 
                         List<string> zones = new List<string>();
-                        if (Intersects(bounds, 0, 0, 1366, 100)) zones.Add("HEADER_STATUS");
-                        if (Intersects(bounds, 1215, 100, 1366, 712)) zones.Add("RIGHT_NAV");
-                        if (Intersects(bounds, 0, 712, 1366, 768)) zones.Add("FOOTER");
+                        if (Intersects(bounds, 0, 0, 1280, 104)) zones.Add("HEADER_STATUS");
+                        if (Intersects(bounds, 1141, 104, 1280, 744)) zones.Add("RIGHT_NAV");
+                        if (Intersects(bounds, 0, 744, 1280, 800)) zones.Add("FOOTER");
                         if (zones.Count == 0) continue;
 
                         bool approvedFooter = ApprovedFooterObjects.Contains(item.Name) &&
                             zones.Count == 1 && zones[0] == "FOOTER" &&
-                            bounds.Top >= 720 && bounds.Bottom <= 768;
+                            bounds.Top >= 744 && bounds.Bottom <= 800;
                         string status = approvedFooter ? "APPROVED_PAGE_NAV" : "ISSUE";
                         if (!approvedFooter) issues++;
                         writer.WriteLine(String.Join("\t",
@@ -109,10 +113,25 @@ internal static class ScreenFrameZoneAudit
             name.Equals("REV12_Mimic_Vacuum_Label_1", StringComparison.OrdinalIgnoreCase) ||
             name.Equals("Line_1", StringComparison.OrdinalIgnoreCase) ||
             name.Equals("Line_2", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("Line_3", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("Line_4", StringComparison.OrdinalIgnoreCase) ||
+            name.StartsWith("REF01_FooterIcon_", StringComparison.OrdinalIgnoreCase) ||
+            name.StartsWith("REF05_Nav", StringComparison.OrdinalIgnoreCase) ||
+            name.StartsWith("REV12_Exact_Status_", StringComparison.OrdinalIgnoreCase) ||
+            name.StartsWith("REV12_Nav_", StringComparison.OrdinalIgnoreCase) ||
+            name.StartsWith("REV12_Production_User_Header_", StringComparison.OrdinalIgnoreCase) ||
             name.StartsWith("REV13_Common_", StringComparison.OrdinalIgnoreCase) ||
             name.StartsWith("REV13_Nav_", StringComparison.OrdinalIgnoreCase) ||
             name.StartsWith("REV14_Nav_", StringComparison.OrdinalIgnoreCase) ||
-            name.StartsWith("REV21_Common_", StringComparison.OrdinalIgnoreCase);
+            name.StartsWith("REV14_M103_MissingFeedback", StringComparison.OrdinalIgnoreCase) ||
+            name.StartsWith("REV14_Production_BottleSvg", StringComparison.OrdinalIgnoreCase) ||
+            name.StartsWith("REV14_ProductPressure_", StringComparison.OrdinalIgnoreCase) ||
+            name.StartsWith("REV14_SPL100_SensorSvg", StringComparison.OrdinalIgnoreCase) ||
+            name.StartsWith("REV14_TLS100_SensorSvg", StringComparison.OrdinalIgnoreCase) ||
+            name.StartsWith("REV21_Common_", StringComparison.OrdinalIgnoreCase) ||
+            name.StartsWith("REV21_SpeedGauge_Track", StringComparison.OrdinalIgnoreCase) ||
+            name.StartsWith("REV28_Common_", StringComparison.OrdinalIgnoreCase) ||
+            name.StartsWith("REV54_Common_", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool TryGetBounds(object item, out Bounds bounds)

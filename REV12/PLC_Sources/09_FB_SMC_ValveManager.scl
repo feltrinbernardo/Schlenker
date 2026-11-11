@@ -12,7 +12,7 @@ VAR_INPUT
     EV212Cmd            : Bool;
     CapDistributorAir   : Bool;
     CapChannelAir       : Bool;
-    SpareCmd            : Bool;
+    ExternalBottleWashPneuEnable : Bool;
 END_VAR
 VAR_OUTPUT
     ValveBits           : DWORD;
@@ -20,19 +20,40 @@ VAR_OUTPUT
 END_VAR
 
 BEGIN
+    // Owner-confirmed station legend; this is not a channel/EV assignment:
+    // 125Y1 Infeed Vacuum; 125Y2 Vacuum; 125Y3 Drainage;
+    // 125Y4 Return Dummy Bottle CIP; 125Y5 Bypass; 125Y6 Infeed Product;
+    // 125Y7 Spray CIP; 125Y8 Cap Distributor Air; 125Y9 Infeed Gate Open;
+    // 125Y10 Cap Opening; 125Y11 External Washing. There is no 125Y12.
+    // Legacy EV-to-station associations and the address comments below remain
+    // unverified end to end. Preserve executable allocation and dual-loading
+    // behavior until coil order, Anybus mapping and byte order are proven.
     ValveBits := DWORD#0;
-    ConflictAlarm := (GateOpenCmd AND GateCloseCmd) OR (ProductInletCmd AND ProductCloseCmd);
+    // The infeed gate is a single opening coil with spring return.  Retain the
+    // legacy GateCloseCmd interface for DB/source compatibility, but never turn
+    // it into a physical output.  The second product-valve command remains a
+    // real mutual-exclusion pair until the physical 125Y mapping is verified.
+    ConflictAlarm := ProductInletCmd AND ProductCloseCmd;
 
     IF SafetyOK AND CommOK AND OutputsPermitted AND NOT ConflictAlarm THEN
-        ValveBits.%X0 := GateOpenCmd;
-        ValveBits.%X1 := GateCloseCmd;
-        ValveBits.%X2 := ProductInletCmd;
-        ValveBits.%X3 := ProductCloseCmd;
-        ValveBits.%X4 := EV210Cmd;
-        ValveBits.%X5 := EV211Cmd;
-        ValveBits.%X6 := EV212Cmd;
-        ValveBits.%X7 := CapDistributorAir;
-        ValveBits.%X8 := CapChannelAir;
-        ValveBits.%X9 := SpareCmd;
+        // Inherited EX260 bit allocation: NOT the verified final station map.
+        // Final station names are 125Y1..125Y11; dual-loading coil order is pending.
+        // PLC/HMI names stay aligned
+        // with the existing functional EV structure; manifold station labels
+        // are commissioning references only and are not software tag names.
+        ValveBits.%X0  := ProductInletCmd;               // %Q128.0 EV010
+        ValveBits.%X2  := ProductCloseCmd;               // %Q128.2 EV011
+        ValveBits.%X4  := EV210Cmd;                      // %Q128.4 EV210
+        ValveBits.%X6  := EV211Cmd;                      // %Q128.6 EV211
+        ValveBits.%X8  := EV212Cmd;                      // %Q129.0 EV212
+        ValveBits.%X10 := CapDistributorAir;             // %Q129.2 EV220
+        // Cap Channel Air does not exist.  Keep the legacy input/interface only
+        // so existing DB/HMI imports remain compatible; the output is retired.
+        ValveBits.%X12 := FALSE;
+        ValveBits.%X14 := ExternalBottleWashPneuEnable;  // %Q129.6 pneumatic enable
+        ValveBits.%X16 := GateOpenCmd;                   // %Q130.0 EV001 OPEN
+        ValveBits.%X17 := FALSE;                         // retired: spring return closes gate
+        // Bits 18..31 remain unassigned here. Do not equate them to 125Y10/11:
+        // Cap Opening / External Washing coil channels require physical verification.
     END_IF;
 END_FUNCTION_BLOCK

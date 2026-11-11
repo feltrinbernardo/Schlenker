@@ -16,9 +16,11 @@ of the executable Schlenker agent runtime.
 
 The clean implementation worktree now exists at
 `C:\www\Schlenker-agent-foundation` on branch `codex/agent-foundation`, based on
-merged commit `f96d2d0`. Runtime implementation remains gated only by Task 0.2:
-review and approval of the proposed policy hierarchy before any `AGENTS.md` file
-is rewritten.
+merged commit `f96d2d0`. The repository-level role, prompt hierarchy,
+observation cadence, and lifecycle-hook amendment described in
+[`agent-prompt-and-hook-architecture.md`](agent-prompt-and-hook-architecture.md)
+is implemented. Task 0.2 still gates adoption of the broader proposed policy
+hierarchy and any standalone runtime expansion beyond that bounded amendment.
 
 No artifact in this directory authorizes an engineering-application UI run or a
 PLC operation.

@@ -1,5 +1,5 @@
 DeviceCode,CableID,MasterOrPLCChannel,PLCAddress,PLCTag,HMITag,Interface,Status,HoldPoint
-E100,C-001,PLC TM Count / HSC,TBC,DB_Global.Inp.EncoderCount,Encoder_Count,HTL A/B/Z,Existing symbolic logic,Confirm technology object and terminals
+E100,C-001,Siemens TM Count 2x24V 6ES7550-1AA01-0AB0,TBC,DB_Global.Inp.EncoderCount,Encoder_Count,HTL A/B/Z,Confirmed hardware; existing symbolic logic,Configure technology object and final terminals
 ZS100,C-002,PLC direct DI,TBC,DB_Global.Inp.MachineZero,DI_Machine_Zero,24 VDC sensor,Existing symbolic logic,Confirm terminal/address
 SPB100,C-003,PLC direct DI,%I0.7,DB_Global.Inp.BottleInfeed,DI_Bottle_Infeed,24 VDC sensor,Existing map,Point-to-point prove
 SPB101,C-004,PLC direct DI,TBC,DB_Global.Inp.CapTransfer,DI_Cap_Transfer,24 VDC sensor,Planned,Confirm address

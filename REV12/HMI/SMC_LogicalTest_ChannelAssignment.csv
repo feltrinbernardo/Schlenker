@@ -1,0 +1,12 @@
+Valve,Function,HMI_Request,PLC_Request,PLC_State,EX260_Channel,Coil,PhysicalVerified,PhysicalOutputsEnabled
+125Y1,Infeed Vacuum,SMC_Y1_Request,DB_SMC_LogicalTest.Request[1],DB_SMC_LogicalTest.State[1],-1,UNVERIFIED,FALSE,FALSE
+125Y2,Vacuum,SMC_Y2_Request,DB_SMC_LogicalTest.Request[2],DB_SMC_LogicalTest.State[2],-1,UNVERIFIED,FALSE,FALSE
+125Y3,Drainage,SMC_Y3_Request,DB_SMC_LogicalTest.Request[3],DB_SMC_LogicalTest.State[3],-1,UNVERIFIED,FALSE,FALSE
+125Y4,Return Dummy Bottle CIP,SMC_Y4_Request,DB_SMC_LogicalTest.Request[4],DB_SMC_LogicalTest.State[4],-1,UNVERIFIED,FALSE,FALSE
+125Y5,Bypass,SMC_Y5_Request,DB_SMC_LogicalTest.Request[5],DB_SMC_LogicalTest.State[5],-1,UNVERIFIED,FALSE,FALSE
+125Y6,Infeed Product,SMC_Y6_Request,DB_SMC_LogicalTest.Request[6],DB_SMC_LogicalTest.State[6],-1,UNVERIFIED,FALSE,FALSE
+125Y7,Spray CIP,SMC_Y7_Request,DB_SMC_LogicalTest.Request[7],DB_SMC_LogicalTest.State[7],-1,UNVERIFIED,FALSE,FALSE
+125Y8,Cap Distributor Air,SMC_Y8_Request,DB_SMC_LogicalTest.Request[8],DB_SMC_LogicalTest.State[8],-1,UNVERIFIED,FALSE,FALSE
+125Y9,Infeed Gate Open,SMC_Y9_Request,DB_SMC_LogicalTest.Request[9],DB_SMC_LogicalTest.State[9],-1,UNVERIFIED,FALSE,FALSE
+125Y10,Cap Opening,SMC_Y10_Request,DB_SMC_LogicalTest.Request[10],DB_SMC_LogicalTest.State[10],-1,UNVERIFIED,FALSE,FALSE
+125Y11,External Washing,SMC_Y11_Request,DB_SMC_LogicalTest.Request[11],DB_SMC_LogicalTest.State[11],-1,UNVERIFIED,FALSE,FALSE

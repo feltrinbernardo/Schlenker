@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "capturedDate": "2026-10-12",
+  "repositoryRevision": "4451f95a790c73cb9f00bf8c52939a65933c032b",
+  "storagePolicy": "local-only-external-backup-required",
+  "artifacts": [
+    {
+      "path": "tia v19 programming hmi and plc/Backup Schlenkers 36-10 190036-7-8v2.12.ap19",
+      "bytes": 151399,
+      "sha256": "FC19FB2F197B9B50CDFC7661691CB41C0921D193030DC97A40655423A62B3E8E",
+      "kind": "tia-v19-project-index"
+    },
+    {
+      "path": "tia v19 programming hmi and plc/Backup Schlenkers 36-10 190036-7-8v2.13/Backup Schlenkers 36-10 190036-7-8v2.13.ap19",
+      "bytes": 151399,
+      "sha256": "103E1DC206FB077312EE36396AD29F1A62A99F5D0366E8DEABE49C15ECB846EA",
+      "kind": "tia-v19-project-index"
+    },
+    {
+      "path": "tia v19 programming hmi and plc.backup/2026-10-07.015414.622/2026-10-07.015414.622.zip",
+      "bytes": 11751138,
+      "sha256": "2D429E7D2337BE0DE3EF82CB3FC47AA6C6561B56EA551C329EFDD4FFEA786751",
+      "kind": "tia-automatic-backup"
+    },
+    {
+      "path": "tia v19 programming hmi and plc.backup/2026-10-09.040620.760/2026-10-09.040620.760.zip",
+      "bytes": 11096555,
+      "sha256": "5F1851A00D7538265010AE1624D47D7AAA5A092BC5BBD3F9F407ABBB349F07ED",
+      "kind": "tia-automatic-backup"
+    },
+    {
+      "path": "tia v19 programming hmi and plc.backup/2026-10-09.065512.604/2026-10-09.065512.604.zip",
+      "bytes": 12171309,
+      "sha256": "BB482ACAED6E8C56D68F0034CD803AA93BE0613B70EF2056A8318EEF8BF46723",
+      "kind": "tia-automatic-backup"
+    },
+    {
+      "path": "--manual-validated-rebuild/schlenkers-pre-home-20260929-190124",
+      "bytes": 30950948,
+      "sha256": "11FC68D52A5B90F0BA8F7FF134377F02B251F01FB3D2D68768CDC8A6304660C9",
+      "kind": "argument-derived-recovery-copy"
+    }
+  ],
+  "notes": [
+    "The manifest records identity only; it does not claim that every native project is validated.",
+    "The native workspaces and recovery copies remain present on the workstation and are not committed.",
+    "Restore capability still requires an external backup and a separate restore drill."
+  ]
+}

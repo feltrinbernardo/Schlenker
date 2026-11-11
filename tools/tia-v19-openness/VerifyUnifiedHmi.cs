@@ -60,7 +60,7 @@ namespace Schlenker.TiaV19
                 { "alarms|REV12_Alarms_Reset", "Cmd_Reset" },
                 { "recipe|REV12_Recipe_Filler_Enable", "Filler_Height_Enable" },
                 { "recipe|REV12_Recipe_Capper_Enable", "Capper_Height_Enable" },
-                { "manual|REV12_Manual_Gate_Open", "Gate_Open_125Y1" },
+                { "manual|REV12_Manual_Gate_Open", "SMC_EV001_Open_Manual" },
                 { "manual|REV12_Manual_Gate_Close", "Gate_Close" },
                 { "manual|REV12_Manual_Test_Enable", "Gate_Manual_TestEnable" },
                 { "manual|REV12_Manual_Up", "Pendant_Up" },
@@ -99,7 +99,7 @@ namespace Schlenker.TiaV19
                 { "home|REV12_Speed_Field", "Speed_Setpoint_BPH" },
                 { "home|REV12_Actual_Field", "Speed_Actual_Pct" },
                 { "home|REV12_Tank_Field", "Tank_Level_Pct" },
-                { "home|REV12_Filter_Warn_Field", "AirFilter_ChangeRequired" },
+                { "home|REV12_Filter_Warn_Field", "Hood2_FilterClogged" },
                 { "home|REV12_Active_Mode_Code", "Mode_ActiveCode" },
                 { "home|REV12_Home_Vacuum_Status", "Vacuum_Pump_Run" },
                 { "home|REV12_Home_Wash_Status", "External_Wash_Active" },
@@ -478,11 +478,12 @@ namespace Schlenker.TiaV19
 
                 HmiButtonEventHandler tapped = button.EventHandlers.Find(HmiButtonEventType.Tapped);
                 string script = tapped == null ? "" : tapped.Script.ScriptCode;
-                bool destinationOk = script.Contains("ChangeScreen(\"" + destination + "\", \"/\")");
+                bool destinationOk = script.Contains(
+                    "ChangeScreen(\"" + destination + "\", \"/Main screen window_1\")");
                 bool manualEnterOk = destination != "manual" || script.Contains("Gate_Manual_PageActive\").Write(1)");
                 bool manualExitOk = !screen.Name.Equals("manual", StringComparison.OrdinalIgnoreCase) ||
                     (script.Contains("Gate_Manual_PageActive\").Write(0)") &&
-                     script.Contains("Gate_Open_125Y1\").Write(0)") &&
+                     script.Contains("SMC_EV001_Open_Manual\").Write(0)") &&
                      script.Contains("Gate_Close\").Write(0)") &&
                      script.Contains("Jog_PB\").Write(0)") &&
                      script.Contains("Cmd_ManualSelect\").Write(0)") &&

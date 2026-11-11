@@ -1,0 +1,160 @@
+FUNCTION_BLOCK "FB_AL102ProcessInterlocks"
+VAR_INPUT
+    Reset                   : Bool;
+    MainDriveRunning        : Bool;
+    ZeroSpeedConfirmed      : Bool;
+    CIPRequest              : Bool;
+    CIPPositioningActive    : Bool;
+    CIPWaitingConnection    : Bool;
+    CIPActive               : Bool;
+END_VAR
+VAR_IN_OUT
+    Master                  : "UDT_IOLinkMasterMapping";
+    S                       : "UDT_AL102Process";
+END_VAR
+VAR
+    CIPPresenceSeen         : Bool;
+END_VAR
+
+BEGIN
+    // Functional allocation only. Every port value must be normalised by the
+    // later hardware-mapping layer; no raw address, polarity or scale is
+    // inferred here.
+    S.X1ProductPresenceValid := Master.CommunicationOK
+                                AND Master.HardwareConfigured
+                                AND Master.Port[1].Configured
+                                AND Master.Port[1].QualityOK
+                                AND NOT Master.Port[1].DeviceFault;
+    S.X2ProductTemperatureValid := Master.CommunicationOK
+                                   AND Master.HardwareConfigured
+                                   AND Master.Port[2].Configured
+                                   AND Master.Port[2].QualityOK
+                                   AND NOT Master.Port[2].DeviceFault;
+    S.X3VacuumValid := Master.CommunicationOK
+                       AND Master.HardwareConfigured
+                       AND Master.Port[3].Configured
+                       AND Master.Port[3].QualityOK
+                       AND NOT Master.Port[3].DeviceFault;
+    S.X4AntiRotationValid := Master.CommunicationOK
+                             AND Master.HardwareConfigured
+                             AND Master.Port[4].Configured
+                             AND Master.Port[4].QualityOK
+                             AND NOT Master.Port[4].DeviceFault;
+    S.X5TankLevelValid := Master.CommunicationOK
+                          AND Master.HardwareConfigured
+                          AND Master.Port[5].Configured
+                          AND Master.Port[5].QualityOK
+                          AND NOT Master.Port[5].DeviceFault;
+    S.X6Valve1ReferenceValid := Master.CommunicationOK
+                                AND Master.HardwareConfigured
+                                AND Master.Port[6].Configured
+                                AND Master.Port[6].QualityOK
+                                AND NOT Master.Port[6].DeviceFault;
+    S.X7CIPPresenceValid := Master.CommunicationOK
+                            AND Master.HardwareConfigured
+                            AND Master.Port[7].Configured
+                            AND Master.Port[7].QualityOK
+                            AND NOT Master.Port[7].DeviceFault;
+    S.X8SpareValid := Master.CommunicationOK
+                      AND Master.HardwareConfigured
+                      AND Master.Port[8].Configured
+                      AND Master.Port[8].QualityOK
+                      AND NOT Master.Port[8].DeviceFault;
+
+    S.X1ProductPresence := S.X1ProductPresenceValid AND Master.Port[1].LiveBool;
+    IF S.X2ProductTemperatureValid THEN
+        S.X2ProductTemperature := Master.Port[2].LiveReal;
+    ELSE
+        S.X2ProductTemperature := 0.0;
+    END_IF;
+    IF S.X3VacuumValid THEN
+        S.X3Vacuum := Master.Port[3].LiveReal;
+    ELSE
+        S.X3Vacuum := 0.0;
+    END_IF;
+    S.X4AntiRotationHealthy := S.X4AntiRotationValid AND Master.Port[4].LiveBool;
+    IF S.X5TankLevelValid THEN
+        S.X5TankLevel := Master.Port[5].LiveReal;
+    ELSE
+        S.X5TankLevel := -1.0;
+    END_IF;
+    S.X6Valve1Reference := S.X6Valve1ReferenceValid AND Master.Port[6].LiveBool;
+    S.X7CIPPresenceEngaged := S.X7CIPPresenceValid AND Master.Port[7].LiveBool;
+
+    // X4 is a process-protection stop. Loss or invalid quality while the main
+    // drive is running creates an immediate stop request and a reset latch.
+    S.ImmediateStopRequest := MainDriveRunning
+                              AND (NOT S.X4AntiRotationValid
+                                   OR NOT S.X4AntiRotationHealthy);
+    IF S.ImmediateStopRequest THEN
+        S.AntiRotationFaultLatched := TRUE;
+    END_IF;
+
+    IF CIPPositioningActive AND S.X7CIPPresenceValid
+       AND S.X7CIPPresenceEngaged THEN
+        S.CIPConnectedBeforePosition := TRUE;
+    END_IF;
+
+    IF CIPPositioningActive AND S.X6Valve1ReferenceValid
+       AND S.X6Valve1Reference THEN
+        S.CIPReferenceReachedLatched := TRUE;
+    END_IF;
+
+    IF CIPActive AND S.X7CIPPresenceValid AND S.X7CIPPresenceEngaged THEN
+        CIPPresenceSeen := TRUE;
+    END_IF;
+    IF CIPActive AND CIPPresenceSeen
+       AND (NOT S.X7CIPPresenceValid OR NOT S.X7CIPPresenceEngaged) THEN
+        S.CIPPresenceLostLatched := TRUE;
+    END_IF;
+
+    // Fail-safe standard-PLC inhibit. The independent safety interlock must
+    // still be validated before this release can become operational.
+    S.RotationInhibited :=
+        NOT S.SafetyInterlockValidated
+        OR NOT S.X4AntiRotationValid
+        OR NOT S.X4AntiRotationHealthy
+        OR NOT S.X7CIPPresenceValid
+        OR S.X7CIPPresenceEngaged
+        OR S.AntiRotationFaultLatched
+        OR S.CIPConnectedBeforePosition
+        OR S.CIPPresenceLostLatched;
+
+    S.CIPStartPermitted :=
+        S.FunctionalMapConfirmed
+        AND S.SafetyInterlockValidated
+        AND S.X4AntiRotationValid
+        AND S.X4AntiRotationHealthy
+        AND S.X6Valve1ReferenceValid
+        AND S.X7CIPPresenceValid
+        AND NOT S.X7CIPPresenceEngaged
+        AND NOT S.AntiRotationFaultLatched
+        AND NOT S.CIPConnectedBeforePosition
+        AND NOT S.CIPPresenceLostLatched;
+
+    S.CIPReady := CIPWaitingConnection
+                  AND S.CIPReferenceReachedLatched
+                  AND ZeroSpeedConfirmed
+                  AND S.SafetyInterlockValidated
+                  AND S.X7CIPPresenceValid
+                  AND S.X7CIPPresenceEngaged
+                  AND NOT S.CIPConnectedBeforePosition
+                  AND NOT S.CIPPresenceLostLatched;
+
+    IF Reset AND NOT MainDriveRunning
+       AND S.X4AntiRotationValid AND S.X4AntiRotationHealthy THEN
+        S.AntiRotationFaultLatched := FALSE;
+    END_IF;
+
+    IF Reset AND NOT CIPPositioningActive
+       AND NOT CIPWaitingConnection AND NOT CIPActive THEN
+        S.CIPConnectedBeforePosition := FALSE;
+        S.CIPPresenceLostLatched := FALSE;
+        S.CIPReferenceReachedLatched := FALSE;
+        CIPPresenceSeen := FALSE;
+    ELSIF NOT CIPRequest AND NOT CIPPositioningActive
+          AND NOT CIPWaitingConnection AND NOT CIPActive THEN
+        S.CIPReferenceReachedLatched := FALSE;
+        CIPPresenceSeen := FALSE;
+    END_IF;
+END_FUNCTION_BLOCK

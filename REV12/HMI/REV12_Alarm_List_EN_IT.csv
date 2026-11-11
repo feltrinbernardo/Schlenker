@@ -12,10 +12,10 @@
 1602,Bottle conveyor drive fault,Guasto inverter nastro bottiglie,Critical,Controlled stop
 1603,Product pump drive fault,Guasto inverter pompa prodotto,Critical,Stop pump
 1604,Cap distributor drive fault,Guasto inverter distributore tappi,Critical,Controlled stop
-1701,Hood filter requires service,Filtro cappa da sostituire,Warning,Machine may continue
+1701,Hood 1 filter clogged,Filtro Cappa 1 intasato,Warning,Machine may continue - inspect Hood 1 filter
 1003,Safety circuit not ready,Circuito di sicurezza non pronto,Safety,Start inhibited
 1702,Air filter pressure proof failed,Pressostato filtro aria non confermato,Warning,Inspect filter and fan
-1703,Air filter needs replacement,Sostituire il filtro aria,Warning,Machine may continue
+1703,Hood 2 filter clogged,Filtro Cappa 2 intasato,Warning,Machine may continue - inspect Hood 2 filter
 1801,Door access sequence fault,Guasto sequenza accesso porte,Critical,Controlled stop
 1901,Invalid production speed parameter,Parametro velocita produzione non valido,Critical,Main drive command off
 1302,Product tank low level warning,Avviso livello basso serbatoio prodotto,Warning,Check product supply
@@ -42,3 +42,12 @@
 2244,CIP sequence aborted by operator.,Sequenza CIP interrotta dall'operatore.,Information,Controlled abort status; acknowledge after sequence is safe
 2245,CIP complete awaiting operator acknowledgement.,CIP completato in attesa di conferma operatore.,Information,Acknowledge completion and select the next permitted mode
 2246,AL104 customer CIP interface communication fault.,Guasto comunicazione interfaccia CIP cliente AL104.,Critical,Prevent new CIP requests and open AL104 diagnostics
+1605,Filler main drive mechanical jam.,Blocco meccanico azionamento principale riempitrice.,Critical,Stop main drive; inspect obstruction or bearing and reset manually
+1606,Main motor VSD communication fault.,Guasto comunicazione VSD motore principale.,Critical,Check VSD main motor power and PROFINET connection
+1607,Bottle conveyor VSD communication fault.,Guasto comunicazione VSD nastro bottiglie.,Critical,Check bottle conveyor VSD power and PROFINET connection
+1608,Product pump VSD communication fault.,Guasto comunicazione VSD pompa prodotto.,Critical,Check product pump VSD power and PROFINET connection
+1609,Cap distributor VSD communication fault.,Guasto comunicazione VSD distributore tappi.,Critical,Check cap distributor VSD power and PROFINET connection
+2252,Distributor anti-rotation signal lost during run.,Segnale antirotazione distributore perso durante la marcia.,Critical,Immediate stop request; inspect X4 and reset only when stopped and healthy
+2253,CIP hose connected before valve 1 position.,Tubo CIP collegato prima della posizione rubinetto 1.,Critical,Rotation inhibited; disconnect hose and reset after the machine is stopped
+2254,CIP hose presence lost during CIP.,Presenza tubo CIP persa durante il CIP.,Critical,Abort CIP and inspect the validated X7 interlock before reset
+2255,CIP safety interlock not validated.,Interblocco di sicurezza CIP non validato.,Warning,Rotation and CIP start remain inhibited until hardware and safety validation

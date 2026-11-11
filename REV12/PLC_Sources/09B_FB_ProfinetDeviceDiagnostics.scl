@@ -1,0 +1,21 @@
+FUNCTION_BLOCK "FB_ProfinetDeviceDiagnostics"
+VAR_INPUT
+    DeviceLaddr      : HW_DEVICE;
+END_VAR
+VAR_OUTPUT
+    DeviceOK         : Bool;
+    DiagnosticRetVal : Int;
+END_VAR
+VAR
+    DeviceProblem    : Bool;
+END_VAR
+BEGIN
+    // MODE 5 returns the group indication for any problem in the configured
+    // PROFINET IO device, including inaccessible/not-available module states.
+    DiagnosticRetVal := ModuleStates(
+        LADDR := DeviceLaddr,
+        MODE := UINT#5,
+        STATE := DeviceProblem
+    );
+    DeviceOK := (DiagnosticRetVal = 0) AND NOT DeviceProblem;
+END_FUNCTION_BLOCK

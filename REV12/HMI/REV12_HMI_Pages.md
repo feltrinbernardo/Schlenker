@@ -40,13 +40,23 @@
    - Machine lights ON / OFF and relay-command status
    - Air filter ON / OFF, pressure proof and replacement warning
 18. Manual Gate
-   - Gate Open (-125Y1) and Gate Close momentary commands
+   - Infeed Gate single-coil OPEN momentary command; release commands spring-close
+   - No separate Gate Close command is exposed
+   - Cap Channel Air command retired because the valve does not exist
+   - Physical `125Y` identifiers remain `MISSING CONFIG` until photo/coil/address evidence is reconciled
    - Controls are active only in Manual with engineer permission and this page visible
+   - `OPEN MANUAL VALVE TEST` opens the complete EV-based valve-test interface
+   - Valve-test commands are momentary and are cleared when leaving Manual
+   - Final numbering source update (2026-11-10): 125Y8 Cap Distributor Air; 125Y9 Infeed Gate Open; 125Y10 Cap Opening; 125Y11 External Washing
+   - 125Y9 and 125Y10 use one opening coil with spring return; no separate closing command
+   - The Manual Valve Test builder and recovered native screen hold the unverified Y8/Y9/Y11 command buttons disabled and show Y10 as MISSING CONFIG; native WinCC Unified rebuild completed with 0 errors / 0 warnings on 2026-11-10 (see `../../docs/TIA_RECOVERY_SMC_NATIVE_2026-11-10.md`)
+   - Historical `%Q129.6` washing and `%Q130.2`/`%Q130.3` spare assignments are not verified final physical assignments. See `../Documentation/SMC_FINAL_NUMBERING_2026-11-10.md`
 19. REV12.1 Home Process Commands
    - External bottle wash valve status
    - Gate OFF / Gate ON maintained automatic admission request
    - Run Out Product momentary start with Active / Completed indication
    - Product Pump OFF / Product Pump ON maintained gravity-feed selection
+   - Vacuum Pump OFF / Vacuum Pump ON maintained contactor command accepted only in Manual with safety valid and no critical alarm
 20. REV12.2 Dedicated CIP
    - CIP Start / Stop / Reset and medium selection
    - Sequence step and elapsed HH:MM:SS display
@@ -78,6 +88,14 @@
    - `lift_warning`: explicit filler/capper confirmation workflow; PLC retains movement authority
    - `production`: read-only product/filler/vacuum mimic with selectable diagnostics for M102, M103 and EV210/217/213/212/247
    - Final SET03 audit: 144 navigation, 33 command, 218 field, 25,185 layout and 530 wording checks; zero failures
+25. AL102 / CIP Positioning / SMC 125 Baseline (2026-11-10)
+   - AL102 detail uses the confirmed functional order: X1 Product Presence, X2 Product Temperature, X3 Vacuum Sensor, X4 Distributor Anti-Rotation, X5 Tank Level, X6 Filler Zero Position Valve #1, X7 CIP Presence / Engaged and X8 Spare
+   - Each value is displayed with a separate validity indication; no HMI object implies an address, polarity, scale or time value
+   - CIP shows Positioning, Waiting for connection, X6 reference reached, X7 engaged, CIP Ready, Rotation Inhibited and Safety Interlock Validated states
+   - SMC diagnostics show logical pneumatic targets 125Y1 through 125Y7 separately from the unvalidated physical Anybus/coil mapping
+   - Production target matrix: 125Y1, 125Y2 and 125Y6 OPEN; 125Y3, 125Y4, 125Y5 and 125Y7 CLOSED
+   - During a level pause 125Y6 remains logically OPEN until valid product-pump feedback confirms stopped
+   - Operational download and output enable remain outside this offline baseline
 
 ## Required behavior
 - Selecting Filler Height ON blocks all rotation and permits filler UP/DOWN only.
@@ -88,4 +106,6 @@
 - Operator may load recipes but protected users save/edit recipes.
 - Leaving a manual valve page returns control to the automatic command path in the same PLC scan.
 - Door access never causes automatic restart; a separate physical Start command is required.
+- X4 loss or invalid quality during main-drive run requests an immediate stop and latches alarm 2252.
+- X7 engaged or invalid inhibits Automatic, Manual, Jog, Homing and CIP-positioning rotation; CIP may enter active sequence only after X6 reference, confirmed zero speed, X7 engagement and validated safety interlock.
 - All visible HMI objects remain inside the 1366 x 768 screen boundary and interactive button hit areas must not overlap.

@@ -1,0 +1,56 @@
+FUNCTION_BLOCK "FB_ConveyorSync"
+VAR_INPUT
+    ProductionRequest       : Bool;
+    SafetyOK                : Bool;
+    CriticalAlarm           : Bool;
+    ConveyorReady           : Bool;
+    SyncEnable              : Bool;
+    MainSpeedRequestPct     : Real;
+    BaseSpeedPct            : Real;
+    PositiveOffsetPct       : Real;
+    PrestartTime            : Time;
+    RunOnTime               : Time;
+END_VAR
+VAR_OUTPUT
+    ConveyorRunRequest      : Bool;
+    ConveyorSpeedRequestPct : Real;
+    MainStartPermit         : Bool;
+    SyncActive              : Bool;
+    RunOnActive             : Bool;
+END_VAR
+VAR
+    PrestartTimer           : TON;
+    RunOnTimer              : TOF;
+    SafeProductionRequest   : Bool;
+    EffectiveOffsetPct      : Real;
+END_VAR
+
+BEGIN
+    // This FB is process coordination only. Safety remains exclusively under
+    // the validated Pilz chain. Any safety loss or critical alarm cancels the
+    // conveyor command immediately, so the normal-stop run-on is bypassed.
+    SafeProductionRequest := ProductionRequest AND SafetyOK AND NOT CriticalAlarm;
+    RunOnTimer(IN := SafeProductionRequest, PT := RunOnTime);
+
+    ConveyorRunRequest := SafetyOK AND NOT CriticalAlarm AND RunOnTimer.Q;
+    RunOnActive := ConveyorRunRequest AND NOT ProductionRequest;
+    SyncActive := ConveyorRunRequest AND SyncEnable;
+
+    EffectiveOffsetPct := LIMIT(MN := 0.0, IN := PositiveOffsetPct, MX := 50.0);
+    IF SyncActive THEN
+        ConveyorSpeedRequestPct :=
+            LIMIT(MN := 0.0,
+                  IN := MainSpeedRequestPct * (1.0 + (EffectiveOffsetPct / 100.0)),
+                  MX := 100.0);
+    ELSIF ConveyorRunRequest THEN
+        ConveyorSpeedRequestPct := LIMIT(MN := 0.0, IN := BaseSpeedPct, MX := 100.0);
+    ELSE
+        ConveyorSpeedRequestPct := 0.0;
+    END_IF;
+
+    // A valid ready signal plus the prestart interval ensures the conveyor is
+    // requested before the filler/main-machine command is released.
+    PrestartTimer(IN := SafeProductionRequest AND ConveyorReady,
+                  PT := PrestartTime);
+    MainStartPermit := PrestartTimer.Q;
+END_FUNCTION_BLOCK

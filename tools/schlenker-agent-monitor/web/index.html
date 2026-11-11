@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Schlenker Agent Monitor</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">FBS GLOBAL · SCHLENKER</p>
+        <h1>Agent Monitor</h1>
+      </div>
+      <div class="health">
+        <span id="connectionDot" class="dot dot-warn"></span>
+        <span id="connectionText">Conectando ao monitor local</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="notice">
+        <strong>Fase 1 — monitoramento real, ambiente isolado</strong>
+        <span>Agents API com <code>environment: none</code>. Sem acesso ao repositório, desktop ou equipamentos.</span>
+      </section>
+
+      <section class="control-panel panel">
+        <div class="panel-heading">
+          <div>
+            <p class="label">Nova tarefa monitorada</p>
+            <h2>Orquestração multiagente</h2>
+          </div>
+          <div class="status-stack">
+            <span id="runStatus" class="status status-idle">IDLE</span>
+            <span id="sessionId" class="session">Sem sessão</span>
+          </div>
+        </div>
+        <form id="taskForm">
+          <textarea id="taskInput" rows="4" placeholder="Descreva uma tarefa de análise sem acesso local..." required></textarea>
+          <div class="form-footer">
+            <div id="runtimeInfo" class="runtime-info">Carregando configuração...</div>
+            <button id="runButton" type="submit">Iniciar tarefa</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="summary-grid">
+        <article class="metric panel">
+          <span>Agentes observados</span>
+          <strong id="agentCount">0</strong>
+        </article>
+        <article class="metric panel">
+          <span>Eventos recebidos</span>
+          <strong id="eventCount">0</strong>
+        </article>
+        <article class="metric panel">
+          <span>Especialistas definidos</span>
+          <strong id="roleCount">6</strong>
+        </article>
+        <article class="metric panel">
+          <span>Controle de equipamento</span>
+          <strong class="safe-value">BLOQUEADO</strong>
+        </article>
+      </section>
+
+      <section class="workspace-grid">
+        <article class="panel agents-panel">
+          <div class="panel-heading compact">
+            <div>
+              <p class="label">Equipe</p>
+              <h2>Agentes em execução</h2>
+            </div>
+          </div>
+          <div id="agentList" class="agent-list empty">Nenhum agente em execução.</div>
+        </article>
+
+        <article class="panel timeline-panel">
+          <div class="panel-heading compact">
+            <div>
+              <p class="label">Event stream</p>
+              <h2>Linha do tempo</h2>
+            </div>
+          </div>
+          <ol id="eventList" class="event-list empty"><li>Aguardando eventos.</li></ol>
+        </article>
+      </section>
+
+      <section class="panel output-panel">
+        <div class="panel-heading compact">
+          <div>
+            <p class="label">Consolidação</p>
+            <h2>Saída do coordenador</h2>
+          </div>
+        </div>
+        <pre id="output">Nenhuma saída recebida.</pre>
+        <p id="errorMessage" class="error-message" hidden></p>
+      </section>
+
+      <section class="panel role-panel">
+        <div class="panel-heading compact">
+          <div>
+            <p class="label">Arquitetura aprovada</p>
+            <h2>Seis papéis Schlenker</h2>
+          </div>
+        </div>
+        <div id="roleList" class="role-list"></div>
+      </section>
+    </main>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>
