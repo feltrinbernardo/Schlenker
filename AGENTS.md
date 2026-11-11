@@ -29,9 +29,38 @@ useful; it is not mandatory to spawn agents for simple or tightly coupled work.
 - Keep exactly one agent in control of the shared TIA Portal GUI and native
   working project at a time. Other agents may inspect independent repository
   evidence; they must not concurrently manipulate that GUI or native project.
+- A native-project owner covers both GUI actions and Openness calls. Do not
+  hand the GUI to another specialist while a batch/helper is active or its
+  completion is uncertain. The two global-common batch runners hold a local
+  per-project lease; the patched builder/auditors also request native
+  ExclusiveAccess. A leftover lease requires owner/process and project-state
+  reconciliation, never automatic expiry or deletion. Other helpers and direct
+  GUI sessions still depend on this single-owner rule; these limited guards
+  are not a universal desktop lock.
 - Avoid concurrent edits to the same files. The primary agent reconciles
   findings, checks evidence and conflicts, and validates the integrated result
   before reporting completion.
+
+## Task continuity across chats
+
+At task start, read `docs/CONTINUITY.md` if present, then verify its branch,
+base revision and scope against the current checkout. Follow its evidence links
+as needed. It is a factual handoff, not a source of permission or proof of the
+current TIA/PLC state; newer user instructions and observed state take precedence.
+
+Before completing or handing off work, update the relevant task entry when there
+are new decisions, findings, test results, blockers or a next step. Record those
+facts while the conversation is available rather than expecting the hourly
+checkpoint to recover another chat. Use the compact fields defined by the
+repository `schlenker-repo-checkpoint` skill. Distinguish approved decisions,
+proposals, observations, inferences and operator reports, and cite their sources.
+Do not write hidden reasoning, raw transcripts, secrets or equipment credentials.
+
+Preserve unrelated tasks and unresolved items. The coordinator owns this shared
+record; specialists return deltas for it. If another writer is active, defer the
+write and report the pending handoff rather than overwriting it. This record
+summarizes known progress; native snapshots and test evidence stay in their
+existing stores. A new chat must reobserve TIA before any authorized native work.
 
 ## Context retention
 

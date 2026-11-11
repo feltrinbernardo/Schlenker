@@ -44,6 +44,39 @@ namespace Schlenker.TiaV19
         private static readonly Color Grey = Color.FromArgb(205, 212, 219);
         private static readonly Color Dark = Color.FromArgb(35, 45, 55);
 
+        private static string operationPhase = "DISCOVERY";
+        private static void Phase(string value)
+        {
+            operationPhase = value;
+            Console.WriteLine("PHASE=" + value + "|UTC=" + DateTime.UtcNow.ToString("o"));
+            Console.Out.Flush();
+        }
+        private static TiaPortal AttachDiagnosed(TiaPortalProcess process)
+        {
+            Phase("ATTACH_STARTED");
+            TiaPortal portal = process.Attach();
+            Phase("ATTACH_COMPLETED");
+            return portal;
+        }
+        private static void ReportFailure(Exception exception)
+        {
+            Exception cause = exception;
+            while (cause.InnerException != null) cause = cause.InnerException;
+            string code = cause.GetType().Name == "EngineeringSecurityException"
+                ? "OPENNESS_SECURITY" : cause is TimeoutException ? "TIMEOUT" : "OPERATION_FAILED";
+            Console.Error.WriteLine("FAILURE_CODE=" + code + "|PHASE=" + operationPhase);
+            Console.Error.Flush();
+        }
+
+        private static void SaveDiagnosed(Project project)
+        {
+            string previousPhase = operationPhase;
+            Phase("SAVE_STARTED");
+            project.Save();
+            Phase("SAVE_COMPLETED");
+            Phase(previousPhase);
+        }
+
         private static int Main(string[] args)
         {
             string projectHint = args.Length > 0 ? args[0] : "schlenkers 36-10 190036.ap19";
@@ -336,24 +369,30 @@ namespace Schlenker.TiaV19
 
             try
             {
+                Phase("DISCOVERY");
+                if (!Path.IsPathRooted(projectHint))
+                    throw new InvalidOperationException("An exact absolute project path is required; filename hints are not accepted.");
+                projectHint = Path.GetFullPath(projectHint);
                 int reloadProcessId = 0;
                 if (reloadExactOpenProject && args.Length > 4)
                 {
                     Int32.TryParse(args[4], out reloadProcessId);
                 }
-                TiaPortalProcess selected = reloadProcessId > 0
-                    ? TiaPortal.GetProcesses().FirstOrDefault(process => process.Id == reloadProcessId)
-                    : TiaPortal.GetProcesses().FirstOrDefault(
-                        process => process.ProjectPath != null &&
-                            process.ProjectPath.FullName.EndsWith(projectHint, StringComparison.OrdinalIgnoreCase));
+                TiaPortalProcess selected = TiaPortal.GetProcesses().SingleOrDefault(process =>
+                    process.ProjectPath != null &&
+                    Path.GetFullPath(process.ProjectPath.FullName).Equals(projectHint, StringComparison.OrdinalIgnoreCase) &&
+                    (reloadProcessId == 0 || process.Id == reloadProcessId));
                 if (selected == null)
                 {
                     Console.Error.WriteLine("STATUS=FAIL");
+                    Console.Error.WriteLine("FAILURE_CODE=PROJECT_NOT_FOUND|PHASE=" + operationPhase);
+                    Console.Error.Flush();
                     Console.Error.WriteLine("No open TIA project matched: " + projectHint);
                     return 2;
                 }
 
-                using (TiaPortal portal = selected.Attach())
+                using (TiaPortal portal = AttachDiagnosed(selected))
+                using (ExclusiveAccess access = portal.ExclusiveAccess("Schlenker BuildUnifiedHomeScreen"))
                 {
                     if (reloadExactOpenProject)
                     {
@@ -380,6 +419,7 @@ namespace Schlenker.TiaV19
                         return 0;
                     }
 
+                    Phase("PROJECT_INSPECTION");
                     Project project = portal.Projects.FirstOrDefault();
                     if (project == null)
                     {
@@ -387,6 +427,11 @@ namespace Schlenker.TiaV19
                         Console.Error.WriteLine("Attached TIA process has no open project.");
                         return 3;
                     }
+
+                    if (!Path.GetFullPath(project.Path.FullName).Equals(projectHint, StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidOperationException("Project changed after attach; no operation permitted.");
+                    if (access.IsCancellationRequested)
+                        throw new OperationCanceledException("Exclusive access cancelled.");
 
                     Device hmiDevice;
                     DeviceItem hmiDeviceItem;
@@ -414,11 +459,12 @@ namespace Schlenker.TiaV19
                         return 0;
                     }
 
+                    Phase("EXECUTION_STARTED");
                     Directory.CreateDirectory(archiveDirectory);
                     if (existingArchive == null)
                     {
                         string archiveName = "schlenkers-pre-home-" + DateTime.Now.ToString("yyyyMMdd-HHmmss");
-                        project.Save();
+                        SaveDiagnosed(project);
                         project.Archive(new DirectoryInfo(archiveDirectory), archiveName, ProjectArchivationMode.Compressed);
                         Console.WriteLine("ARCHIVE=" + Path.Combine(archiveDirectory, archiveName + ".zap19"));
                     }
@@ -435,14 +481,14 @@ namespace Schlenker.TiaV19
                     if (homeLegacyEditorCleanup)
                     {
                         ApplyHomeLegacyEditorCleanup(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=HOME_LEGACY_EDITOR_CLEANUP_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=home");
                     }
                     else if (videoRuntimeCorrections)
                     {
                         ApplyVideoRuntimeCorrections(project, hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=VIDEO_RUNTIME_CORRECTIONS_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREENS=home|setup|efficiency|settings_timers");
                     }
@@ -456,7 +502,7 @@ namespace Schlenker.TiaV19
                     {
                         EnsureHmiTags(hmi, Path.Combine(repositoryRoot, "REV12", "HMI", "REV12_HMI_Tags.csv"));
                         ApplyHmiHeartbeatLink(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=HMI_HEARTBEAT_LINK_READY");
                         Console.WriteLine("HMI_HEARTBEAT_PERIOD_MS=500");
                         Console.WriteLine("PLC_WATCHDOG_TIMEOUT_MS=3000");
@@ -464,7 +510,7 @@ namespace Schlenker.TiaV19
                     else if (homeHmiLinkLamp)
                     {
                         ApplyHomeHmiLinkLamp(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=HOME_HMI_LINK_LAMP_READY");
                         Console.WriteLine("HOME_HMI_LINK_TEXT_COLOR=WHITE");
                         Console.WriteLine("HOME_HMI_LINK_LAMP=DYNAMIC_GREEN_OR_AMBER");
@@ -472,7 +518,7 @@ namespace Schlenker.TiaV19
                     else if (allHmiLinkLamps)
                     {
                         ApplyHmiLinkLampsToAllScreens(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=ALL_HMI_LINK_LAMPS_READY");
                         Console.WriteLine("ALL_HMI_LINK_TEXT_COLOR=WHITE");
                         Console.WriteLine("ALL_HMI_LINK_LAMPS=DYNAMIC_GREEN_OR_AMBER");
@@ -589,14 +635,14 @@ namespace Schlenker.TiaV19
                     else if (manualValidatedRebuild)
                     {
                         ApplyManualValidatedRebuild(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=MANUAL_VALIDATED_REBUILD_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=manual");
                     }
                     else if (cipEditFullRefinement)
                     {
                         ApplyCipEditFullRefinement(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=CIP_EDIT_FULL_REFINEMENT_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=cip_edit");
                         Console.WriteLine("CIP_EDIT_COMMON_FRAME_MODIFIED=0");
@@ -604,7 +650,7 @@ namespace Schlenker.TiaV19
                     else if (alarmsContentRefinement)
                     {
                         ApplyAlarmsContentRefinement(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=ALARMS_CONTENT_REFINEMENT_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=alarms");
                         Console.WriteLine("ALARMS_COMMON_FRAME_MODIFIED=0");
@@ -613,7 +659,7 @@ namespace Schlenker.TiaV19
                     {
                         ApplyAlarmsContentRefinement(hmi);
                         ApplyAlarmsFinalLayoutCorrection(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=ALARMS_FINAL_LAYOUT_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=alarms");
                         Console.WriteLine("ALARMS_COMMON_FRAME_MODIFIED=0");
@@ -621,7 +667,7 @@ namespace Schlenker.TiaV19
                     else if (alarmsLayoutStandardization)
                     {
                         ApplyAlarmsLayoutStandardization(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=ALARMS_LAYOUT_STANDARDIZATION_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=alarms");
                         Console.WriteLine("ALARMS_COMMON_FRAME_MODIFIED=0");
@@ -629,7 +675,7 @@ namespace Schlenker.TiaV19
                     else if (alarmsOverlapCleanup)
                     {
                         ApplyAlarmsOverlapCleanup(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=ALARMS_OVERLAP_CLEANUP_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=alarms");
                         Console.WriteLine("ALARMS_COMMON_FRAME_MODIFIED=0");
@@ -637,7 +683,7 @@ namespace Schlenker.TiaV19
                     else if (alarmsBackgroundStandardization)
                     {
                         ApplyAlarmsBackgroundStandardization(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=ALARMS_BACKGROUND_STANDARDIZATION_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=alarms");
                         Console.WriteLine("ALARMS_COMMON_FRAME_MODIFIED=0");
@@ -645,7 +691,7 @@ namespace Schlenker.TiaV19
                     else if (alarmsBackgroundSurfaceCreate)
                     {
                         CreateAlarmsBackgroundSurface(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=ALARMS_BACKGROUND_SURFACE_CREATED");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=alarms");
                         Console.WriteLine("ALARMS_COMMON_FRAME_MODIFIED=0");
@@ -653,7 +699,7 @@ namespace Schlenker.TiaV19
                     else if (alarmsBackgroundSurfaceFinalize)
                     {
                         FinalizeAlarmsBackgroundSurface(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=ALARMS_BACKGROUND_SURFACE_FINALIZED");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=alarms");
                         Console.WriteLine("ALARMS_COMMON_FRAME_MODIFIED=0");
@@ -661,7 +707,7 @@ namespace Schlenker.TiaV19
                     else if (diagnosticsContentRefinement)
                     {
                         ApplyDiagnosticsContentRefinement(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=DIAGNOSTICS_CONTENT_REFINEMENT_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=diagnostics");
                         Console.WriteLine("DIAGNOSTICS_COMMON_FRAME_MODIFIED=0");
@@ -669,7 +715,7 @@ namespace Schlenker.TiaV19
                     else if (diagnosticsLegacyCleanup)
                     {
                         ApplyDiagnosticsLegacyEditorCleanup(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=DIAGNOSTICS_LEGACY_EDITOR_CLEANUP_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=diagnostics");
                         Console.WriteLine("DIAGNOSTICS_COMMON_FRAME_MODIFIED=0");
@@ -677,7 +723,7 @@ namespace Schlenker.TiaV19
                     else if (diagnosticsDataSourceSpacing)
                     {
                         ApplyDiagnosticsDataSourceSpacing(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=DIAGNOSTICS_DATA_SOURCE_SPACING_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=diagnostics");
                         Console.WriteLine("DIAGNOSTICS_COMMON_FRAME_MODIFIED=0");
@@ -685,7 +731,7 @@ namespace Schlenker.TiaV19
                     else if (diagnosticsEntryNavigationFix)
                     {
                         ApplyDiagnosticsEntryNavigationFix(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=DIAGNOSTICS_ENTRY_NAVIGATION_FIXED");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=diagnostics");
                         Console.WriteLine("DIAGNOSTICS_COMMON_FRAME_MODIFIED=0");
@@ -693,7 +739,7 @@ namespace Schlenker.TiaV19
                     else if (manualValvesRuntimeCoverFix)
                     {
                         ApplyManualValvesRuntimeCoverFix(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=MANUAL_VALVES_RUNTIME_COVER_FIXED");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=manual_valves");
                         Console.WriteLine("MANUAL_VALVES_PROCESS_BINDINGS_MODIFIED=0");
@@ -701,7 +747,7 @@ namespace Schlenker.TiaV19
                     else if (ioDirectoryPriorityRefinement)
                     {
                         ApplyIoDirectoryPriorityRefinement(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=IO_DIRECTORY_PRIORITY_REFINEMENT_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=io_diagnostics");
                         Console.WriteLine("IO_DIRECTORY_COMMON_FRAME_MODIFIED=0");
@@ -709,7 +755,7 @@ namespace Schlenker.TiaV19
                     else if (ioDirectoryOverlapCleanup)
                     {
                         ApplyIoDirectoryOverlapCleanup(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=IO_DIRECTORY_OVERLAP_CLEANUP_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=io_diagnostics");
                         Console.WriteLine("IO_DIRECTORY_COMMON_FRAME_MODIFIED=0");
@@ -717,7 +763,7 @@ namespace Schlenker.TiaV19
                     else if (ioLinkAl100ContentRefinement)
                     {
                         ApplyIoLinkAl100ContentRefinement(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=IO_LINK_AL100_CONTENT_REFINEMENT_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=io_link_al100");
                         Console.WriteLine("IO_LINK_AL100_COMMON_FRAME_MODIFIED=0");
@@ -725,7 +771,7 @@ namespace Schlenker.TiaV19
                     else if (ioLinkAl100HeaderAlignment)
                     {
                         ApplyIoLinkAl100HeaderAlignment(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=IO_LINK_AL100_HEADER_ALIGNMENT_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=io_link_al100");
                         Console.WriteLine("IO_LINK_AL100_COMMON_FRAME_MODIFIED=0");
@@ -733,7 +779,7 @@ namespace Schlenker.TiaV19
                     else if (ioLinkAl101ContentRefinement)
                     {
                         ApplyIoLinkAl101ContentRefinement(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=IO_LINK_AL101_CONTENT_REFINEMENT_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=io_link_al101");
                         Console.WriteLine("IO_LINK_AL101_COMMON_FRAME_MODIFIED=0");
@@ -741,7 +787,7 @@ namespace Schlenker.TiaV19
                     else if (ioLinkAl102ContentRefinement)
                     {
                         ApplyIoLinkAl102ContentRefinement(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=IO_LINK_AL102_CONTENT_REFINEMENT_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=io_link_al102");
                         Console.WriteLine("IO_LINK_AL102_COMMON_FRAME_MODIFIED=0");
@@ -749,7 +795,7 @@ namespace Schlenker.TiaV19
                     else if (ioLinkAl103ContentRefinement)
                     {
                         ApplyIoLinkAl103ContentRefinement(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=IO_LINK_AL103_CONTENT_REFINEMENT_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=io_link_al103");
                         Console.WriteLine("IO_LINK_AL103_COMMON_FRAME_MODIFIED=0");
@@ -757,7 +803,7 @@ namespace Schlenker.TiaV19
                     else if (ioLinkAl104ContentRefinement)
                     {
                         ApplyIoLinkAl104ContentRefinement(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=IO_LINK_AL104_CONTENT_REFINEMENT_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=io_link_al104");
                         Console.WriteLine("IO_LINK_AL104_COMMON_FRAME_MODIFIED=0");
@@ -765,7 +811,7 @@ namespace Schlenker.TiaV19
                     else if (ioLinkOverviewContentRefinement)
                     {
                         ApplyIoLinkOverviewContentRefinement(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=IO_LINK_OVERVIEW_CONTENT_REFINEMENT_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=io_link_overview");
                         Console.WriteLine("IO_LINK_OVERVIEW_COMMON_FRAME_MODIFIED=0");
@@ -773,7 +819,7 @@ namespace Schlenker.TiaV19
                     else if (ioLinkConfiguredPages)
                     {
                         ApplyIoLinkConfiguredPages(project, hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=IO_LINK_CONFIGURED_PAGES_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREENS=io_link_al100|io_link_al101|io_link_al102|io_link_al103|io_link_overview|manual");
                         Console.WriteLine("IO_LINK_CONFIGURED_PAGES_PLC_LOGIC_MODIFIED=0");
@@ -781,7 +827,7 @@ namespace Schlenker.TiaV19
                     else if (ioLinkFooterOnly)
                     {
                         ApplyIoLinkFooterOnly(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=IO_LINK_FOOTER_ONLY_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREENS=io_link_overview|io_link_al100|io_link_al101|io_link_al102|io_link_al103");
                         Console.WriteLine("IO_LINK_FOOTER_ONLY_OTHER_OBJECTS_MODIFIED=0");
@@ -789,7 +835,7 @@ namespace Schlenker.TiaV19
                     else if (architectureTreeV12IoLinkReview)
                     {
                         ApplyArchitectureTreeV12IoLinkReview(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=ARCHITECTURE_TREE_V12_IOLINK_REVIEW_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREENS=io_link_overview|io_link_al100|io_link_al101|io_link_al102|io_link_al103|io_link_al104");
                         Console.WriteLine("ARCHITECTURE_TREE_V12_CHANGED_SCREEN=io_link_al102");
@@ -800,7 +846,7 @@ namespace Schlenker.TiaV19
                     else if (ioLinkAl102MatchAl100)
                     {
                         ApplyIoLinkAl102MatchAl100(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=IO_LINK_AL102_MATCH_AL100_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=io_link_al102");
                         Console.WriteLine("IO_LINK_AL102_MAPPING_MODIFIED=0");
@@ -810,7 +856,7 @@ namespace Schlenker.TiaV19
                     else if (ioLinkAllMatchAl100)
                     {
                         ApplyIoLinkAllMatchAl100(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=IO_LINK_ALL_MATCH_AL100_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREENS=io_link_al101|io_link_al102|io_link_al103|io_link_al104");
                         Console.WriteLine("IO_LINK_ALL_MAPPING_MODIFIED=0");
@@ -820,7 +866,7 @@ namespace Schlenker.TiaV19
                     else if (liftWarningContentRefinement)
                     {
                         ApplyLiftWarningContentRefinement(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=LIFT_WARNING_CONTENT_REFINEMENT_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=lift_warning");
                         Console.WriteLine("LIFT_WARNING_COMMON_FRAME_MODIFIED=0");
@@ -828,7 +874,7 @@ namespace Schlenker.TiaV19
                     else if (liftWarningLayoutCentering)
                     {
                         ApplyLiftWarningLayoutCentering(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=LIFT_WARNING_LAYOUT_CENTERING_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=lift_warning");
                         Console.WriteLine("LIFT_WARNING_COMMON_FRAME_MODIFIED=0");
@@ -836,7 +882,7 @@ namespace Schlenker.TiaV19
                     else if (manualContentRefinement)
                     {
                         ApplyManualContentRefinement(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=MANUAL_CONTENT_REFINEMENT_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=manual");
                         Console.WriteLine("MANUAL_COMMON_FRAME_MODIFIED=0");
@@ -844,7 +890,7 @@ namespace Schlenker.TiaV19
                     else if (manualLayoutCentering)
                     {
                         ApplyManualLayoutCentering(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=MANUAL_LAYOUT_CENTERING_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=manual");
                         Console.WriteLine("MANUAL_COMMON_FRAME_MODIFIED=0");
@@ -852,7 +898,7 @@ namespace Schlenker.TiaV19
                     else if (efficiencyContentRefinement)
                     {
                         ApplyEfficiencyContentRefinement(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=EFFICIENCY_CONTENT_REFINEMENT_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=efficiency");
                         Console.WriteLine("EFFICIENCY_COMMON_FRAME_MODIFIED=0");
@@ -861,7 +907,7 @@ namespace Schlenker.TiaV19
                     {
                         ApplyEfficiencyContentRefinement(hmi);
                         ApplyEfficiencyLayoutStandardization(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=EFFICIENCY_LAYOUT_STANDARDIZATION_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=efficiency");
                         Console.WriteLine("EFFICIENCY_COMMON_FRAME_MODIFIED=0");
@@ -869,7 +915,7 @@ namespace Schlenker.TiaV19
                     else if (efficiencyKpiTitleCentering)
                     {
                         ApplyEfficiencyKpiTitleCentering(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=EFFICIENCY_KPI_TITLE_CENTERING_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=efficiency");
                         Console.WriteLine("EFFICIENCY_COMMON_FRAME_MODIFIED=0");
@@ -877,7 +923,7 @@ namespace Schlenker.TiaV19
                     else if (functionContentRefinement)
                     {
                         ApplyFunctionContentRefinement(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=FUNCTION_CONTENT_REFINEMENT_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=function");
                         Console.WriteLine("FUNCTION_COMMON_FRAME_MODIFIED=0");
@@ -885,7 +931,7 @@ namespace Schlenker.TiaV19
                     else if (settingsExternalWashContentRefinementFinal)
                     {
                         ApplySettingsExternalWashContentRefinementFinal(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=SETTINGS_EXTERNAL_WASH_CONTENT_REFINED_FINAL");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=settings_external_wash");
                         Console.WriteLine("SETTINGS_EXTERNAL_WASH_COMMON_FRAME_MODIFIED=0");
@@ -893,7 +939,7 @@ namespace Schlenker.TiaV19
                     else if (settingsInputsContentRefinementFinal)
                     {
                         ApplySettingsInputsContentRefinementFinal(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=SETTINGS_INPUTS_CONTENT_REFINED_FINAL");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=settings_inputs");
                         Console.WriteLine("SETTINGS_INPUTS_COMMON_FRAME_MODIFIED=0");
@@ -901,7 +947,7 @@ namespace Schlenker.TiaV19
                     else if (settingsOutputsContentRefinementFinal)
                     {
                         ApplySettingsOutputsContentRefinementFinal(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=SETTINGS_OUTPUTS_CONTENT_REFINED_FINAL");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=settings_outputs");
                         Console.WriteLine("SETTINGS_OUTPUTS_COMMON_FRAME_MODIFIED=0");
@@ -909,7 +955,7 @@ namespace Schlenker.TiaV19
                     else if (settingsTimersContentRefinementFinal)
                     {
                         ApplySettingsTimersContentRefinementFinal(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=SETTINGS_TIMERS_CONTENT_REFINED_FINAL");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=settings_timers");
                         Console.WriteLine("SETTINGS_TIMERS_COMMON_FRAME_MODIFIED=0");
@@ -917,7 +963,7 @@ namespace Schlenker.TiaV19
                     else if (setupContentAndHeaderRefinementFinal)
                     {
                         ApplySetupContentAndHeaderRefinementFinal(project, hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=SETUP_CONTENT_AND_HEADER_REFINED_FINAL");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=setup");
                         Console.WriteLine("SETUP_COMMON_FRAME_SOURCE=production");
@@ -925,7 +971,7 @@ namespace Schlenker.TiaV19
                     else if (cipEditSpacingFix)
                     {
                         ApplyCipEditSpacingFix(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=CIP_EDIT_SPACING_FIXED");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=cip");
                         Console.WriteLine("CIP_COMMON_FRAME_MODIFIED=0");
@@ -933,7 +979,7 @@ namespace Schlenker.TiaV19
                     else if (cipProgressStaticFix)
                     {
                         ApplyCipProgressStaticFix(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=CIP_PROGRESS_STATIC_FIXED");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=cip");
                         Console.WriteLine("CIP_COMMON_FRAME_MODIFIED=0");
@@ -941,7 +987,7 @@ namespace Schlenker.TiaV19
                     else if (cipVisualFinalize)
                     {
                         ApplyCipVisualFinalization(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=CIP_VISUAL_FINALIZED");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=cip");
                         Console.WriteLine("CIP_COMMON_FRAME_MODIFIED=0");
@@ -949,7 +995,7 @@ namespace Schlenker.TiaV19
                     else if (operateContentFinalization)
                     {
                         ApplyOperateContentFinalization(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=OPERATE_CONTENT_FINALIZED");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=operate");
                         Console.WriteLine("OPERATE_COMMON_FRAME_MODIFIED=0");
@@ -957,7 +1003,7 @@ namespace Schlenker.TiaV19
                     else if (operatePriorityContentFix)
                     {
                         ApplyOperatePriorityContentFix(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=OPERATE_PRIORITY_CONTENT_FIXED");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=operate");
                         Console.WriteLine("OPERATE_COMMON_FRAME_MODIFIED=0");
@@ -965,7 +1011,7 @@ namespace Schlenker.TiaV19
                     else if (cipPriorityContentFix)
                     {
                         ApplyCipPriorityContentFix(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=CIP_PRIORITY_CONTENT_FIXED");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=cip");
                         Console.WriteLine("CIP_COMMON_FRAME_MODIFIED=0");
@@ -973,7 +1019,7 @@ namespace Schlenker.TiaV19
                     else if (homeContentFinalize)
                     {
                         ApplyHomeContentFinalization(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=HOME_CONTENT_FINALIZED");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=home");
                         Console.WriteLine("HOME_COMMON_FRAME_MODIFIED=0");
@@ -981,7 +1027,7 @@ namespace Schlenker.TiaV19
                     else if (homeAuxiliaryDivider)
                     {
                         ApplyHomeAuxiliaryDivider(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=HOME_AUXILIARY_DIVIDER_READY");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=home");
                         Console.WriteLine("HOME_COMMON_FRAME_MODIFIED=0");
@@ -989,7 +1035,7 @@ namespace Schlenker.TiaV19
                     else if (homeAuxiliaryStatusRefinement)
                     {
                         ApplyHomeAuxiliaryStatusRefinement(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=HOME_AUXILIARY_STATUS_REFINED");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=home");
                         Console.WriteLine("HOME_COMMON_FRAME_MODIFIED=0");
@@ -997,7 +1043,7 @@ namespace Schlenker.TiaV19
                     else if (homeInterfaceLayoutFix)
                     {
                         ApplyHomeInterfaceLayoutCorrection(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=HOME_INTERFACE_LAYOUT_FIXED");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=home");
                         Console.WriteLine("HOME_COMMON_FRAME_MODIFIED=0");
@@ -1081,7 +1127,7 @@ namespace Schlenker.TiaV19
                     else if (productionContentRefinementFinal)
                     {
                         ApplyProductionContentRefinementFinal(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=PRODUCTION_CONTENT_REFINED_FINAL");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=production");
                         Console.WriteLine("PRODUCTION_COMMON_FRAME_MODIFIED=0");
@@ -1089,7 +1135,7 @@ namespace Schlenker.TiaV19
                     else if (productionFinalVisualPolish)
                     {
                         ApplyProductionFinalVisualPolish(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=PRODUCTION_FINAL_VISUAL_POLISH");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=production");
                         Console.WriteLine("PRODUCTION_COMMON_FRAME_MODIFIED=0");
@@ -1097,7 +1143,7 @@ namespace Schlenker.TiaV19
                     else if (recipeContentRefinementFinal)
                     {
                         ApplyRecipeContentRefinementFinal(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=RECIPE_CONTENT_REFINED_FINAL");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=recipe");
                         Console.WriteLine("RECIPE_COMMON_FRAME_MODIFIED=0");
@@ -1105,7 +1151,7 @@ namespace Schlenker.TiaV19
                     else if (safetyContentRefinementFinal)
                     {
                         ApplySafetyContentRefinementFinal(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=SAFETY_CONTENT_REFINED_FINAL");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=safety");
                         Console.WriteLine("SAFETY_COMMON_FRAME_MODIFIED=0");
@@ -1113,7 +1159,7 @@ namespace Schlenker.TiaV19
                     else if (pilzDiagnosticsContentRefinementFinal)
                     {
                         ApplyPilzDiagnosticsContentRefinementFinal(hmi);
-                        project.Save();
+                        SaveDiagnosed(project);
                         Console.WriteLine("STEP=PILZ_DIAGNOSTICS_CONTENT_REFINED_FINAL");
                         Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=safety_pilz_diagnostics");
                         Console.WriteLine("PILZ_DIAGNOSTICS_COMMON_FRAME_MODIFIED=0");
@@ -1445,7 +1491,9 @@ namespace Schlenker.TiaV19
                         throw new InvalidOperationException(
                             "TIA V19 did not expose an HMI compiler service on the device or runtime item.");
                     }
+                    Phase("COMPILE_STARTED");
                     CompilerResult result = compilable.Compile();
+                    Phase("COMPILE_COMPLETED");
                     Console.WriteLine("COMPILER_SCOPE=" +
                         (compileCurrentHmiRuntimeDiagnostic ? "HMI_RUNTIME_ITEM" : "HMI_DEVICE"));
                     PrintCompilerResult(result, "");
@@ -1467,7 +1515,7 @@ namespace Schlenker.TiaV19
                         return 0;
                     }
 
-                    project.Save();
+                    SaveDiagnosed(project);
                     Console.WriteLine("HOME_ITEMS=" + home.ScreenItems.Count);
                     Console.WriteLine("PROJECT=" + project.Path.FullName);
                     Console.WriteLine("STATUS=PASS");
@@ -1476,6 +1524,7 @@ namespace Schlenker.TiaV19
             }
             catch (Exception exception)
             {
+                ReportFailure(exception);
                 Console.Error.WriteLine("STATUS=FAIL");
                 Console.Error.WriteLine(exception);
                 return 1;
@@ -4727,7 +4776,7 @@ namespace Schlenker.TiaV19
                 Console.WriteLine(
                     "NAVIGATION_REBUILT=" + entry.Key + "|REMOVED=" + replaced.Length +
                     "|CREATED=38|ACTIVE=" + entry.Value);
-                project.Save();
+                SaveDiagnosed(project);
                 Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=" + entry.Key);
             }
         }
@@ -23170,7 +23219,7 @@ namespace Schlenker.TiaV19
 
         private static void SaveAfterNavigationScreen(Project project, string screenName)
         {
-            project.Save();
+            SaveDiagnosed(project);
             Console.WriteLine("PROJECT_SAVED_AFTER_SCREEN=" + screenName);
         }
 

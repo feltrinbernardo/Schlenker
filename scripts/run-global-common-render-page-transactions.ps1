@@ -26,6 +26,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$PSNativeCommandUseErrorActionPreference = $false
+$ProjectPath = [System.IO.Path]::GetFullPath($ProjectPath)
 $resultsPath = Join-Path $OutputRoot 'completion-ledger.tsv'
 
 foreach ($requiredFile in @($ProjectPath, $BuildExe, $AuditExe, $CheckpointArchive)) {
@@ -34,25 +36,27 @@ foreach ($requiredFile in @($ProjectPath, $BuildExe, $AuditExe, $CheckpointArchi
     }
 }
 
+. (Join-Path $PSScriptRoot 'tia-project-lease.ps1')
+$lease = Enter-TiaProjectLease -ProjectPath $ProjectPath
+$helperInFlight = $false
+try {
+# Native state cannot be reconstructed from a page-name-only ledger.
+# Do not replay or skip a prior run; reconcile it and use a fresh output directory.
+if ((Test-Path -LiteralPath $OutputRoot) -and
+    @(Get-ChildItem -LiteralPath $OutputRoot -Force).Count -gt 0) {
+    throw 'RESUME_REQUIRES_RECONCILIATION: OutputRoot is not empty. Preserve the previous evidence; reconcile native state before starting a fresh run.'
+}
+if ($Screens.Count -eq 0 -or @($Screens | Select-Object -Unique).Count -ne $Screens.Count -or
+    @($Screens | Where-Object { $_ -notmatch '^[A-Za-z0-9_-]+$' }).Count -gt 0) {
+    throw 'Screens must contain unique, nonempty screen names without path separators.'
+}
 New-Item -ItemType Directory -Path $OutputRoot -Force | Out-Null
 if (-not (Test-Path -LiteralPath $resultsPath -PathType Leaf)) {
     "Screen`tStatus`tApplyExit`tCompileErrors`tCompileWarnings`tAuditExit`tFrameStatus`tIssueCount`tUTC`tNotes" |
         Set-Content -LiteralPath $resultsPath -Encoding UTF8
 }
 
-$alreadyValidated = @{}
-foreach ($row in @(Import-Csv -LiteralPath $resultsPath -Delimiter "`t")) {
-    if ($row.Status -eq 'VALIDATED') {
-        $alreadyValidated[$row.Screen] = $true
-    }
-}
-
 foreach ($screen in $Screens) {
-    if ($alreadyValidated.ContainsKey($screen)) {
-        Write-Output ("PAGE_SKIPPED_VALIDATED={0}" -f $screen)
-        continue
-    }
-
     $screenDirectory = Join-Path (Join-Path $OutputRoot 'pages') $screen
     New-Item -ItemType Directory -Path $screenDirectory -Force | Out-Null
     $applyLog = Join-Path $screenDirectory 'apply-compile.log'
@@ -63,15 +67,17 @@ foreach ($screen in $Screens) {
     $utc = [DateTime]::UtcNow.ToString('o')
 
     Write-Output ("PAGE_START={0}|UTC={1}" -f $screen, $utc)
+    $helperInFlight = $true
     & $BuildExe $ProjectPath $screenDirectory $CheckpointArchive '--global-common-render-fix' $screen `
         1> $applyLog 2> $applyErrorLog
     $applyExit = $LASTEXITCODE
+    $helperInFlight = $false
     $applyText = if (Test-Path -LiteralPath $applyLog) {
         Get-Content -LiteralPath $applyLog -Raw
     } else { '' }
     $compileErrors = if ($applyText -match 'COMPILE_ERRORS=(\d+)') { $Matches[1] } else { 'UNKNOWN' }
     $compileWarnings = if ($applyText -match 'COMPILE_WARNINGS=(\d+)') { $Matches[1] } else { 'UNKNOWN' }
-    $statusPass = $applyText -match 'STATUS=PASS'
+    $statusPass = $applyText -match '(?m)^STATUS=PASS\r?$'
 
     if ($applyExit -ne 0 -or -not $statusPass -or
         $compileErrors -ne '0' -or $compileWarnings -ne '0') {
@@ -80,18 +86,22 @@ foreach ($screen in $Screens) {
         $line | Add-Content -LiteralPath $resultsPath -Encoding UTF8
         Write-Output ("PAGE_BLOCKED={0}|APPLY_EXIT={1}|ERRORS={2}|WARNINGS={3}" -f `
             $screen, $applyExit, $compileErrors, $compileWarnings)
-        continue
+        Write-Output "RUN_STATUS=BLOCKED;RECONCILIATION_REQUIRED"
+        exit 1
     }
 
-    & $AuditExe $ProjectPath $auditTsv $screen 1> $auditLog 2> $auditErrorLog
+    # AuditCommonRenderTarget contract: project, screen, report.
+    $helperInFlight = $true
+    & $AuditExe $ProjectPath $screen $auditTsv 1> $auditLog 2> $auditErrorLog
     $auditExit = $LASTEXITCODE
+    $helperInFlight = $false
     $frameStatus = 'UNKNOWN'
     $issueCount = 'UNKNOWN'
     if ($auditExit -eq 0 -and (Test-Path -LiteralPath $auditTsv)) {
-        $auditRow = Import-Csv -LiteralPath $auditTsv -Delimiter "`t" | Select-Object -First 1
-        if ($null -ne $auditRow) {
-            $frameStatus = $auditRow.Status
-            $issueCount = $auditRow.IssueCount
+        $auditRow = @(Import-Csv -LiteralPath $auditTsv -Delimiter "`t")
+        if ($auditRow.Count -eq 1 -and $auditRow[0].Screen -ceq $screen) {
+            $frameStatus = $auditRow[0].Status
+            $issueCount = $auditRow[0].IssueCount
         }
     }
 
@@ -107,7 +117,24 @@ foreach ($screen in $Screens) {
         $line | Add-Content -LiteralPath $resultsPath -Encoding UTF8
         Write-Output ("PAGE_BLOCKED={0}|AUDIT_EXIT={1}|FRAME={2}|ISSUES={3}" -f `
             $screen, $auditExit, $frameStatus, $issueCount)
+        Write-Output "RUN_STATUS=BLOCKED;RECONCILIATION_REQUIRED"
+        exit 1
     }
 }
 
 Write-Output ("RUN_COMPLETE={0}|UTC={1}" -f $resultsPath, [DateTime]::UtcNow.ToString('o'))
+
+Write-Output "RUN_STATUS=PASS"
+exit 0
+
+}
+finally {
+    if ($helperInFlight) {
+        # Cancellation/launch exceptions do not prove the child stopped.
+        $lease.Stream.Dispose()
+        Write-Warning "PROJECT_LEASE_RECONCILIATION_REQUIRED: $($lease.Path)"
+    }
+    else {
+        Exit-TiaProjectLease -Lease $lease
+    }
+}

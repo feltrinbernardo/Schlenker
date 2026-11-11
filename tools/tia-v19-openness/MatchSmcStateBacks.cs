@@ -31,63 +31,74 @@ namespace Schlenker.TiaV19
             {
                 string path=Path.GetFullPath(args[0]);
                 Require(String.Equals(path,ApprovedProject,StringComparison.OrdinalIgnoreCase),"Exact approved project required.");
-                VerifyBackup(path,Path.GetFullPath(args[1]));
                 var process=TiaPortal.GetProcesses().Single(p=>p.ProjectPath!=null && String.Equals(Path.GetFullPath(p.ProjectPath.FullName),path,StringComparison.OrdinalIgnoreCase));
                 using(var report=new StreamWriter(args[2],false))
                 using(var portal=process.Attach())
+                using(var access=portal.ExclusiveAccess("Schlenker MatchSmcStateBacks"))
                 {
                     var project=portal.Projects.Single();
                     Require(String.Equals(Path.GetFullPath(project.Path.FullName),path,StringComparison.OrdinalIgnoreCase),"Project changed.");
-                    var candidates=project.Devices.SelectMany(d=>Items(d.DeviceItems).Select(i=>new{Device=d,Item=i,Container=i.GetService<SoftwareContainer>()})).Where(x=>x.Container!=null && x.Container.Software is HmiSoftware).ToArray();
-                    Require(candidates.Length==1,"Exactly one Unified HMI required.");
-                    var target=candidates[0]; var hmi=(HmiSoftware)target.Container.Software;
-                    var screen=hmi.Screens.Find("manual_valves"); Require(screen!=null,"Screen missing.");
-                    var items=Walk(screen,new HashSet<IEngineeringObject>()).OfType<HmiScreenItemBase>().ToDictionary(x=>x.Name,StringComparer.Ordinal);
-                    var table=hmi.TagTables.Find("REV12"); Require(table!=null,"REV12 missing.");
-                    var mappings=new Dictionary<string,string>();
-                    for(int i=1;i<=11;i++)foreach(string f in new[]{"Request","Accepted","State","Channel","PhysicalVerified"})mappings.Add("SMC_Y"+i+"_"+f,"DB_SMC_LogicalTest."+f+"["+i+"]");
-                    foreach(string f in new[]{"PageActive","Enable","Permit","HmiLinkOK","ProfinetDeviceOK","SafetyOK","ManualModeOK","ProcessInactive","AirPressureOK","DoorsOK","AlarmsOK","PhysicalOutputsEnabled"})mappings.Add("SMC_Logical_"+f,"DB_SMC_LogicalTest."+f);
-                    foreach(var pair in mappings){var tag=table.Tags.Find(pair.Key);Require(tag!=null && tag.Connection=="HMI_Connection_1" && tag.PlcTag==pair.Value,"Tag mismatch: "+pair.Key);}
-                    foreach(var type in new[]{HmiScreenEventType.Loaded,HmiScreenEventType.Unloaded}){var e=screen.EventHandlers.Find(type);Require(e!=null && e.Script.ScriptCode.Contains("// SMC_LOGICAL_INTERFACE_V1"),"Applied lifecycle marker missing.");}
-                    for(int i=0;i<11;i++)
-                    {
-                        HmiScreenItemBase item; Require(items.TryGetValue(Commands[i],out item) && item is HmiButton,"Command missing: "+Commands[i]);
-                        var b=(HmiButton)item;var down=b.EventHandlers.Find(HmiButtonEventType.Down);var up=b.EventHandlers.Find(HmiButtonEventType.Up);
-                        Require(down!=null && up!=null && down.Script.ScriptCode=="HMIRuntime.Tags(\"SMC_Y"+(i+1)+"_Request\").Write(true);" && up.Script.ScriptCode=="HMIRuntime.Tags(\"SMC_Y"+(i+1)+"_Request\").Write(false);","Request mapping mismatch.");
-                    }
-                    var referenceBack=Required<HmiRectangle>(items,"REV41_MANUAL_ValveOutputEV010_Back");
-                    var referenceDynamic=referenceBack.Dynamizations.Find("BackColor") as ScriptDynamization;
-                    Require(referenceDynamic!=null,"Reference background diagnostic missing.");
-                    var backs=new[]{6,7,10}.Select(i=>Required<HmiRectangle>(items,"SMC_Logical_Y"+i+"_Back")).ToArray();
-                    foreach(var back in backs)Require(back.Dynamizations.Count==0,"New background unexpectedly dynamic.");
-                    var referenceButton=Required<HmiButton>(items,Commands[0]);
-                    foreach(string name in Commands){var button=Required<HmiButton>(items,name);Require(button.Dynamizations.Find("BackColor")==null && button.Dynamizations.Find("ForeColor")==null,"Button color has a dynamization; no alteration permitted.");}
-                    var compiler=target.Item.GetService<ICompilable>()??target.Device.GetService<ICompilable>();Require(compiler!=null,"HMI compiler missing.");
-                    report.WriteLine("Preflight=PASS; Tags=67; Requests=11; LifecycleMarkers=2; Project="+path+"; Timestamp="+DateTimeOffset.Now.ToString("o"));
-                    foreach(var back in backs)
-                    {
-                        back.BackColor=referenceBack.BackColor;
-                        var dynamic=back.Dynamizations.Create<ScriptDynamization>("BackColor");
-                        dynamic.Async=referenceDynamic.Async;dynamic.Trigger.Type=referenceDynamic.Trigger.Type;dynamic.ScriptCode=referenceDynamic.ScriptCode;
-                        Require(dynamic.ScriptCode==referenceDynamic.ScriptCode && dynamic.Trigger.Type==referenceDynamic.Trigger.Type && dynamic.Async==referenceDynamic.Async,"Background script restoration mismatch.");
-                        report.WriteLine("MATCHED_BACK="+back.Name+";STATIC_AND_DYNAMIC_REFERENCE_EXACT=true");
-                    }
-                    foreach(string name in Commands) {
-                        var button=Required<HmiButton>(items,name);
-                        foreach(MultilingualTextItem text in button.Text.Items)text.Text="<body><p>HOLD TO TEST</p></body>";
-                        button.Font.Size=14; button.BackColor=referenceButton.BackColor; button.ForeColor=referenceButton.ForeColor;
-                    }
-                    var notice=Required<HmiText>(items,"REV50_ValveTest_Instruction");
-                    foreach(MultilingualTextItem text in notice.Text.Items)text.Text="<body><p>Logical test only: no physical outputs. ACCEPTED = request accepted, not valve feedback.</p></body>";
-                    notice.Font.Size=12;
+                    Require(!access.IsCancellationRequested,"Exclusive access cancelled.");
+                    VerifyBackup(path,Path.GetFullPath(args[1]));
+                    var compiler=ApplyTo(project,report);
+                    Require(!access.IsCancellationRequested,"Exclusive access cancelled.");
                     var result=compiler.Compile();Messages(result.Messages,report);
                     report.WriteLine("Errors="+result.ErrorCount+"; Warnings="+result.WarningCount);
-                    if(result.ErrorCount!=0){report.WriteLine("FAILED_UNSAVED; discard in-memory changes before retry.");return 1;}
+                    if(result.ErrorCount!=0){report.WriteLine("FAILED_UNSAVED; partial in-memory changes may remain; reconcile before retry.");return 1;}
+                    Require(!access.IsCancellationRequested,"Exclusive access cancelled.");
                     project.Save();report.WriteLine("SAVED; visual verification required.");
                 }
                 return 0;
             }
             catch(Exception e){Console.Error.WriteLine(e);return 1;}
+        }
+        // Mutation-only stage: caller owns the session, compilation and save.
+        internal static ICompilable ApplyTo(Project project, TextWriter report)
+        {
+            string path=project.Path.FullName;
+            var candidates=project.Devices.SelectMany(d=>Items(d.DeviceItems).Select(i=>new{Device=d,Item=i,Container=i.GetService<SoftwareContainer>()})).Where(x=>x.Container!=null && x.Container.Software is HmiSoftware).ToArray();
+            Require(candidates.Length==1,"Exactly one Unified HMI required.");
+            var target=candidates[0]; var hmi=(HmiSoftware)target.Container.Software;
+            var screen=hmi.Screens.Find("manual_valves"); Require(screen!=null,"Screen missing.");
+            var items=Walk(screen,new HashSet<IEngineeringObject>()).OfType<HmiScreenItemBase>().ToDictionary(x=>x.Name,StringComparer.Ordinal);
+            var table=hmi.TagTables.Find("REV12"); Require(table!=null,"REV12 missing.");
+            var mappings=new Dictionary<string,string>();
+            for(int i=1;i<=11;i++)foreach(string f in new[]{"Request","Accepted","State","Channel","PhysicalVerified"})mappings.Add("SMC_Y"+i+"_"+f,"DB_SMC_LogicalTest."+f+"["+i+"]");
+            foreach(string f in new[]{"PageActive","Enable","Permit","HmiLinkOK","ProfinetDeviceOK","SafetyOK","ManualModeOK","ProcessInactive","AirPressureOK","DoorsOK","AlarmsOK","PhysicalOutputsEnabled"})mappings.Add("SMC_Logical_"+f,"DB_SMC_LogicalTest."+f);
+            foreach(var pair in mappings){var tag=table.Tags.Find(pair.Key);Require(tag!=null && tag.Connection=="HMI_Connection_1" && tag.PlcTag==pair.Value,"Tag mismatch: "+pair.Key);}
+            foreach(var type in new[]{HmiScreenEventType.Loaded,HmiScreenEventType.Unloaded}){var e=screen.EventHandlers.Find(type);Require(e!=null && e.Script.ScriptCode.Contains("// SMC_LOGICAL_INTERFACE_V1"),"Applied lifecycle marker missing.");}
+            for(int i=0;i<11;i++)
+            {
+                HmiScreenItemBase item; Require(items.TryGetValue(Commands[i],out item) && item is HmiButton,"Command missing: "+Commands[i]);
+                var b=(HmiButton)item;var down=b.EventHandlers.Find(HmiButtonEventType.Down);var up=b.EventHandlers.Find(HmiButtonEventType.Up);
+                Require(down!=null && up!=null && down.Script.ScriptCode=="HMIRuntime.Tags(\"SMC_Y"+(i+1)+"_Request\").Write(true);" && up.Script.ScriptCode=="HMIRuntime.Tags(\"SMC_Y"+(i+1)+"_Request\").Write(false);","Request mapping mismatch.");
+            }
+            var referenceBack=Required<HmiRectangle>(items,"REV41_MANUAL_ValveOutputEV010_Back");
+            var referenceDynamic=referenceBack.Dynamizations.Find("BackColor") as ScriptDynamization;
+            Require(referenceDynamic!=null,"Reference background diagnostic missing.");
+            var backs=new[]{6,7,10}.Select(i=>Required<HmiRectangle>(items,"SMC_Logical_Y"+i+"_Back")).ToArray();
+            foreach(var back in backs)Require(back.Dynamizations.Count==0,"New background unexpectedly dynamic.");
+            var referenceButton=Required<HmiButton>(items,Commands[0]);
+            foreach(string name in Commands){var button=Required<HmiButton>(items,name);Require(button.Dynamizations.Find("BackColor")==null && button.Dynamizations.Find("ForeColor")==null,"Button color has a dynamization; no alteration permitted.");}
+            var compiler=target.Item.GetService<ICompilable>()??target.Device.GetService<ICompilable>();Require(compiler!=null,"HMI compiler missing.");
+            report.WriteLine("Preflight=PASS; Tags=67; Requests=11; LifecycleMarkers=2; Project="+path+"; Timestamp="+DateTimeOffset.Now.ToString("o"));
+            foreach(var back in backs)
+            {
+                back.BackColor=referenceBack.BackColor;
+                var dynamic=back.Dynamizations.Create<ScriptDynamization>("BackColor");
+                dynamic.Async=referenceDynamic.Async;dynamic.Trigger.Type=referenceDynamic.Trigger.Type;dynamic.ScriptCode=referenceDynamic.ScriptCode;
+                Require(dynamic.ScriptCode==referenceDynamic.ScriptCode && dynamic.Trigger.Type==referenceDynamic.Trigger.Type && dynamic.Async==referenceDynamic.Async,"Background script restoration mismatch.");
+                report.WriteLine("MATCHED_BACK="+back.Name+";STATIC_AND_DYNAMIC_REFERENCE_EXACT=true");
+            }
+            foreach(string name in Commands) {
+                var button=Required<HmiButton>(items,name);
+                foreach(MultilingualTextItem text in button.Text.Items)text.Text="<body><p>HOLD TO TEST</p></body>";
+                button.Font.Size=14; button.BackColor=referenceButton.BackColor; button.ForeColor=referenceButton.ForeColor;
+            }
+            var notice=Required<HmiText>(items,"REV50_ValveTest_Instruction");
+            foreach(MultilingualTextItem text in notice.Text.Items)text.Text="<body><p>Logical test only: no physical outputs. ACCEPTED = request accepted, not valve feedback.</p></body>";
+            notice.Font.Size=12;
+            return compiler;
         }
         static T Required<T>(Dictionary<string,HmiScreenItemBase> items,string name) where T:HmiScreenItemBase
         {HmiScreenItemBase value;Require(items.TryGetValue(name,out value) && value is T,"Missing/wrong object: "+name);return (T)value;}

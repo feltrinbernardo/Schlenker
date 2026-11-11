@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.IO;
 using System.Reflection;
 using Siemens.Engineering;
 using Siemens.Engineering.HW;
@@ -42,9 +43,12 @@ namespace Schlenker.TiaV19
             string target = args.Length > 1 ? args[1] : null;
             try
             {
-                TiaPortalProcess selected = TiaPortal.GetProcesses().FirstOrDefault(
+                if (!Path.IsPathRooted(projectHint))
+                    throw new InvalidOperationException("Exact absolute project path required.");
+                projectHint = Path.GetFullPath(projectHint);
+                TiaPortalProcess selected = TiaPortal.GetProcesses().SingleOrDefault(
                     process => process.ProjectPath != null &&
-                        process.ProjectPath.FullName.EndsWith(projectHint, StringComparison.OrdinalIgnoreCase));
+                        Path.GetFullPath(process.ProjectPath.FullName).Equals(projectHint, StringComparison.OrdinalIgnoreCase));
                 if (selected == null)
                 {
                     Console.Error.WriteLine("STATUS=FAIL\tREASON=PROJECT_NOT_OPEN");
@@ -52,8 +56,13 @@ namespace Schlenker.TiaV19
                 }
 
                 using (TiaPortal portal = selected.Attach())
+                using (ExclusiveAccess access = portal.ExclusiveAccess("Schlenker VerifyNavigationMaster"))
                 {
                     Project project = portal.Projects.FirstOrDefault();
+                    if (project == null || !Path.GetFullPath(project.Path.FullName).Equals(projectHint, StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidOperationException("Project changed after attach; no operation permitted.");
+                    if (access.IsCancellationRequested)
+                        throw new OperationCanceledException("Exclusive access cancelled.");
                     HmiSoftware hmi = FindUnifiedHmi(project);
                     if (hmi == null)
                     {

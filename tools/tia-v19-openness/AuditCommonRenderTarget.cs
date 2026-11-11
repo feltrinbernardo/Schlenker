@@ -16,6 +16,30 @@ namespace Schlenker.TiaV19
 {
     internal static class AuditCommonRenderTarget
     {
+        private static string operationPhase = "DISCOVERY";
+        private static void Phase(string value)
+        {
+            operationPhase = value;
+            Console.WriteLine("PHASE=" + value + "|UTC=" + DateTime.UtcNow.ToString("o"));
+            Console.Out.Flush();
+        }
+        private static TiaPortal AttachDiagnosed(TiaPortalProcess process)
+        {
+            Phase("ATTACH_STARTED");
+            TiaPortal portal = process.Attach();
+            Phase("ATTACH_COMPLETED");
+            return portal;
+        }
+        private static void ReportFailure(Exception exception)
+        {
+            Exception cause = exception;
+            while (cause.InnerException != null) cause = cause.InnerException;
+            string code = cause.GetType().Name == "EngineeringSecurityException"
+                ? "OPENNESS_SECURITY" : cause is TimeoutException ? "TIMEOUT" : "OPERATION_FAILED";
+            Console.Error.WriteLine("FAILURE_CODE=" + code + "|PHASE=" + operationPhase);
+            Console.Error.Flush();
+        }
+
         private static int Main(string[] args)
         {
             if (args.Length < 3)
@@ -30,6 +54,7 @@ namespace Schlenker.TiaV19
 
             try
             {
+                Phase("DISCOVERY");
                 List<TiaPortalProcess> matches = TiaPortal.GetProcesses()
                     .Where(candidate => candidate.ProjectPath != null &&
                         Path.GetFullPath(candidate.ProjectPath.FullName)
@@ -42,10 +67,16 @@ namespace Schlenker.TiaV19
                 }
 
                 List<string> issues = new List<string>();
-                using (TiaPortal portal = matches[0].Attach())
+                using (TiaPortal portal = AttachDiagnosed(matches[0]))
+                using (ExclusiveAccess access = portal.ExclusiveAccess("Schlenker AuditCommonRenderTarget"))
                 {
+                    Phase("PROJECT_INSPECTION");
                     Project project = portal.Projects.FirstOrDefault();
                     if (project == null) throw new InvalidOperationException("No open project.");
+                    if (!Path.GetFullPath(project.Path.FullName).Equals(projectPath, StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidOperationException("Project changed after attach; no operation permitted.");
+                    if (access.IsCancellationRequested)
+                        throw new OperationCanceledException("Exclusive access cancelled.");
                     HmiSoftware hmi = FindHmi(project);
                     if (hmi == null) throw new InvalidOperationException("No Unified HMI found.");
                     HmiScreen screen = hmi.Screens.Find(screenName);
@@ -85,6 +116,7 @@ namespace Schlenker.TiaV19
             }
             catch (Exception exception)
             {
+                ReportFailure(exception);
                 Console.Error.WriteLine("STATUS=FAIL");
                 Console.Error.WriteLine(exception);
                 return 1;

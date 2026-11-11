@@ -1,6 +1,6 @@
 ---
 name: schlenker-repo-checkpoint
-description: Review, commit and push Schlenker repository checkpoints, including the hourly scheduled checkpoint and accumulated uncommitted work. Use for repository version history, not engineering deployment or release approval.
+description: Review, commit and push Schlenker repository checkpoints, including decisions, findings, tests, next steps, the hourly scheduled checkpoint and accumulated uncommitted work. Use for repository version history, not engineering deployment or release approval.
 ---
 
 # Schlenker repository checkpoint
@@ -34,8 +34,12 @@ acceptable). Verify the push URL as well as the fetch URL.
    the last five minutes. Do not run engineering helpers or open TIA to validate
    a checkpoint. Treat vendor manuals and unfamiliar binary files separately:
    only include when their repository purpose and suitability are established.
-5. Select explicit file paths, not blanket `git add .` or `git add -A`. Before
-   staging, record candidate content hashes; recheck hashes and the initially
+5. Reconcile `docs/CONTINUITY.md` using the continuity procedure below. Include
+   substantive handoff changes even when there is no source-code change. If the
+   current task has no accessible conversation, use the existing handoff, source
+   diffs, change log and available test evidence; mark missing context rather than
+   inventing decisions or results. Then select explicit file paths, not blanket
+   `git add .` or `git add -A`. Before staging, record candidate content hashes; recheck hashes and the initially
    empty index immediately before staging. If any change concurrently, defer
    this run rather than mixing versions. Add a change-log entry using
    `scripts/write-change-log.ps1` and include it in the selected files. Its result
@@ -59,15 +63,79 @@ acceptable). Verify the push URL as well as the fetch URL.
    do not create duplicate/empty commits. Verify the remote branch SHA matches
    the pushed commit and report the remaining working-tree files.
 
+## Continuity record
+
+Maintain `docs/CONTINUITY.md` as a compact, current handoff, with separate entries
+for active tasks when needed. Git preserves earlier revisions; do not append an
+unbounded copy of the chat. For each task record:
+
+- **Scope and revision:** task objective, checkout/branch, observed base commit,
+  observation date with timezone, and whether work is uncommitted, committed or
+  remotely verified. Do not claim the new checkpoint SHA inside its own commit;
+  report that SHA after the commit/push is actually verified.
+- **Decisions:** what was approved and why, with source (user/task reference or
+  versioned requirement). Mark proposals separately. Historical authorization
+  does not authorize a new hardware operation.
+- **Findings:** what was discovered, its consequence, and supporting file,
+  report or observation. Label inference and operator reports explicitly.
+- **Changes:** what is implemented and what remains WIP, with file references.
+- **Tests:** command or test, result, tested revision or explicit working-tree
+  scope, evidence reference, and limitations. Distinguish not run, failed,
+  simulated, compiled and physically validated. Listing a test file is not proof
+  of a pass. Do not execute engineering tests for this record.
+- **Pending items and next step:** unresolved questions, blockers and the next
+  concrete action within the authorized scope, including what must be checked
+  before continuing. Identify missing evidence explicitly.
+
+Compare with the prior record before editing. Retain unresolved facts and
+unrelated task entries; correct stale facts only with newer attributable evidence.
+Do not change timestamps or create commits on an unchanged/no-news run. If
+sources are unavailable, preserve last-known facts with their original date and
+state the specific gap only when new; do not convert unknowns to success.
+
+The task owner writes conversation-only decisions during work (see AGENTS.md).
+The hourly run consolidates that record; it does not automatically see all chats,
+recover hidden reasoning or load private context-archive databases. Link larger
+local evidence only by a sanitized reference, marking it unavailable on another
+machine when applicable. Never stage raw transcripts, credentials, addresses of
+production devices, or excluded evidence/native archives.
+
+Treat this as a shared file: capture its hash before preparing an update, and
+recheck immediately before replacing it. If the file changed or is actively
+being edited, preserve it and defer the continuity-dependent checkpoint. Do not
+commit a partial handoff without explaining the missing evidence.
+
+The five-minute exclusion still applies to existing candidate files, including
+a recently edited handoff: defer that checkpoint rather than race its author.
+The continuity file and mandatory change-log entry deliberately written by this
+checkpoint are exempt from that age rule only; review and hash-check them like
+all other candidates. Recheck every candidate before staging as described above.
+If an evidence file is deferred, mark the related claim WIP/not included; do not
+claim the checkpoint contains it. Continuity edits require the normal change log.
+
+A new chat reads AGENTS.md, then this handoff, confirms Git state, and consults
+only the evidence needed for the next task. It must not infer the current open
+TIA project, unsaved native edits, loaded PLC version or current authorization
+from a repository checkpoint. Native recovery follows `tia-project-versioning/`.
+
 ## Scheduling and reporting
 
 The skill does not schedule itself. Use the Codex hourly thread automation to
-invoke it. Stay quiet when there are no eligible changes and no unpushed commits.
+invoke it. Stay quiet when there are no eligible changes, no new continuity facts
+and no unpushed commits.
 Notify on a successful checkpoint, a new failure or a blocker needing action;
 avoid repeating an unchanged blocker every hour. Include commit SHA, branch,
-push result, file count and any deferred paths/reasons. Do not create release
-tags or PRs as part of this routine.
+push result, file count, the continuity-record path and any deferred paths/reasons.
+Explicitly report missing handoff evidence without asking for already documented
+information. Do not create release tags or PRs as part of this routine.
 
 The canonical skill is this repository copy. The installed copy lives at
 `C:/Users/SIMATIC User/.codex/skills/schlenker-repo-checkpoint/SKILL.md`; when
 updating the workflow, keep both copies identical.
+
+When adopting this revision on the bench, update the installed skill copy from
+this canonical file and verify identical hashes. Preserve the existing hourly
+schedule, target branch and remote. In the existing automation prompt, require
+reading this repository copy on each run and updating `docs/CONTINUITY.md` before
+the checkpoint. Do not create a second automation. Editing this file alone does
+not prove the installed copy or scheduled prompt has been updated.
