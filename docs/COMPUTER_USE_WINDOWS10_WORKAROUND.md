@@ -54,3 +54,55 @@ file path before confirming a file dialog. No helper binary change was needed
 for this correction.
 
 On 2026-11-10, TIA Portal V19 capture and coordinate input succeeded during read-only discovery of 12 workshop devices. See [network discovery record](TIA_NETWORK_DISCOVERY_2026-11-10.md) for observed addresses and limitations. This establishes the tested TIA capture/navigation path, not full engineering validation or reboot persistence.
+
+
+## 2026-11-11 recovery after runtime replacement
+
+The observed failures were `coordinate input geometry is unavailable` and
+`window capture timed out: timed out waiting on channel`. The running helper
+was in runtime `76f5b5935a63c7ba`; the previously repaired runtime directory
+`db1cc9e06a6c48d6` no longer existed. Both packages reported Sky 0.7.17, but the
+new helper had a different full-file hash. Version equality alone was not used
+to authorize the old patch.
+
+### Exact profile and preserved recovery files
+
+- Signed input SHA256: `0EBB47BFAAF729E22BCDB08DCFCE1419EEFEDA80AFAEFED3EDBC088C24A2E778`.
+- Installed unsigned candidate SHA256: `401A93581328998C679E570A81E0CDB4C9132E275CAF4050D8FAFAB8E7B7B18E`.
+- Target: `%LOCALAPPDATA%/OpenAI/Codex/runtimes/cua_node/76f5b5935a63c7ba/bin/node_modules/@oai/sky/bin/windows/codex-computer-use.exe`.
+- Local recovery directory: `%LOCALAPPDATA%/CodexCaptureRepair/2026-11-11`.
+- Preserved signed input: `codex-computer-use.original.exe`; installation also preserved `replaced-original.exe`.
+- Sources and tests: `candidate-review`; manifests: `review-evidence.json` and `candidate-review/candidate-report.json`.
+- Guarded installer/rollback: `switch-helper.ps1` in this new recovery directory. Default selects the candidate; `-Restore` selects the signed input. This script was prepared and syntax-checked but not executed during recovery; installation used separately reviewed guarded atomic replacement. Rollback has not been exercised.
+
+Read-only comparison established identical bytes in all nine PE sections,
+including executable code, imports, relocations and unwind data. Before the
+certificate overlay, only five bytes differed from the 2026-11-10 signed input:
+three PE timestamp bytes and two checksum bytes. The new input's OpenAI
+Authenticode signature was valid. The separate new builder changed only its
+exact expected input hash and expected checksum (`32C81700` to `64AF1700`);
+all remaining byte-region guards and generated worker code were preserved.
+The earlier originals, candidate and tools were left unchanged.
+
+### Validation and observed recovery
+
+Four static tests and five synthetic worker tests passed. These cover exact
+input rejection, declared change boundaries, PE/unwind integrity,
+repeatability, worker separation/concurrency and controlled failure paths.
+They do not alone establish real capture behavior or general COM lifetime
+correctness.
+
+The primary agent verified the signed backup and candidate hashes, stopped
+only the process matching the exact helper path, and atomically replaced that
+helper. After resetting the official Node REPL connection, actual Notepad
+capture and an observed-coordinate File-menu action passed. Subsequent TIA
+Portal V19 capture and navigation passed, followed by a read-only connection
+to `PLC_1` and tag-table monitoring. These observations are recorded from the
+primary agent's execution report; they are not synthetic test results.
+
+No PLC/HMI download, forced value, output activation or security-setting
+change was part of this recovery. Successful UI recovery does not establish
+that the pendant signals have been verified: input observations and physical
+transitions must be reported separately. Reboot persistence, long-duration
+capture and cancellation/late-frame behavior remain unverified. Future runtime
+updates require a new exact-hash review rather than reuse of this profile.
