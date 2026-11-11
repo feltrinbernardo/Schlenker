@@ -109,6 +109,26 @@ only and does not satisfy a new run.
 - Do not use terminal applications or Windows security dialogs through Computer
   Use.
 
+## Dedicated offline workspace (operator instruction 2026-11-11)
+
+- Use only `runs/2026-11-11-rob-isolated-workspace/work-copy/Schlenker_Pendant_Offline.ap19`
+  for subsequent agent TIA editing, Openness and compilation, unless the operator
+  explicitly designates a replacement isolated copy.
+- Preserve `runs/2026-11-11-rob-isolated-workspace/baseline-preserved/` unchanged.
+  Do not attach Openness to the operator's project or open/edit the operator's
+  main project concurrently. Never select the first available TIA process.
+- Before using an Openness helper, verify the exact project path and process,
+  and inspect any hard-coded path guard. A helper authorized for an older copy
+  must not be run unchanged against that older copy. Serialize all GUI edits,
+  helper operations, save and compile actions; no simultaneous writers.
+- Preserve and verify a closed-project snapshot before creating replacement
+  copies. Do not force-close a session or discard unsaved changes.
+- Integrate changes into the operator's main project only through a separately
+  reviewed, explicitly authorized integration step. This isolation instruction
+  grants no online writes, safety changes, downloads or physical activation.
+- File-copy verification is not proof of native project recovery, compilation
+  or resolution of the suspected access conflict. Record those separately.
+
 ## Test evidence
 
 - Record the original source hash before and after a run.
