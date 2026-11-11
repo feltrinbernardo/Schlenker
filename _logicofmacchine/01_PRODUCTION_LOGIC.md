@@ -24,3 +24,22 @@ Status: functional design, onsite verification pending.
 - Operator requests infeed gate close; gate action occurs at minimum speed, then machine can run at nominal speed while remaining bottles exit.
 - Operator stops production manually, then selects CIP in HMI Functions.
 - Do not confuse this operator runout with automatic outfeed accumulation runout.
+
+## Manual carousel and Omron pendant — operator specification 2026-11-11
+
+This specification supersedes previous manual carousel speed assumptions. It records the operator's requested behavior; it is not evidence of native TIA implementation, safety validation or physical commissioning.
+
+- With the selector in MANUAL, enable the Omron pendant subject to the required operating and safety permissives.
+- The central three-position enabling switch in its intermediate position requests carousel VSD RUN, subject to safety permissives. Release or full squeeze revokes RUN; stopping must follow the separately defined safety function.
+- Requested manual speed: **3,000 bottles/hour**. With **36 filling valves**, the nominal corresponding carousel speed is `3000 / (36 * 60) = 1.388888... RPM`, rounded to **1.389 RPM**. This is a kinematic conversion, not a measured speed or a safety-approved limit.
+- Left button, contacts **7–8: UP**. Right button, contacts **5–6: DOWN**. These labels do not authorize interpreting the buttons as carousel speed increase/decrease or changing their existing equipment assignment without verification.
+- In AUTOMATIC, disable all pendant commands; the carousel VSD follows automatic production logic. Pendant commands must not remain latched across the mode transition.
+- RUN is an operational command, not a safety stop. Keep the PILZ safety path separate; do not bypass its permissives or change its stop behavior to implement the operational request.
+
+### Implementation and verification still required
+
+- Verify that 3,000 bottles/hour (1.389 carousel RPM) is permitted for protected manual operation against the machine's safety design. Operator confirmation of the requested speed does not establish this safety acceptance.
+- Verify the complete mechanical transmission ratio, motor/VSD data and setpoint scaling before assigning any frequency in Hz or percentage reference. No new Hz or percent value is authorized by the RPM calculation alone.
+- Verify how the enabling switch's valid intermediate position reaches the operational PLC logic while preserving the independent PILZ safety function; no new I/O address is assigned here.
+- Repository source review: `REV12/PLC_Sources/07_FB_JogPendant.scl` gates `JogForwardCmd` with manual mode, safety, pendant connection, `JogPB`, height-mode exclusion and drive readiness. `REV12/PLC_Sources/11_FB_Application.scl` supplies a percentage reference limited using `MainJogMaxFrequencyHz / MainDriveMaxFrequencyHz`. This existing calculation is not proof of a 3,000 bottles/hour setting and must be reconciled with verified mechanical scaling before implementation.
+- Confirm native TIA correspondence, UP/DOWN gating, release/full-squeeze behavior and mode transitions during subsequent validation. This document update makes no PLC/HMI/PILZ changes and performs no download or output activation.
