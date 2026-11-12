@@ -44,7 +44,7 @@ engineering information.
 | X3 | Vacuum Sensor | `DB_Global.AL102Process.X3Vacuum` | `AL102_X3_Vacuum` | Address, device, scaling and unit |
 | X4 | Distributor Anti-Rotation | `DB_Global.AL102Process.X4AntiRotationHealthy` | `AL102_X4_AntiRotation_Healthy` | Address, polarity, diagnostic state and stop test |
 | X5 | Tank Level | `DB_Global.AL102Process.X5TankLevel` | `AL102_X5_Tank_Level` | Address, device, scaling and unit |
-| X6 | Filler Zero Position – Valve #1 | `DB_Global.AL102Process.X6Valve1Reference` | `AL102_X6_Valve1_Reference` | Address, polarity and positioning proof |
+| X6 | Filler Zero Position – Valve #1; IFM IM5135 (operator/photo confirmed 2026-11-12) | `DB_Global.AL102Process.X6Valve1Reference` | `AL102_X6_Valve1_Reference` | Address, selected PNP output/polarity, native SIO port configuration and positioning proof; EF1MM sharing not validated |
 | X7 | CIP Presence / Engaged | `DB_Global.AL102Process.X7CIPPresenceEngaged` | `AL102_X7_CIP_Presence` | Address, polarity and independent safety validation |
 | X8 | Spare | — | validity only | Confirm unused |
 

@@ -12,7 +12,7 @@ AL101,X2,DI-060,Cap Hopper Low Level,IFM O6P301 retro-reflective photoelectric,b
 AL101,X3,DI-061,Cap Channel Request,IFM O6P301 retro-reflective photoelectric,b_CapChannel_Req,DI_Cap_Channel_Demand,SIO digital input PNP dark-on,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED
 AL101,X4,DI-062,Cap Channel Empty,IFM O6P301 retro-reflective photoelectric,b_CapChannel_Empty,DI_Caps_Missing,SIO digital input PNP dark-on,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED
 AL101,X5,DI-010,Machine Air Pressure,IFM PN7094 pressure sensor -0.9...10 bar,b_AirPressureOK,DI_AirPressure_OK,IO-Link pin 4,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED
-AL101,X6,IFS240-05,Machine zero / filler valve no. 1,IFM IFS240 inductive sensor,-,-,SIO digital input PNP NO,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED
+AL101,X6,IFS240-05,Historical machine zero / filler valve no. 1,Historical IFM IFS240 - superseded by operator-confirmed AL102/X6 IM5135,-,-,Historical SIO digital input,OBSOLETE ZERO ASSIGNMENT - DO NOT APPLY,Current use of this port not verified
 AL101,X7,IFS240-06,Filler cylinder presence/position,IFM IFS240 inductive sensor,-,-,SIO digital input PNP NO,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED
 AL101,X8,IFS240-07,Filler anti-rotation,IFM IFS240 inductive sensor,-,-,SIO digital input PNP NO,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED
 AL102,X1,X1,Product Presence,TBC,DB_Global.AL102Process.X1ProductPresence,AL102_X1_Product_Presence,IO-Link,FUNCTION CONFIRMED / HARDWARE HOLD,ADDRESS DEVICE AND POLARITY NOT CONFIGURED
@@ -20,7 +20,7 @@ AL102,X2,X2,Product Temperature,TBC,DB_Global.AL102Process.X2ProductTemperature,
 AL102,X3,X3,Vacuum Sensor,TBC,DB_Global.AL102Process.X3Vacuum,AL102_X3_Vacuum,IO-Link,FUNCTION CONFIRMED / HARDWARE HOLD,ADDRESS DEVICE SCALE AND UNIT NOT CONFIGURED
 AL102,X4,X4,Distributor Anti-Rotation,TBC,DB_Global.AL102Process.X4AntiRotationHealthy,AL102_X4_AntiRotation_Healthy,IO-Link,FUNCTION CONFIRMED / HARDWARE HOLD,ADDRESS POLARITY AND DIAGNOSTIC STATE NOT CONFIGURED
 AL102,X5,X5,Tank Level,TBC,DB_Global.AL102Process.X5TankLevel,AL102_X5_Tank_Level,IO-Link,FUNCTION CONFIRMED / HARDWARE HOLD,ADDRESS DEVICE SCALE AND UNIT NOT CONFIGURED
-AL102,X6,X6,Filler Zero Position - Valve #1,TBC,DB_Global.AL102Process.X6Valve1Reference,AL102_X6_Valve1_Reference,IO-Link,FUNCTION CONFIRMED / HARDWARE HOLD,ADDRESS AND POLARITY NOT CONFIGURED
+AL102,X6,X6,Filler Zero Position - Valve #1,IFM IM5135 inductive sensor - operator and photo confirmed 2026-11-12,DB_Global.AL102Process.X6Valve1Reference,AL102_X6_Valve1_Reference,SIO digital input PNP complementary - selected output to verify,MODEL AND PORT OPERATOR CONFIRMED - NOT FIELD TESTED,ADDRESS OUTPUT PIN POLARITY AND NATIVE PORT MODE NOT VERIFIED
 AL102,X7,X7,CIP Presence / Engaged,TBC,DB_Global.AL102Process.X7CIPPresenceEngaged,AL102_X7_CIP_Presence,IO-Link,FUNCTION CONFIRMED / SAFETY HOLD,ADDRESS POLARITY AND INDEPENDENT SAFETY VALIDATION OPEN
 AL102,X8,X8,Spare,-,-,-,SPARE,CONFIRMED SPARE,NO ASSIGNMENT
 AL103,X1,SPL100,Product/water presence before pump,IFM LMT100 (Vendor 310 / Device 304),SPL100_LMT100_ProcessData -> DB_Global.Inp.ProductPresentAtPump,Product_Present_At_Pump,IO-Link 2-byte input + PQI,OFFLINE CONFIGURED / DEVICE DETECTED,%IW324 (PQI %IB326)
