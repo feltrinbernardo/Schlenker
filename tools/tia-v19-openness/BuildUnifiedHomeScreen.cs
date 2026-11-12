@@ -17111,7 +17111,7 @@ namespace Schlenker.TiaV19
             {
                 "O6P301|Bottle shortage 1", "O6P301|Bottle shortage 2",
                 "O6P301|Outfeed accumulation 1", "O6P301|Outfeed accumulation 2",
-                "IFS240|Capper cylinder", "IFS240|Cap distributor rotation",
+                "IFS240|Capper cylinder", "MODEL TO CONFIRM|Bottle infeed",
                 "IFS240|Capper maximum height", "IFS240|Capper minimum height"
             });
             VerifyArchitectureTreeV12Page(hmi, "AL101", new[]
@@ -18342,7 +18342,8 @@ namespace Schlenker.TiaV19
                 new IoLinkPortView("AL100",3,"O6P301","Outfeed accumulation 1","SIO DI","IOL_AL100_X3","AL100_X3_Accumulation1","Bool","%I327.0"),
                 new IoLinkPortView("AL100",4,"O6P301","Outfeed accumulation 2","SIO DI","IOL_AL100_X4","AL100_X4_Accumulation2","Bool","%I328.0"),
                 new IoLinkPortView("AL100",5,"IFS240","Capper cylinder","SIO DI","IOL_AL100_X5","AL100_X5_CapperCylinder","Bool","%I329.0"),
-                new IoLinkPortView("AL100",6,"IFS240","Cap distributor rotation","SIO DI","IOL_AL100_X6","AL100_X6_CapDistributorRotation","Bool","%I330.0"),
+                // Existing port address retained; native PLC tag must be reconciled before applying this stage.
+                new IoLinkPortView("AL100",6,"MODEL TO CONFIRM","Bottle infeed","SIO DI","IOL_AL100_X6","AL100_X6_BottleInfeed","Bool","%I330.0"),
                 new IoLinkPortView("AL100",7,"IFS240","Capper maximum height","SIO DI","IOL_AL100_X7","AL100_X7_CapperMaximumHeight","Bool","%I331.0"),
                 new IoLinkPortView("AL100",8,"IFS240","Capper minimum height","SIO DI","IOL_AL100_X8","AL100_X8_CapperMinimumHeight","Bool","%I332.0"),
                 new IoLinkPortView("AL101",1,"O6P301","Cap present pick and place","SIO DI","IOL_AL101_X1","AL101_X1_CapPresent","Bool","%I333.0"),

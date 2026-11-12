@@ -25,7 +25,9 @@ namespace Schlenker.TiaV19
             new PortPlan("AL100",3,"IDS DI","X3_OutfeedAccumulation1_O6P301"),
             new PortPlan("AL100",4,"IDS DI","X4_OutfeedAccumulation2_O6P301"),
             new PortPlan("AL100",5,"IDS DI","X5_CapperCylinder_IFS240"),
-            new PortPlan("AL100",6,"IDS DI","X6_CapDistributorRotation_IFS240"),
+            // Operator reassignment 2026-11-12: single-bottle detection at infeed star.
+            // Sensor model remains unconfirmed; do not inherit the former IFS240 model.
+            new PortPlan("AL100",6,"IDS DI","X6_BottleInfeed"),
             new PortPlan("AL100",7,"IDS DI","X7_CapperMaximumHeight_IFS240"),
             new PortPlan("AL100",8,"IDS DI","X8_CapperMinimumHeight_IFS240"),
 
