@@ -21,3 +21,8 @@ The operator also stated that the sensors have been replaced with IM5135. Indivi
 ## Scope of this update
 
 Repository documentation only. No TIA/PILZ native project edits, hardware configuration changes, download, output activation, safety approval or physical continuity test performed.
+
+
+## Operator clarification - 2026-11-14
+
+The operator explicitly confirms that original sensor models are retained and only their locations changed, except that the original IFS240 sensors were replaced with IM5135. This updates the model of the ten historical IFS240 inventory entries; it does not replace unrelated photoelectric, temperature, pressure or level devices. Preserve each historical device ID for traceability. AL102/X6 IM5135 remains explicitly confirmed. Individual relocation identities at AL102/X1, X4 and X7 are not established merely by assigning a similar function name; original inventory tags and actual connections must be reconciled. No native or device changes were performed by this documentation update.

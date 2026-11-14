@@ -1,41 +1,41 @@
-Master,Port,DeviceID,Function,DeviceType,PLCLogicalTag,HMITag,Mode,Status,PhysicalAddress
-AL100,X1,DI-031,Bottle Shortage 1 - line slowdown,IFM O6P301 retro-reflective photoelectric,b_BottleShortage_1,DI_Bottle_Shortage_1,SIO digital input PNP dark-on,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED
-AL100,X2,DI-032,Bottle Shortage 2 - gate/standby,IFM O6P301 retro-reflective photoelectric,b_BottleShortage_2,DI_Bottle_Shortage_2,SIO digital input PNP dark-on,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED
-AL100,X3,DI-033,Outfeed Accumulation 1 - slowdown,IFM O6P301 retro-reflective photoelectric,b_Accumulation_1,DI_Accumulation_1,SIO digital input PNP dark-on,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED
-AL100,X4,DI-034,Outfeed Accumulation 2 - gate/standby,IFM O6P301 retro-reflective photoelectric,b_Accumulation_2,DI_Accumulation_2,SIO digital input PNP dark-on,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED
-AL100,X5,IFS240-01,Capper cylinder presence/position,IFM IFS240 inductive sensor,-,-,SIO digital input PNP NO,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED
-AL100,X6,IFS240-02,Cap distributor rotation,IFM IFS240 inductive sensor,-,-,SIO digital input PNP NO,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED
-AL100,X7,IFS240-03,Capper maximum height,IFM IFS240 inductive sensor,-,-,SIO digital input PNP NO,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED
-AL100,X8,IFS240-04,Capper minimum height,IFM IFS240 inductive sensor,-,-,SIO digital input PNP NO,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED
-AL101,X1,DI-040,Cap Present - Pick and Place,IFM O6P301 retro-reflective photoelectric,b_CapPresent_PP,DI_Cap_Present,SIO digital input PNP dark-on,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED
-AL101,X2,DI-060,Cap Hopper Low Level,IFM O6P301 retro-reflective photoelectric,b_CapHopper_Low,DI_Cap_Hopper_Low,SIO digital input PNP dark-on,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED
-AL101,X3,DI-061,Cap Channel Request,IFM O6P301 retro-reflective photoelectric,b_CapChannel_Req,DI_Cap_Channel_Demand,SIO digital input PNP dark-on,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED
-AL101,X4,DI-062,Cap Channel Empty,IFM O6P301 retro-reflective photoelectric,b_CapChannel_Empty,DI_Caps_Missing,SIO digital input PNP dark-on,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED
-AL101,X5,DI-010,Machine Air Pressure,IFM PN7094 pressure sensor -0.9...10 bar,b_AirPressureOK,DI_AirPressure_OK,IO-Link pin 4,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED
-AL101,X6,IFS240-05,Historical machine zero / filler valve no. 1,Historical IFM IFS240 - superseded by operator-confirmed AL102/X6 IM5135,-,-,Historical SIO digital input,OBSOLETE ZERO ASSIGNMENT - DO NOT APPLY,Current use of this port not verified
-AL101,X7,IFS240-06,Filler cylinder presence/position,IFM IFS240 inductive sensor,-,-,SIO digital input PNP NO,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED
-AL101,X8,IFS240-07,Filler anti-rotation,IFM IFS240 inductive sensor,-,-,SIO digital input PNP NO,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED
-AL102,X1,X1,Product Presence,TBC,DB_Global.AL102Process.X1ProductPresence,AL102_X1_Product_Presence,IO-Link,FUNCTION CONFIRMED / HARDWARE HOLD,ADDRESS DEVICE AND POLARITY NOT CONFIGURED
-AL102,X2,X2,Product Temperature,TBC,DB_Global.AL102Process.X2ProductTemperature,AL102_X2_Product_Temperature,IO-Link,FUNCTION CONFIRMED / HARDWARE HOLD,ADDRESS DEVICE SCALE AND UNIT NOT CONFIGURED
-AL102,X3,X3,Vacuum Sensor,TBC,DB_Global.AL102Process.X3Vacuum,AL102_X3_Vacuum,IO-Link,FUNCTION CONFIRMED / HARDWARE HOLD,ADDRESS DEVICE SCALE AND UNIT NOT CONFIGURED
-AL102,X4,X4,Distributor Anti-Rotation,TBC,DB_Global.AL102Process.X4AntiRotationHealthy,AL102_X4_AntiRotation_Healthy,IO-Link,FUNCTION CONFIRMED / HARDWARE HOLD,ADDRESS POLARITY AND DIAGNOSTIC STATE NOT CONFIGURED
-AL102,X5,X5,Tank Level,TBC,DB_Global.AL102Process.X5TankLevel,AL102_X5_Tank_Level,IO-Link,FUNCTION CONFIRMED / HARDWARE HOLD,ADDRESS DEVICE SCALE AND UNIT NOT CONFIGURED
-AL102,X6,X6,Filler Zero Position - Valve #1,IFM IM5135 inductive sensor - operator and photo confirmed 2026-11-12,DB_Global.AL102Process.X6Valve1Reference,AL102_X6_Valve1_Reference,SIO digital input PNP complementary - selected output to verify,MODEL AND PORT OPERATOR CONFIRMED - NOT FIELD TESTED,ADDRESS OUTPUT PIN POLARITY AND NATIVE PORT MODE NOT VERIFIED
-AL102,X7,X7,CIP Presence / Engaged,TBC,DB_Global.AL102Process.X7CIPPresenceEngaged,AL102_X7_CIP_Presence,IO-Link,FUNCTION CONFIRMED / SAFETY HOLD,ADDRESS POLARITY AND INDEPENDENT SAFETY VALIDATION OPEN
-AL102,X8,X8,Spare,-,-,-,SPARE,CONFIRMED SPARE,NO ASSIGNMENT
-AL103,X1,SPL100,Product/water presence before pump,IFM LMT100 (Vendor 310 / Device 304),SPL100_LMT100_ProcessData -> DB_Global.Inp.ProductPresentAtPump,Product_Present_At_Pump,IO-Link 2-byte input + PQI,OFFLINE CONFIGURED / DEVICE DETECTED,%IW324 (PQI %IB326)
-AL103,X2,IFS240-08,Filler maximum height,IFM IFS240 inductive sensor,-,-,SIO digital input PNP NO,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED
-AL103,X3,IFS240-09,Filler minimum height,IFM IFS240 inductive sensor,-,-,SIO digital input PNP NO,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED
-AL103,X4,IFS240-10,Dummy bottle presence for washing,IFM IFS240 inductive sensor,-,-,SIO digital input PNP NO,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED
-AL103,X5,SPARE-A103-05,Future smart sensor,-,-,-,Spare,SPARE,NOT APPLICABLE
-AL103,X6,SPARE-A103-06,Future smart sensor,-,-,-,Spare,SPARE,NOT APPLICABLE
-AL103,X7,SPARE-A103-07,Future smart sensor,-,-,-,Spare,SPARE,NOT APPLICABLE
-AL103,X8,SPARE-A103-08,Future smart sensor,-,-,-,Spare,SPARE,NOT APPLICABLE
-AL104,P1,CIP-DO-01,Cold Water Request,Customer interface output,CIP_REQ_COLD_WATER,CIP_Req_Cold_Water,Digital output,FROZEN FUNCTION,NOT CONFIGURED
-AL104,P2,CIP-DO-02,Hot Water Request,Customer interface output,CIP_REQ_HOT_WATER,CIP_Req_Hot_Water,Digital output,FROZEN FUNCTION,NOT CONFIGURED
-AL104,P3,CIP-DO-03,Acid/Chemical Request,Customer interface output,CIP_REQ_ACID,CIP_Req_Acid,Digital output,FROZEN FUNCTION,NOT CONFIGURED
-AL104,P4,CIP-DO-04,Citra/Neutralizer Request,Customer interface output,CIP_REQ_CITRA,CIP_Req_Citra,Digital output,FROZEN FUNCTION,NOT CONFIGURED
-AL104,P5,CIP-DO-05,Discharge Request,Customer interface output,CIP_REQ_DISCHARGE,CIP_Req_Discharge,Digital output,FROZEN FUNCTION,NOT CONFIGURED
-AL104,P6,PROD-DO-01,Production/Product Request,Customer interface output,PRODUCTION_REQ_PRODUCT,Production_Req_Product,Digital output,FROZEN FUNCTION,NOT CONFIGURED
-AL104,P7,CIP-DI-01,Customer CIP Ready/Accepted,Customer feedback,CIP_REMOTE_READY,CIP_Remote_Ready,Digital input,RESERVED FEEDBACK,NOT CONFIGURED
-AL104,P8,CIP-DI-02,Customer CIP Fault/Busy,Customer feedback,CIP_REMOTE_FAULT,CIP_Remote_Fault,Digital input,RESERVED FEEDBACK,NOT CONFIGURED
+﻿Master,Port,DeviceID,Function,DeviceType,PLCLogicalTag,HMITag,Mode,Status,PhysicalAddress,ModelRevisionNote
+AL100,X1,DI-031,Bottle Shortage 1 - line slowdown,IFM O6P301 retro-reflective photoelectric,b_BottleShortage_1,DI_Bottle_Shortage_1,SIO digital input PNP dark-on,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED,
+AL100,X2,DI-032,Bottle Shortage 2 - gate/standby,IFM O6P301 retro-reflective photoelectric,b_BottleShortage_2,DI_Bottle_Shortage_2,SIO digital input PNP dark-on,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED,
+AL100,X3,DI-033,Outfeed Accumulation 1 - slowdown,IFM O6P301 retro-reflective photoelectric,b_Accumulation_1,DI_Accumulation_1,SIO digital input PNP dark-on,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED,
+AL100,X4,DI-034,Outfeed Accumulation 2 - gate/standby,IFM O6P301 retro-reflective photoelectric,b_Accumulation_2,DI_Accumulation_2,SIO digital input PNP dark-on,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED,
+AL100,X5,IFS240-01,Capper cylinder presence/position,IFM IM5135 inductive sensor - replaces original IFS240,-,-,SIO digital input PNP complementary - selected output/polarity to verify,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED,Operator 2026-11-14: IFS240 replaced by IM5135; original DeviceID retained for traceability. Port relocation and field testing are separate.
+AL100,X6,IFS240-02,Cap distributor rotation,IFM IM5135 inductive sensor - replaces original IFS240,-,-,SIO digital input PNP complementary - selected output/polarity to verify,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED,Operator 2026-11-14: IFS240 replaced by IM5135; original DeviceID retained for traceability. Port relocation and field testing are separate.
+AL100,X7,IFS240-03,Capper maximum height,IFM IM5135 inductive sensor - replaces original IFS240,-,-,SIO digital input PNP complementary - selected output/polarity to verify,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED,Operator 2026-11-14: IFS240 replaced by IM5135; original DeviceID retained for traceability. Port relocation and field testing are separate.
+AL100,X8,IFS240-04,Capper minimum height,IFM IM5135 inductive sensor - replaces original IFS240,-,-,SIO digital input PNP complementary - selected output/polarity to verify,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED,Operator 2026-11-14: IFS240 replaced by IM5135; original DeviceID retained for traceability. Port relocation and field testing are separate.
+AL101,X1,DI-040,Cap Present - Pick and Place,IFM O6P301 retro-reflective photoelectric,b_CapPresent_PP,DI_Cap_Present,SIO digital input PNP dark-on,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED,
+AL101,X2,DI-060,Cap Hopper Low Level,IFM O6P301 retro-reflective photoelectric,b_CapHopper_Low,DI_Cap_Hopper_Low,SIO digital input PNP dark-on,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED,
+AL101,X3,DI-061,Cap Channel Request,IFM O6P301 retro-reflective photoelectric,b_CapChannel_Req,DI_Cap_Channel_Demand,SIO digital input PNP dark-on,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED,
+AL101,X4,DI-062,Cap Channel Empty,IFM O6P301 retro-reflective photoelectric,b_CapChannel_Empty,DI_Caps_Missing,SIO digital input PNP dark-on,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED,
+AL101,X5,DI-010,Machine Air Pressure,IFM PN7094 pressure sensor -0.9...10 bar,b_AirPressureOK,DI_AirPressure_OK,IO-Link pin 4,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED,
+AL101,X6,IFS240-05,Historical machine zero / filler valve no. 1,Historical IFM IFS240 identity; current replacement IM5135. Historical AL101/X6 zero superseded by AL102/X6.,-,-,Historical SIO digital input,OBSOLETE ZERO ASSIGNMENT - DO NOT APPLY,Current use of this port not verified,Operator 2026-11-14: IFS240 replaced by IM5135; original DeviceID retained for traceability. Port relocation and field testing are separate.
+AL101,X7,IFS240-06,Filler cylinder presence/position,IFM IM5135 inductive sensor - replaces original IFS240,-,-,SIO digital input PNP complementary - selected output/polarity to verify,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED,Operator 2026-11-14: IFS240 replaced by IM5135; original DeviceID retained for traceability. Port relocation and field testing are separate.
+AL101,X8,IFS240-07,Filler anti-rotation,IFM IM5135 inductive sensor - replaces original IFS240,-,-,SIO digital input PNP complementary - selected output/polarity to verify,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED,Operator 2026-11-14: IFS240 replaced by IM5135; original DeviceID retained for traceability. Port relocation and field testing are separate.
+AL102,X1,X1,Product Presence,TBC,DB_Global.AL102Process.X1ProductPresence,AL102_X1_Product_Presence,IO-Link,FUNCTION CONFIRMED / HARDWARE HOLD,ADDRESS DEVICE AND POLARITY NOT CONFIGURED,
+AL102,X2,X2,Product Temperature,Original IFM TA2405 retained - individual installed identity/connection to reconcile,DB_Global.AL102Process.X2ProductTemperature,AL102_X2_Product_Temperature,IO-Link,FUNCTION CONFIRMED / HARDWARE HOLD,ADDRESS DEVICE SCALE AND UNIT NOT CONFIGURED,"Original model recovered from native inventory AL102/X7; operator confirms models unchanged, only moved. New-port PDO/address/scaling not yet approved."
+AL102,X3,X3,Vacuum Sensor,Original IFM PN7094 retained - individual installed identity/connection to reconcile,DB_Global.AL102Process.X3Vacuum,AL102_X3_Vacuum,IO-Link,FUNCTION CONFIRMED / HARDWARE HOLD,ADDRESS DEVICE SCALE AND UNIT NOT CONFIGURED,"Original model recovered from native inventory AL102/X1; operator confirms models unchanged, only moved. New-port PDO/address/scaling not yet approved."
+AL102,X4,X4,Distributor Anti-Rotation,TBC,DB_Global.AL102Process.X4AntiRotationHealthy,AL102_X4_AntiRotation_Healthy,IO-Link,FUNCTION CONFIRMED / HARDWARE HOLD,ADDRESS POLARITY AND DIAGNOSTIC STATE NOT CONFIGURED,
+AL102,X5,X5,Tank Level,Original IFM LR2050 retained - individual installed identity/connection to reconcile,DB_Global.AL102Process.X5TankLevel,AL102_X5_Tank_Level,IO-Link,FUNCTION CONFIRMED / HARDWARE HOLD,ADDRESS DEVICE SCALE AND UNIT NOT CONFIGURED,"Original model recovered from native inventory AL102/X5; operator confirms models unchanged, only moved. New-port PDO/address/scaling not yet approved."
+AL102,X6,X6,Filler Zero Position - Valve #1,IFM IM5135 inductive sensor - operator and photo confirmed 2026-11-12,DB_Global.AL102Process.X6Valve1Reference,AL102_X6_Valve1_Reference,SIO digital input PNP complementary - selected output to verify,MODEL AND PORT OPERATOR CONFIRMED - NOT FIELD TESTED,ADDRESS OUTPUT PIN POLARITY AND NATIVE PORT MODE NOT VERIFIED,"IM5135 and AL102/X6 already operator/photo confirmed 2026-11-12; reiterated 2026-11-14. Pin, polarity and input test remain separate."
+AL102,X7,X7,CIP Presence / Engaged,TBC,DB_Global.AL102Process.X7CIPPresenceEngaged,AL102_X7_CIP_Presence,IO-Link,FUNCTION CONFIRMED / SAFETY HOLD,ADDRESS POLARITY AND INDEPENDENT SAFETY VALIDATION OPEN,
+AL102,X8,X8,Spare,-,-,-,SPARE,CONFIRMED SPARE,NO ASSIGNMENT,
+AL103,X1,SPL100,Product/water presence before pump,IFM LMT100 (Vendor 310 / Device 304),SPL100_LMT100_ProcessData -> DB_Global.Inp.ProductPresentAtPump,Product_Present_At_Pump,IO-Link 2-byte input + PQI,OFFLINE CONFIGURED / DEVICE DETECTED,%IW324 (PQI %IB326),
+AL103,X2,IFS240-08,Filler maximum height,IFM IM5135 inductive sensor - replaces original IFS240,-,-,SIO digital input PNP complementary - selected output/polarity to verify,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED,Operator 2026-11-14: IFS240 replaced by IM5135; original DeviceID retained for traceability. Port relocation and field testing are separate.
+AL103,X3,IFS240-09,Filler minimum height,IFM IM5135 inductive sensor - replaces original IFS240,-,-,SIO digital input PNP complementary - selected output/polarity to verify,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED,Operator 2026-11-14: IFS240 replaced by IM5135; original DeviceID retained for traceability. Port relocation and field testing are separate.
+AL103,X4,IFS240-10,Dummy bottle presence for washing,IFM IM5135 inductive sensor - replaces original IFS240,-,-,SIO digital input PNP complementary - selected output/polarity to verify,FROZEN PORT / MODEL CONFIRMED,NOT CONFIGURED,Operator 2026-11-14: IFS240 replaced by IM5135; original DeviceID retained for traceability. Port relocation and field testing are separate.
+AL103,X5,SPARE-A103-05,Future smart sensor,-,-,-,Spare,SPARE,NOT APPLICABLE,
+AL103,X6,SPARE-A103-06,Future smart sensor,-,-,-,Spare,SPARE,NOT APPLICABLE,
+AL103,X7,SPARE-A103-07,Future smart sensor,-,-,-,Spare,SPARE,NOT APPLICABLE,
+AL103,X8,SPARE-A103-08,Future smart sensor,-,-,-,Spare,SPARE,NOT APPLICABLE,
+AL104,P1,CIP-DO-01,Cold Water Request,Customer interface output,CIP_REQ_COLD_WATER,CIP_Req_Cold_Water,Digital output,FROZEN FUNCTION,NOT CONFIGURED,
+AL104,P2,CIP-DO-02,Hot Water Request,Customer interface output,CIP_REQ_HOT_WATER,CIP_Req_Hot_Water,Digital output,FROZEN FUNCTION,NOT CONFIGURED,
+AL104,P3,CIP-DO-03,Acid/Chemical Request,Customer interface output,CIP_REQ_ACID,CIP_Req_Acid,Digital output,FROZEN FUNCTION,NOT CONFIGURED,
+AL104,P4,CIP-DO-04,Citra/Neutralizer Request,Customer interface output,CIP_REQ_CITRA,CIP_Req_Citra,Digital output,FROZEN FUNCTION,NOT CONFIGURED,
+AL104,P5,CIP-DO-05,Discharge Request,Customer interface output,CIP_REQ_DISCHARGE,CIP_Req_Discharge,Digital output,FROZEN FUNCTION,NOT CONFIGURED,
+AL104,P6,PROD-DO-01,Production/Product Request,Customer interface output,PRODUCTION_REQ_PRODUCT,Production_Req_Product,Digital output,FROZEN FUNCTION,NOT CONFIGURED,
+AL104,P7,CIP-DI-01,Customer CIP Ready/Accepted,Customer feedback,CIP_REMOTE_READY,CIP_Remote_Ready,Digital input,RESERVED FEEDBACK,NOT CONFIGURED,
+AL104,P8,CIP-DI-02,Customer CIP Fault/Busy,Customer feedback,CIP_REMOTE_FAULT,CIP_Remote_Fault,Digital input,RESERVED FEEDBACK,NOT CONFIGURED,
