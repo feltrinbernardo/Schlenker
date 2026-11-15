@@ -28,6 +28,14 @@ namespace Schlenker.TiaV19
 
         private static int Main(string[] args)
         {
+            if (args.Length == 2 && args[0] == "--export-footer-scripts")
+            {
+                Directory.CreateDirectory(args[1]);
+                File.WriteAllText(Path.Combine(args[1], "footer-text.js"), BuildFooterTextScript());
+                File.WriteAllText(Path.Combine(args[1], "footer-color.js"), BuildFooterColorScript());
+                Console.WriteLine("OFFLINE_SCRIPT_EXPORT=YES; TIA_ATTACHED=NO");
+                return 0;
+            }
             if (args.Length != 1) return 2;
             string expected = Path.GetFullPath(args[0]);
             try
@@ -95,24 +103,42 @@ namespace Schlenker.TiaV19
             {
                 HmiText status = screen.ScreenItems.Find("REV13_Common_BottomInfo") as HmiText;
                 if (status == null) continue;
-                SetQualityText(status, "Machine_State",
-                    "LINK ONLINE     PLC / HMI", "NO DATA / OFFLINE     PLC / HMI");
-                ReplaceScript(status, "ForeColor",
-                    "let t=HMIRuntime.Tags(\"Machine_State\");t.Read();" +
-                    "let live=t.LastError===0&&(Number(t.QualityCode)&192)>=128;" +
-                    "return live?HMIRuntime.Math.RGB(80,205,70):HMIRuntime.Math.RGB(235,160,30);");
+                // This footer was the established cyclic heartbeat producer.
+                // Replacing it with a quality-only display removed supervision
+                // updates, while PLC and SMC permissives still required them.
+                ReplaceScript(status, "Text", BuildFooterTextScript());
+                ReplaceScript(status, "ForeColor", BuildFooterColorScript());
                 HmiEllipse lamp = screen.ScreenItems.Find("REV28_Common_HmiLinkLamp") as HmiEllipse ??
                     screen.ScreenItems.Find("REV28_Home_HmiLinkLamp") as HmiEllipse;
                 if (lamp != null)
                 {
-                    ReplaceScript(lamp, "BackColor",
-                        "let t=HMIRuntime.Tags(\"Machine_State\");t.Read();" +
-                        "let live=t.LastError===0&&(Number(t.QualityCode)&192)>=128;" +
-                        "return live?HMIRuntime.Math.RGB(80,205,70):HMIRuntime.Math.RGB(235,160,30);");
+                    ReplaceScript(lamp, "BackColor", BuildFooterColorScript());
                 }
                 updated++;
             }
             return updated;
+        }
+
+        private static string BuildFooterTextScript()
+        {
+            return "// SCHLENKER_HMI_HEARTBEAT_RESTORED_20261113\n" +
+                "try{let hb=HMIRuntime.Tags(\"HMI_Heartbeat\");let h=Number(hb.Read());" +
+                "if(hb.LastError===0&&(Number(hb.QualityCode)&192)>=128&&Number.isFinite(h)&&Number.isInteger(h))" +
+                "{hb.Write(h<0||h>=2147483000?0:h+1);}}catch(e){}" +
+                "let t=HMIRuntime.Tags(\"Machine_State\");t.Read();" +
+                "if(t.LastError!==0||(Number(t.QualityCode)&192)<128)return \"NO DATA / OFFLINE     PLC / HMI\";" +
+                "let link=HMIRuntime.Tags(\"Network_HMI_OK\");let ok=Boolean(link.Read());" +
+                "if(link.LastError!==0||(Number(link.QualityCode)&192)<128)return \"PLC DATA OK / LINK NO DATA\";" +
+                "return ok?\"LINK ONLINE     PLC / HMI\":\"PLC DATA OK / LINK WAIT\";";
+        }
+
+        private static string BuildFooterColorScript()
+        {
+            return "let t=HMIRuntime.Tags(\"Machine_State\");t.Read();" +
+                "let link=HMIRuntime.Tags(\"Network_HMI_OK\");let ok=Boolean(link.Read());" +
+                "let live=t.LastError===0&&(Number(t.QualityCode)&192)>=128&&" +
+                "link.LastError===0&&(Number(link.QualityCode)&192)>=128&&ok;" +
+                "return live?HMIRuntime.Math.RGB(80,205,70):HMIRuntime.Math.RGB(235,160,30);";
         }
 
         private static int RepairIoLinkDetailPages(HmiSoftware hmi)
